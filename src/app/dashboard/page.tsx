@@ -5,19 +5,28 @@ import DashboardLayout from '@/components/layouts/DashboardLayout';
 export default function Dashboard() {
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         {/* Welcome Section */}
-        <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-lg p-8 text-white">
-          <h1 className="text-3xl font-bold mb-2">
+        <div style={{ 
+          background: 'linear-gradient(to right, #9333ea, #7c3aed)', 
+          borderRadius: '8px', 
+          padding: '32px', 
+          color: 'white' 
+        }}>
+          <h1 style={{ fontSize: '30px', fontWeight: 'bold', marginBottom: '8px' }}>
             Welkom bij Appalti AI
           </h1>
-          <p className="text-purple-100">
+          <p style={{ color: '#e9d5ff' }}>
             Beheer uw aanbestedingen en optimaliseer uw sales proces met AI
           </p>
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+          gap: '24px' 
+        }}>
           <StatCard
             title="Client Companies"
             value="0"
@@ -45,7 +54,11 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+          gap: '24px' 
+        }}>
           <QuickActionCard
             title="Nieuwe Client Company"
             description="Voeg een nieuwe client company toe en vul het IKP in"
@@ -79,14 +92,42 @@ function StatCard({
   trendUp: boolean;
 }) {
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-gray-600">{title}</h3>
-        <span className={`text-sm font-medium ${trendUp ? 'text-green-600' : 'text-gray-500'}`}>
+    <div style={{ 
+      backgroundColor: 'white', 
+      padding: '24px', 
+      borderRadius: '8px', 
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+      border: '1px solid #e5e7eb'
+    }}>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        marginBottom: '16px' 
+      }}>
+        <h3 style={{ 
+          fontSize: '14px', 
+          fontWeight: '500', 
+          color: '#6b7280' 
+        }}>
+          {title}
+        </h3>
+        <span style={{ 
+          fontSize: '14px', 
+          fontWeight: '500', 
+          color: trendUp ? '#10b981' : '#6b7280' 
+        }}>
           {trend}
         </span>
       </div>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
+      <p style={{ 
+        fontSize: '24px', 
+        fontWeight: 'bold', 
+        color: '#111827',
+        margin: 0
+      }}>
+        {value}
+      </p>
     </div>
   );
 }
@@ -103,12 +144,41 @@ function QuickActionCard({
   return (
     <a
       href={href}
-      className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-all group"
+      style={{ 
+        display: 'block',
+        backgroundColor: 'white', 
+        padding: '24px', 
+        borderRadius: '8px', 
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        border: '1px solid #e5e7eb',
+        textDecoration: 'none',
+        color: 'inherit',
+        transition: 'all 0.2s'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+        e.currentTarget.style.transform = 'translateY(-2px)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+        e.currentTarget.style.transform = 'translateY(0)';
+      }}
     >
-      <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-purple-600">
+      <h3 style={{ 
+        fontSize: '18px', 
+        fontWeight: '600', 
+        color: '#111827',
+        marginBottom: '8px' 
+      }}>
         {title}
       </h3>
-      <p className="text-sm text-gray-600">{description}</p>
+      <p style={{ 
+        fontSize: '14px', 
+        color: '#6b7280',
+        margin: 0
+      }}>
+        {description}
+      </p>
     </a>
   );
 }
