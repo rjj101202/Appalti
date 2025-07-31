@@ -85,22 +85,24 @@ const MOCK_COMPANIES: KVKCompany[] = [
 ];
 
 class KVKAPIService {
-  private baseUrl: string;
+  private baseUrl: string = 'https://api.kvk.nl/api/v1';
+  private apiKey: string;
   private jwtSecret: string;
   private password: string;
   private useMockData: boolean;
 
   constructor() {
-    this.baseUrl = process.env.KVK_API_URL || 'https://api.kvk.nl/api/v1';
+    // KVK_API_URL might actually be an API key based on the error
+    this.apiKey = process.env.KVK_API_URL || '';
     this.jwtSecret = process.env.KVK_JWT_SECRET || '';
     this.password = process.env.KVK_PASSWORD || '';
     
     // Enable mock mode if API credentials are not configured or if explicitly set
-    this.useMockData = process.env.USE_MOCK_KVK === 'true' || !this.jwtSecret || !this.password;
+    this.useMockData = process.env.USE_MOCK_KVK === 'true' || !this.apiKey;
     
     // Debug logging
     console.log('KVK API initialized with:');
-    console.log('- Base URL:', this.baseUrl);
+    console.log('- API Key configured:', !!this.apiKey);
     console.log('- JWT Secret configured:', !!this.jwtSecret);
     console.log('- Password configured:', !!this.password);
     console.log('- Using mock data:', this.useMockData);
@@ -126,19 +128,31 @@ class KVKAPIService {
     }
 
     try {
-      const token = this.generateToken();
+      // Try different API formats - some APIs use API key in headers, others in URL
       const url = `${this.baseUrl}/search/companies?kvkNumber=${kvkNumber}`;
       
       console.log('Searching KVK by number:', kvkNumber);
       console.log('Request URL:', url);
       
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+
+      // Try different authentication methods
+      if (this.jwtSecret && this.password) {
+        // JWT based auth
+        const token = this.generateToken();
+        headers['Authorization'] = `Bearer ${token}`;
+      } else if (this.apiKey) {
+        // API key based auth - try different header names
+        headers['X-API-Key'] = this.apiKey;
+        headers['apikey'] = this.apiKey;
+      }
+      
       const response = await fetch(url, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+        headers,
         // Add timeout to prevent hanging requests
         signal: AbortSignal.timeout(10000) // 10 second timeout
       });
@@ -146,6 +160,12 @@ class KVKAPIService {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('KVK API error:', response.status, errorText);
+        
+        // If we get a 401, we might be using the wrong auth method
+        if (response.status === 401) {
+          console.error('Authentication failed. Check your API credentials.');
+        }
+        
         return null;
       }
 
@@ -177,19 +197,30 @@ class KVKAPIService {
     }
 
     try {
-      const token = this.generateToken();
       const url = `${this.baseUrl}/search/companies?name=${encodeURIComponent(name)}&limit=${limit}`;
       
       console.log('Searching KVK by name:', name);
       console.log('Request URL:', url);
       
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+
+      // Try different authentication methods
+      if (this.jwtSecret && this.password) {
+        // JWT based auth
+        const token = this.generateToken();
+        headers['Authorization'] = `Bearer ${token}`;
+      } else if (this.apiKey) {
+        // API key based auth - try different header names
+        headers['X-API-Key'] = this.apiKey;
+        headers['apikey'] = this.apiKey;
+      }
+      
       const response = await fetch(url, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+        headers,
         // Add timeout to prevent hanging requests
         signal: AbortSignal.timeout(10000) // 10 second timeout
       });
@@ -197,6 +228,12 @@ class KVKAPIService {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('KVK API error:', response.status, errorText);
+        
+        // If we get a 401, we might be using the wrong auth method
+        if (response.status === 401) {
+          console.error('Authentication failed. Check your API credentials.');
+        }
+        
         return [];
       }
 
