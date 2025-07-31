@@ -1,4 +1,4 @@
-import { withMiddlewareAuthRequired, getSession } from '@auth0/nextjs-auth0/edge';
+import { withMiddlewareAuthRequired } from '@auth0/nextjs-auth0/middleware';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -14,10 +14,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Protected routes require authentication
-  const authMiddleware = withMiddlewareAuthRequired({
-    returnTo: '/api/auth/login'
-  });
-
+  const authMiddleware = withMiddlewareAuthRequired();
   return authMiddleware(request);
 }
 
