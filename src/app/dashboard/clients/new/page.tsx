@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import IKPForm from '@/components/ikp/IKPForm';
+import CompanyAutocomplete from '@/components/kvk/CompanyAutocomplete';
 import { IKPData } from '@/types/ikp';
 
 export default function NewClientCompany() {
@@ -46,6 +47,37 @@ export default function NewClientCompany() {
     } catch (error) {
       console.error('Search error:', error);
       setSearchError('Er ging iets mis bij het zoeken');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleCompanySelect = async (company: { name: string; kvkNumber: string }) => {
+    // Update company data with selected values
+    setCompanyData({
+      ...companyData,
+      name: company.name,
+      kvkNumber: company.kvkNumber
+    });
+
+    // Automatically fetch full company details
+    setIsSearching(true);
+    setSearchError('');
+
+    try {
+      const response = await fetch(`/api/kvk/search?kvkNumber=${company.kvkNumber}`);
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        setCompanyData({
+          ...companyData,
+          ...result.data
+        });
+        setShowIKPForm(true);
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchError('Er ging iets mis bij het ophalen van bedrijfsgegevens');
     } finally {
       setIsSearching(false);
     }
@@ -127,7 +159,7 @@ export default function NewClientCompany() {
       <div className="page-container">
         <div className="header-section">
           <h1>Nieuwe Client Company</h1>
-          <p>Zoek een bedrijf via KVK nummer of voer handmatig in</p>
+          <p>Zoek een bedrijf via KVK nummer of bedrijfsnaam</p>
         </div>
 
         <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
@@ -166,14 +198,23 @@ export default function NewClientCompany() {
 
           <div className="form-group">
             <label htmlFor="companyName">Bedrijfsnaam</label>
-            <input
-              type="text"
-              id="companyName"
-              placeholder="Voer bedrijfsnaam in"
+            <CompanyAutocomplete
               value={companyData.name}
-              onChange={(e) => setCompanyData({ ...companyData, name: e.target.value })}
+              onChange={(value) => setCompanyData({ ...companyData, name: value })}
+              onSelect={handleCompanySelect}
+              placeholder="Begin met typen om bedrijven te zoeken..."
             />
+            <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+              Typ minimaal 2 letters om te zoeken in het KVK register
+            </p>
           </div>
+
+          {isSearching && (
+            <div style={{ textAlign: 'center', padding: '1rem' }}>
+              <div className="spinner-small" style={{ margin: '0 auto' }}></div>
+              <p style={{ marginTop: '0.5rem', color: '#6b7280' }}>Bedrijfsgegevens ophalen...</p>
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
             <button onClick={handleCancel} className="btn btn-secondary">
