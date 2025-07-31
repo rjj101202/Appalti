@@ -92,8 +92,8 @@ class KVKAPIService {
   private useMockData: boolean;
 
   constructor() {
-    // KVK_API_URL might actually be an API key based on the error
-    this.apiKey = process.env.KVK_API_URL || '';
+    // Use KVK_API for the API key
+    this.apiKey = process.env.KVK_API || '';
     this.jwtSecret = process.env.KVK_JWT_SECRET || '';
     this.password = process.env.KVK_PASSWORD || '';
     
