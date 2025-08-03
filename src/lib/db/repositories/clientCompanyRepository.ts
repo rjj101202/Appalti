@@ -1,6 +1,6 @@
 import { Collection, Db, ObjectId } from 'mongodb';
 import { ClientCompany, CreateClientCompanyInput } from '../models/ClientCompany';
-import { getDb } from '@/lib/mongodb';
+import { getDatabase } from '@/lib/mongodb';
 
 export class ClientCompanyRepository {
   private collection: Collection<ClientCompany>;
@@ -126,7 +126,7 @@ let repository: ClientCompanyRepository | null = null;
 
 export async function getClientCompanyRepository(): Promise<ClientCompanyRepository> {
   if (!repository) {
-    const db = await getDb();
+    const db = await getDatabase();
     repository = new ClientCompanyRepository(db);
   }
   return repository;
