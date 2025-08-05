@@ -183,19 +183,26 @@ Alleen `ClientCompanyRepository` bestaat momenteel:
 - Document storage integratie
 - AI integratie
 
-## 🚀 DEPLOYMENT
+## 🚀 DEPLOYMENT STATUS
 
-### Vercel Environment Variables
-```
-MONGODB_URI=[connection string]
-MONGODB_DB=appalti-prod
-AUTH0_BASE_URL=https://[app-name].vercel.app
-[... alle Auth0 vars ...]
-```
+### Current Deployment
+- **URL**: `https://appalti-prod-vercel.vercel.app`
+- **Status**: Auth0 werkend, MongoDB connected
+- **Auth**: Iedereen kan inloggen maar alleen @appalti.nl krijgt automatisch toegang
 
-### Auth0 Dashboard Updates
-- Callback URL: `https://[app].vercel.app/api/auth/callback`
-- Logout URL: `https://[app].vercel.app`
+### Vercel Environment Variables ✅
+Alle environment variables zijn geconfigureerd in Vercel dashboard.
+
+### Auth0 Dashboard Configuration ✅
+- **Allowed Callback URLs**: 
+  - `http://localhost:3000/api/auth/callback`
+  - `https://appalti-prod-vercel.vercel.app/api/auth/callback`
+- **Allowed Logout URLs**: 
+  - `http://localhost:3000`
+  - `https://appalti-prod-vercel.vercel.app`
+- **Allowed Web Origins**: 
+  - `http://localhost:3000`
+  - `https://appalti-prod-vercel.vercel.app`
 
 ## 📝 BELANGRIJKE BESTANDEN
 
@@ -203,13 +210,34 @@ AUTH0_BASE_URL=https://[app-name].vercel.app
 2. **`/src/lib/mongodb.ts`** - Database connectie
 3. **`/src/types/models.ts`** - Alle data modellen
 4. **`/src/app/api/auth/[auth0]/route.ts`** - Auth handlers
-5. **`/middleware.ts`** - Auth middleware (UITGESCHAKELD!)
+5. **`/middleware.ts`** - Auth middleware (Nu met `withMiddlewareAuthRequired`)
+6. **`/src/lib/auth0.ts`** - Auth0 exports (v4.x compatible)
+7. **`/src/lib/auth/context.ts`** - Auth context met MongoDB sync
+
+## ⚠️ KRITIEKE TECHNISCHE NOTES
+
+### Auth0 v4.x Migration (December 2024)
+- **GEEN `initAuth0` meer** - gebruik direct imports van `@auth0/nextjs-auth0`
+- **`getSession()` heeft geen parameters meer** - was: `getSession(req, res)`
+- **User sync gebeurt in `getAuthContext`** - tijdelijke oplossing omdat afterCallback niet werkt in v4.x
+- **Middleware gebruikt `withMiddlewareAuthRequired`** van `@auth0/nextjs-auth0/edge`
+
+### MongoDB User Sync
+- **TIJDELIJK**: User wordt aangemaakt in `getAuthContext` bij eerste login
+- **TODO**: Verplaats naar proper Auth0 callback wanneer SDK het ondersteunt
+- **Appalti medewerkers** (@appalti.nl emails) worden auto toegevoegd aan Appalti company
+
+### Environment Variables
+- **Auth0 gebruikt automatisch env vars** - geen custom config nodig
+- **Vercel production URL**: `https://appalti-prod-vercel.vercel.app`
+- **MongoDB database**: `appalti-prod`
 
 ## 🔧 VOLGENDE STAPPEN (Prioriteit)
 
-1. **Enable Auth Middleware**
-   - Uncomment in `middleware.ts`
-   - Add tenant context extraction
+1. **Fix Auth0 Callback**
+   - Onderzoek hoe afterCallback werkt in v4.x
+   - Verplaats user sync van `getAuthContext` naar callback
+   - Test met @appalti.nl email accounts
 
 2. **Build User Registration**
    - Post-login flow
@@ -217,11 +245,11 @@ AUTH0_BASE_URL=https://[app-name].vercel.app
    - Role assignment
 
 3. **Create Missing Repositories**
-   - UserRepository
-   - CompanyRepository
-   - MembershipRepository
-   - TenderRepository
-   - BidRepository
+   - UserRepository ✅ (DONE)
+   - CompanyRepository ✅ (DONE)
+   - MembershipRepository ✅ (DONE)
+   - TenderRepository (TODO)
+   - BidRepository (TODO)
 
 4. **Implement Multi-Tenancy**
    - Extract tenantId from auth
