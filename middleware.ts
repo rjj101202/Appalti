@@ -1,6 +1,4 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { getSession } from '@/lib/auth0';
+import { withMiddlewareAuthRequired } from '@auth0/nextjs-auth0/edge';
 
 export const config = {
   matcher: [
@@ -17,30 +15,5 @@ export const config = {
   ],
 };
 
-export async function middleware(request: NextRequest) {
-  try {
-    // Check of gebruiker is ingelogd
-    const session = await getSession(request, new Response());
-    
-    if (!session || !session.user) {
-      // Redirect naar login
-      const returnTo = encodeURIComponent(request.url);
-      return NextResponse.redirect(
-        new URL(`/api/auth/login?returnTo=${returnTo}`, request.url)
-      );
-    }
-    
-    // Check of gebruiker een company membership heeft
-    const pathname = request.nextUrl.pathname;
-    if (pathname.startsWith('/dashboard') && !pathname.includes('/api/auth/registration')) {
-      // Voor dashboard routes, check of user een active membership heeft
-      // Dit doen we later via de auth context
-    }
-    
-    return NextResponse.next();
-  } catch (error) {
-    console.error('Middleware error:', error);
-    // Bij error, redirect naar home
-    return NextResponse.redirect(new URL('/', request.url));
-  }
-}
+// Gebruik de Auth0 middleware
+export default withMiddlewareAuthRequired();

@@ -24,8 +24,8 @@ export interface AuthContext {
 export async function getAuthContext(req: NextRequest): Promise<AuthContext | null> {
   try {
     // Get Auth0 session
-    const { getSession } = await import('@/lib/auth0');
-    const session = await getSession(req, new Response());
+    const { getSession } = await import('@auth0/nextjs-auth0');
+    const session = await getSession();
     
     if (!session || !session.user) {
       return null;
@@ -37,8 +37,34 @@ export async function getAuthContext(req: NextRequest): Promise<AuthContext | nu
     const dbUser = await userRepo.findByAuth0Id(session.user.sub);
     
     if (!dbUser || !dbUser._id) {
-      // User not synced yet
-      return null;
+      // User not synced yet - create user
+      const { user: newUser } = await userRepo.findOrCreate({
+        auth0Id: session.user.sub,
+        email: session.user.email,
+        name: session.user.name || session.user.email,
+        avatar: session.user.picture,
+        emailVerified: session.user.email_verified || false,
+      });
+      
+      // If new Appalti user, add to Appalti company
+      if (session.user.email.endsWith('@appalti.nl')) {
+        const { getCompanyRepository } = await import('@/lib/db/repositories/companyRepository');
+        const companyRepo = await getCompanyRepository();
+        const appaltiCompany = await companyRepo.getAppaltiCompany();
+        
+        if (appaltiCompany && appaltiCompany._id && newUser._id) {
+          const membershipRepo = await getMembershipRepository();
+          await membershipRepo.create({
+            userId: newUser._id.toString(),
+            companyId: appaltiCompany._id.toString(),
+            tenantId: appaltiCompany.tenantId,
+            companyRole: CompanyRole.MEMBER,
+            invitedBy: appaltiCompany.createdBy.toString(),
+          });
+        }
+      }
+      
+      return getAuthContext(req); // Retry with created user
     }
     
     // Get active membership

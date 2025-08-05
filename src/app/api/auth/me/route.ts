@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth0';
+import { getSession } from '@auth0/nextjs-auth0';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getSession(request, new Response());
+    const session = await getSession();
     
     if (!session || !session.user) {
       return NextResponse.json({ user: null });
