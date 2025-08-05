@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClientCompanyRepository } from '@/lib/db/repositories/clientCompanyRepository';
+import { requireAuth } from '@/lib/auth/context';
 
 // GET /api/clients - Get all client companies
 export async function GET(request: NextRequest) {
   try {
-    // TODO: Get tenantId from auth context
-    const tenantId = 'appalti'; // Hardcoded for now
+    const auth = await requireAuth(request);
+    
+    if (!auth.tenantId) {
+      return NextResponse.json(
+        { error: 'No active tenant' },
+        { status: 400 }
+      );
+    }
     
     const repository = await getClientCompanyRepository();
-    const clients = await repository.findAll(tenantId);
+    const clients = await repository.findAll(auth.tenantId);
     
     return NextResponse.json({
       success: true,
