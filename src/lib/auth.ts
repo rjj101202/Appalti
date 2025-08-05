@@ -18,6 +18,7 @@ export const {
       authorization: {
         params: {
           prompt: "login",
+          scope: "openid profile email offline_access",
         },
       },
     }),

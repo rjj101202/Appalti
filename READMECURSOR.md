@@ -302,6 +302,10 @@ Alle environment variables zijn geconfigureerd in Vercel dashboard.
   - Tailwind `px-3` error opgelost met inline styles
   - NextAuth secret toegevoegd aan config
   - Auth0 callback URL in dashboard moet poort matchen!
+  - Auth0 "Both" mode: Users kunnen persoonlijk OF via organisatie inloggen
+- **BELANGRIJK voor lokaal testen**:
+  - Check dat `NEXTAUTH_URL` in `.env.local` klopt met je poort (3000/3001)
+  - Debug URL: http://localhost:3001/api/debug (alleen in development)
 
 ### MongoDB User Sync
 - **TIJDELIJK**: User wordt aangemaakt in `getAuthContext` bij eerste login
