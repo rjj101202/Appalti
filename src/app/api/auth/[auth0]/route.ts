@@ -1,5 +1,16 @@
-import { handleAuth } from '@/lib/auth0';
+import { NextRequest, NextResponse } from 'next/server';
 
-// Voor nu gebruik de standaard handleAuth
-// Later kunnen we de afterCallback toevoegen wanneer de Auth0 SDK het ondersteunt
-export const GET = handleAuth();
+// Tijdelijke auth routes totdat we de juiste Auth0 setup hebben
+export async function GET(request: NextRequest) {
+  return NextResponse.json({ 
+    message: 'Auth routes temporarily disabled',
+    note: 'Auth0 v4 setup in progress'
+  });
+}
+
+export async function POST(request: NextRequest) {
+  return NextResponse.json({ 
+    message: 'Auth routes temporarily disabled',
+    note: 'Auth0 v4 setup in progress'
+  });
+}

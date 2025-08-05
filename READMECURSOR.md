@@ -216,13 +216,18 @@ Alle environment variables zijn geconfigureerd in Vercel dashboard.
 
 ## ⚠️ KRITIEKE TECHNISCHE NOTES
 
-### Auth0 v4.x Migration (December 2024)
-- **GEEN `initAuth0` meer** - gebruik direct imports
-- **Alle imports van root** - gebruik `@auth0/nextjs-auth0` (NIET /server of /client)
-- **Edge imports** - gebruik `@auth0/nextjs-auth0/edge` voor middleware ALLEEN
-- **`getSession()` heeft geen parameters meer** - was: `getSession(req, res)`
-- **User sync gebeurt in `getAuthContext`** - tijdelijke oplossing omdat afterCallback niet werkt in v4.x
-- **Versie 4.8.0** - let op: documentatie klopt vaak niet!
+### Auth0 UITGESCHAKELD (December 2024)
+- **Auth0 v4.8.0 werkt NIET** met Next.js 15 App Router
+- **Alle Auth0 code is tijdelijk uitgeschakeld**
+- **Hardcoded auth context** voor development:
+  - Email: admin@appalti.nl
+  - Rol: SUPER_ADMIN / OWNER
+  - TenantId: appalti
+- **TODO**: Implementeer werkende auth oplossing:
+  - Optie 1: Wacht op Auth0 v5 met App Router support
+  - Optie 2: Gebruik NextAuth.js (Auth.js)
+  - Optie 3: Implementeer custom JWT auth
+  - Optie 4: Gebruik Supabase Auth
 
 ### MongoDB User Sync
 - **TIJDELIJK**: User wordt aangemaakt in `getAuthContext` bij eerste login
