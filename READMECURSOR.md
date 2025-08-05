@@ -216,7 +216,7 @@ Alle environment variables zijn geconfigureerd in Vercel dashboard.
 
 ## ⚠️ KRITIEKE TECHNISCHE NOTES
 
-### NextAuth.js GEÏMPLEMENTEERD (December 2024)
+### NextAuth.js GEÏMPLEMENTEERD (Augustus 2025)
 - **NextAuth.js v5 (beta)** met Auth0 als provider
 - **MongoDB adapter** voor session storage
 - **Environment variabelen** (BELANGRIJK - kopieer van voorbeeldenv):
