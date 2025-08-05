@@ -1,6 +1,4 @@
-import { withMiddlewareAuthRequired, getSession } from '@auth0/nextjs-auth0/edge';
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { withMiddlewareAuthRequired } from '@auth0/nextjs-auth0/edge';
 
 export const config = {
   matcher: [
@@ -16,21 +14,4 @@ export const config = {
   ],
 };
 
-export default withMiddlewareAuthRequired(async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-  const session = await getSession(req, res);
-  
-  // Als user is ingelogd maar geen dbUserId heeft, redirect naar registratie
-  if (session?.user && !session.user.dbUserId && !req.nextUrl.pathname.startsWith('/registration')) {
-    return NextResponse.redirect(new URL('/registration', req.url));
-  }
-  
-  // Dashboard routes require authenticated user with company
-  if (req.nextUrl.pathname.startsWith('/dashboard')) {
-    if (!session?.user?.tenantId) {
-      return NextResponse.redirect(new URL('/registration', req.url));
-    }
-  }
-  
-  return res;
-});
+export default withMiddlewareAuthRequired();

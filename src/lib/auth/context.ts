@@ -1,4 +1,4 @@
-import { getSession } from '@auth0/nextjs-auth0';
+import { getSession } from '@auth0/nextjs-auth0/edge';
 import { NextRequest, NextResponse } from 'next/server';
 import { getMembershipRepository } from '@/lib/db/repositories/membershipRepository';
 import { CompanyRole, PlatformRole } from '@/lib/db/models/Membership';
@@ -24,7 +24,8 @@ export interface AuthContext {
  */
 export async function getAuthContext(req: NextRequest): Promise<AuthContext | null> {
   try {
-    const session = await getSession(req as any, NextResponse.next() as any);
+    const res = NextResponse.next();
+    const session = await getSession(req, res);
     
     if (!session?.user) {
       return null;
@@ -32,23 +33,19 @@ export async function getAuthContext(req: NextRequest): Promise<AuthContext | nu
     
     const user = session.user as any;
     
-    // Als we geen dbUserId hebben, is de user niet gesynchroniseerd
-    if (!user.dbUserId) {
-      console.warn('User not synchronized with database:', user.email);
-      return null;
-    }
-    
+    // Voor nu gebruik auth0 sub als userId
+    // TODO: Sync met MongoDB na deployment
     return {
-      userId: user.dbUserId,
+      userId: user.sub, // Temporary: gebruik auth0 ID
       auth0Id: user.sub,
       email: user.email,
       name: user.name || user.email,
-      tenantId: user.tenantId,
-      companyId: user.companyId,
-      companyRole: user.companyRole,
-      platformRole: user.platformRole,
+      tenantId: 'appalti', // Hardcoded voor nu
+      companyId: undefined,
+      companyRole: undefined,
+      platformRole: undefined,
       isAuthenticated: true,
-      isAppaltiUser: !!user.platformRole
+      isAppaltiUser: false
     };
   } catch (error) {
     console.error('Error getting auth context:', error);
