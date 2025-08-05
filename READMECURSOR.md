@@ -218,11 +218,11 @@ Alle environment variables zijn geconfigureerd in Vercel dashboard.
 
 ### Auth0 v4.x Migration (December 2024)
 - **GEEN `initAuth0` meer** - gebruik direct imports
-- **Server-side imports** - gebruik `@auth0/nextjs-auth0/server` voor API routes
-- **Edge imports** - gebruik `@auth0/nextjs-auth0/edge` voor middleware
-- **Client-side imports** - gebruik `@auth0/nextjs-auth0` voor React components
+- **Alle imports van root** - gebruik `@auth0/nextjs-auth0` (NIET /server of /client)
+- **Edge imports** - gebruik `@auth0/nextjs-auth0/edge` voor middleware ALLEEN
 - **`getSession()` heeft geen parameters meer** - was: `getSession(req, res)`
 - **User sync gebeurt in `getAuthContext`** - tijdelijke oplossing omdat afterCallback niet werkt in v4.x
+- **Versie 4.8.0** - let op: documentatie klopt vaak niet!
 
 ### MongoDB User Sync
 - **TIJDELIJK**: User wordt aangemaakt in `getAuthContext` bij eerste login
