@@ -1,6 +1,6 @@
 import { Collection, Db, ObjectId } from 'mongodb';
 import { ClientCompany, CreateClientCompanyInput } from '../models/ClientCompany';
-import { getDb } from '@/lib/mongodb';
+import { getDatabase } from '@/lib/mongodb';
 
 export class ClientCompanyRepository {
   private collection: Collection<ClientCompany>;
@@ -82,6 +82,7 @@ export class ClientCompanyRepository {
   async updateIKPStatus(
     id: string,
     tenantId: string,
+    updatedBy: string,
     ikpStatus: ClientCompany['ikpStatus'],
     completedSteps?: number
   ): Promise<boolean> {
@@ -103,7 +104,7 @@ export class ClientCompanyRepository {
     return result.modifiedCount > 0;
   }
 
-  async archive(id: string, tenantId: string): Promise<boolean> {
+  async delete(id: string, tenantId: string): Promise<boolean> {
     const result = await this.collection.updateOne(
       { 
         _id: new ObjectId(id), 
@@ -126,8 +127,40 @@ let repository: ClientCompanyRepository | null = null;
 
 export async function getClientCompanyRepository(): Promise<ClientCompanyRepository> {
   if (!repository) {
-    const db = await getDb();
+    const db = await getDatabase();
     repository = new ClientCompanyRepository(db);
   }
   return repository;
 }
+
+// Export default instance for convenience
+export default {
+  async create(input: CreateClientCompanyInput) {
+    const repo = await getClientCompanyRepository();
+    return repo.create(input);
+  },
+  async findById(id: string, tenantId: string) {
+    const repo = await getClientCompanyRepository();
+    return repo.findById(id, tenantId);
+  },
+  async findByKvkNumber(kvkNumber: string, tenantId: string) {
+    const repo = await getClientCompanyRepository();
+    return repo.findByKvkNumber(kvkNumber, tenantId);
+  },
+  async findAll(tenantId: string, includeArchived = false) {
+    const repo = await getClientCompanyRepository();
+    return repo.findAll(tenantId, includeArchived);
+  },
+  async update(id: string, tenantId: string, updates: Partial<ClientCompany>, updatedBy: string) {
+    const repo = await getClientCompanyRepository();
+    return repo.update(id, tenantId, updates, updatedBy);
+  },
+  async updateIKPStatus(id: string, tenantId: string, updatedBy: string, ikpStatus: ClientCompany['ikpStatus'], completedSteps?: number) {
+    const repo = await getClientCompanyRepository();
+    return repo.updateIKPStatus(id, tenantId, updatedBy, ikpStatus, completedSteps);
+  },
+  async delete(id: string, tenantId: string) {
+    const repo = await getClientCompanyRepository();
+    return repo.delete(id, tenantId);
+  }
+};

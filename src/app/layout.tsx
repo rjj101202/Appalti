@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./styles.css";
 
@@ -7,8 +7,12 @@ export const metadata: Metadata = {
   description: "AI-gestuurd platform voor aanbestedingsbeheer en sales optimalisatie",
   keywords: ["aanbestedingen", "AI", "sales", "tenders", "bids"],
   authors: [{ name: "Appalti" }],
-  viewport: "width=device-width, initial-scale=1",
-  themeColor: "#9333ea",
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#9333ea',
 };
 
 export default function RootLayout({

@@ -41,6 +41,7 @@ export interface ClientCompany {
   ikpStatus: 'not_started' | 'in_progress' | 'completed';
   ikpCompletedSteps?: number;
   ikpLastUpdated?: Date;
+  ikpData?: any; // Will store the full IKP data
 }
 
 export interface CreateClientCompanyInput {
