@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthContext } from '@/lib/auth/context';
-import { getUserRepository } from '@/lib/db/repositories/userRepository';
+
 import { getCompanyRepository } from '@/lib/db/repositories/companyRepository';
 import { getMembershipRepository } from '@/lib/db/repositories/membershipRepository';
 import { CompanyRole } from '@/lib/db/models/Membership';
