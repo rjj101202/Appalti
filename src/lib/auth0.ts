@@ -1,5 +1,5 @@
 // Auth0 exports voor v4.x
-// De nieuwe versie gebruikt geen initAuth0 meer
+// Server-side exports
 export {
   handleAuth,
   handleLogin,
@@ -10,4 +10,4 @@ export {
   getAccessToken,
   withApiAuthRequired,
   withPageAuthRequired,
-} from '@auth0/nextjs-auth0';
+} from '@auth0/nextjs-auth0/server';

@@ -24,7 +24,7 @@ export interface AuthContext {
 export async function getAuthContext(req: NextRequest): Promise<AuthContext | null> {
   try {
     // Get Auth0 session
-    const { getSession } = await import('@auth0/nextjs-auth0');
+    const { getSession } = await import('@auth0/nextjs-auth0/server');
     const session = await getSession();
     
     if (!session || !session.user) {
