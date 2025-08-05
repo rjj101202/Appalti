@@ -12,6 +12,11 @@ function ErrorContent() {
     Configuration: "Er is een probleem met de server configuratie.",
     AccessDenied: "U heeft geen toegang tot deze resource.",
     Verification: "Het verificatie token is verlopen of al gebruikt.",
+    OAuthSignin: "Er was een probleem bij het inloggen met Auth0.",
+    OAuthCallback: "Er was een probleem met de Auth0 callback.",
+    OAuthCreateAccount: "Kon geen account aanmaken via Auth0.",
+    EmailCreateAccount: "Kon geen account aanmaken met dit email adres.",
+    Callback: "Er was een probleem met de authenticatie callback.",
     Default: "Er is een fout opgetreden tijdens het inloggen.",
   };
 

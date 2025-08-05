@@ -39,18 +39,33 @@ export const {
       return session;
     },
     async signIn({ user, account, profile }) {
+      console.log('[NextAuth] SignIn callback:', {
+        user: user?.email,
+        provider: account?.provider,
+        type: account?.type,
+      });
+      
       // Custom sign in logic
       if (!user.email) {
+        console.error('[NextAuth] No email found for user');
         return false;
       }
       
       // Auto-add Appalti users to Appalti company
       if (user.email.endsWith('@appalti.nl')) {
         // We'll implement this after basic auth works
-        console.log('Appalti user signed in:', user.email);
+        console.log('[NextAuth] Appalti user signed in:', user.email);
       }
       
       return true;
+    },
+    async redirect({ url, baseUrl }) {
+      console.log('[NextAuth] Redirect callback:', { url, baseUrl });
+      // Allows relative callback URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`
+      // Allows callback URLs on the same origin
+      else if (new URL(url).origin === baseUrl) return url
+      return baseUrl
     },
   },
   pages: {
