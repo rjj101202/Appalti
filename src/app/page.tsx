@@ -7,20 +7,40 @@ import { useEffect } from 'react';
 import { ArrowRight, Zap, Shield, TrendingUp, Users } from 'lucide-react';
 
 export default function Home() {
+  const { user, error, isLoading } = useUser();
+  const router = useRouter();
+
+  // Als ingelogd, redirect naar dashboard
+  useEffect(() => {
+    if (user && !isLoading) {
+      router.push('/dashboard');
+    }
+  }, [user, isLoading, router]);
+
   return (
     <div className="min-h-screen">
       <nav>
         <div className="nav-container">
-          <a href="/" className="logo">
+          <Link href="/" className="logo">
             <span>Appalti</span> AI
-          </a>
+          </Link>
           <div style={{ display: 'flex', gap: '1rem' }}>
-            <a href="/dashboard" className="btn btn-secondary">
-              Dashboard
-            </a>
-            <a href="/dashboard" className="btn btn-primary">
-              Login (Test)
-            </a>
+            {isLoading ? (
+              <span className="btn btn-secondary">Loading...</span>
+            ) : user ? (
+              <>
+                <Link href="/dashboard" className="btn btn-secondary">
+                  Dashboard
+                </Link>
+                <a href="/api/auth/logout" className="btn btn-primary">
+                  Logout
+                </a>
+              </>
+            ) : (
+              <a href="/api/auth/login" className="btn btn-primary">
+                Login
+              </a>
+            )}
           </div>
         </div>
       </nav>

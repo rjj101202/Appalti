@@ -22,20 +22,49 @@ export interface AuthContext {
  * Get auth context voor API routes
  */
 export async function getAuthContext(req: NextRequest): Promise<AuthContext | null> {
-  // Tijdelijk disabled voor deployment
-  // TODO: Implementeer proper auth na deployment
-  return {
-    userId: 'temp-user-id',
-    auth0Id: 'temp-auth0-id',
-    email: 'temp@example.com',
-    name: 'Temp User',
-    tenantId: 'appalti',
-    companyId: undefined,
-    companyRole: undefined,
-    platformRole: undefined,
-    isAuthenticated: true,
-    isAppaltiUser: false
-  };
+  try {
+    // Get Auth0 session
+    const { getSession } = await import('@/lib/auth0');
+    const session = await getSession(req, new Response());
+    
+    if (!session || !session.user) {
+      return null;
+    }
+    
+    // Get user from database
+    const { getUserRepository } = await import('@/lib/db/repositories/userRepository');
+    const userRepo = await getUserRepository();
+    const dbUser = await userRepo.findByAuth0Id(session.user.sub);
+    
+    if (!dbUser || !dbUser._id) {
+      // User not synced yet
+      return null;
+    }
+    
+    // Get active membership
+    const membershipRepo = await getMembershipRepository();
+    const memberships = await membershipRepo.findByUser(dbUser._id.toString(), true);
+    
+    // Voor nu, pak de eerste actieve membership
+    // Later: implement tenant switching
+    const activeMembership = memberships[0];
+    
+    return {
+      userId: dbUser._id.toString(),
+      auth0Id: session.user.sub,
+      email: session.user.email,
+      name: session.user.name || session.user.email,
+      tenantId: activeMembership?.tenantId,
+      companyId: activeMembership?.companyId.toString(),
+      companyRole: activeMembership?.companyRole,
+      platformRole: activeMembership?.platformRole,
+      isAuthenticated: true,
+      isAppaltiUser: session.user.email.endsWith('@appalti.nl')
+    };
+  } catch (error) {
+    console.error('Error getting auth context:', error);
+    return null;
+  }
 }
 
 /**
