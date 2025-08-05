@@ -39,12 +39,12 @@ export default function Home() {
                 <Link href="/dashboard" className="btn btn-secondary">
                   Dashboard
                 </Link>
-                <a href="/api/auth/logout" className="btn btn-primary">
+                <a href="/api/auth/signout" className="btn btn-primary">
                   Logout
                 </a>
               </>
             ) : (
-              <a href="/api/auth/login" className="btn btn-primary">
+              <a href="/api/auth/signin" className="btn btn-primary">
                 Login
               </a>
             )}

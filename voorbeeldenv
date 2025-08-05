@@ -1,0 +1,28 @@
+# MongoDB
+MONGODB_URI='[JOUW MONGODB URI - heb je al]'
+MONGODB_DB='appalti-prod'
+
+# NextAuth - BELANGRIJK: NIEUW!
+# Voor lokaal:
+NEXTAUTH_URL='http://localhost:3000'
+# Voor Vercel (AANPASSEN!):
+# NEXTAUTH_URL='https://appalti-prod-vercel.vercel.app'
+NEXTAUTH_SECRET='o6Ywr2haQXExJMBa1FERko8OKmSRCQVHLfHQNDrpjaA='
+
+# Auth0 (via NextAuth) - BELANGRIJK: CLIENT_ID en CLIENT_SECRET heb je al!
+AUTH0_CLIENT_ID='5lMCYhSojEqRbiOQmbsxiLIyyUN4lKvj'
+AUTH0_CLIENT_SECRET='8M-xlYsibJpIAr5GzF-lSOkp1w9B1slYqwoL3qSg8CpMyWJ1632XKhsQ3OHx6gKN'
+AUTH0_ISSUER_BASE_URL='https://dev-inno5m4t4i3j6d6d.eu.auth0.com'
+
+# KVK API - heb je al
+KVK_API_JWT_SECRET='38JEHLFJ38042JEK38042JEKN'
+KVK_API_PASSWORD='@ppalti2025RJ'
+
+# AI APIs
+ANTHROPIC_API_KEY='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'
+OPENAI_API_KEY='[NOG NIET GEGEVEN]'
+
+# Tenderned API - heb je al
+TENDERNED_API_URL='https://www.tenderned.nl/papi/tenderned-rs-tns/v2'
+TENDERNED_USERNAME='TNXML08196'
+TENDERNED_PASSWORD='kqNJzcHXe'

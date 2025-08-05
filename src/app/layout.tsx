@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./styles.css";
+import NextAuthSessionProvider from '@/components/providers/session-provider';
 
 export const metadata: Metadata = {
   title: "Appalti AI - Sales Optimalisatie Platform",
@@ -18,7 +19,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="nl">
-      <body>{children}</body>
+      <body>
+        <NextAuthSessionProvider>
+          {children}
+        </NextAuthSessionProvider>
+      </body>
     </html>
   );
 }

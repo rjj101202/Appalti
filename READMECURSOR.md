@@ -216,18 +216,21 @@ Alle environment variables zijn geconfigureerd in Vercel dashboard.
 
 ## ⚠️ KRITIEKE TECHNISCHE NOTES
 
-### Auth0 UITGESCHAKELD (December 2024)
-- **Auth0 v4.8.0 werkt NIET** met Next.js 15 App Router
-- **Alle Auth0 code is tijdelijk uitgeschakeld**
-- **Hardcoded auth context** voor development:
-  - Email: admin@appalti.nl
-  - Rol: SUPER_ADMIN / OWNER
-  - TenantId: appalti
-- **TODO**: Implementeer werkende auth oplossing:
-  - Optie 1: Wacht op Auth0 v5 met App Router support
-  - Optie 2: Gebruik NextAuth.js (Auth.js)
-  - Optie 3: Implementeer custom JWT auth
-  - Optie 4: Gebruik Supabase Auth
+### NextAuth.js GEÏMPLEMENTEERD (December 2024)
+- **NextAuth.js v5 (beta)** met Auth0 als provider
+- **MongoDB adapter** voor session storage
+- **Environment variabelen** (BELANGRIJK - kopieer van voorbeeldenv):
+  - `NEXTAUTH_URL='http://localhost:3000'` (Vercel: je app URL)
+  - `NEXTAUTH_SECRET='o6Ywr2haQXExJMBa1FERko8OKmSRCQVHLfHQNDrpjaA='`
+  - `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_ISSUER_BASE_URL`
+- **Auth routes**:
+  - `/api/auth/signin` - Login
+  - `/api/auth/signout` - Logout
+  - `/api/auth/[...nextauth]` - NextAuth handlers
+- **Custom pages**:
+  - `/auth/signin` - Custom login page
+  - `/auth/error` - Error handling
+- **SessionProvider** in root layout voor client components
 
 ### MongoDB User Sync
 - **TIJDELIJK**: User wordt aangemaakt in `getAuthContext` bij eerste login
