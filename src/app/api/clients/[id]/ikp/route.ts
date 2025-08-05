@@ -104,21 +104,21 @@ function calculateCompletedSteps(ikpData: any): number {
   
   // Define which fields correspond to each step
   const stepFields = [
-    ['companySize'], // Step 1
-    ['revenue'], // Step 2
-    ['legalForm'], // Step 3
-    ['industry'], // Step 4
-    ['geographicCoverage'], // Step 5
-    ['productsServices'], // Step 6
-    ['targetAudience'], // Step 7
-    ['culture'], // Step 8
-    ['growthPhase'], // Step 9
-    ['budget'], // Step 10
-    ['experience'], // Step 11
-    ['motivations'], // Step 12
-    ['projectTypes'], // Step 13
-    ['collaboration'], // Step 14
-    ['cpvCodes'], // Step 15
+    ['organisationType'], // Step 1 - Organisatie
+    ['decisionMakingLocation'], // Step 2 - Besluitvorming in Nederland
+    ['clientTypes'], // Step 3 - Opdrachtgevers
+    ['industryPerspective'], // Step 4 - Perspectief branche
+    ['organizationImage'], // Step 5 - Imago
+    ['activeRegions'], // Step 6 - Regio
+    ['industry'], // Step 7 - Branche
+    ['employeeCount'], // Step 8 - Aantal medewerkers
+    ['matchingElements'], // Step 9 - Matchingselementen
+    ['kraljicPosition'], // Step 10 - Impact
+    ['servicePotential'], // Step 11 - Dienstverlening
+    ['issues'], // Step 12 - Issue
+    ['contractValue'], // Step 13 - Financieel
+    ['collaborationDuration'], // Step 14 - Samenwerkingsduur
+    ['creditworthiness'], // Step 15 - Kredietwaardigheid
   ];
   
   stepFields.forEach(fields => {

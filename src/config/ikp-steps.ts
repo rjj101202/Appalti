@@ -3,107 +3,122 @@ import { IKPStep } from '@/types/ikp';
 export const IKP_STEPS: IKPStep[] = [
   {
     id: 1,
-    title: 'Persoonlijke gegevens',
-    description: 'Basisinformatie over het bedrijf',
-    fields: ['companyName', 'kvkNumber', 'website', 'linkedin'],
-    required: true
+    title: 'Organisatie',
+    description: 'Soort organisatie',
+    fields: ['organisationType'],
+    required: true,
+    score: 15
   },
   {
     id: 2,
-    title: 'Contactpersoon',
-    description: 'Primaire contactpersoon voor aanbestedingen',
-    fields: ['name', 'function', 'email', 'phone', 'linkedin'],
-    required: true
+    title: 'Besluitvorming in Nederland',
+    description: 'Waar wordt de besluitvorming gedaan',
+    fields: ['decisionMakingLocation'],
+    required: true,
+    score: 5
   },
   {
     id: 3,
-    title: 'Organisatiegrootte',
-    description: 'Grootte en omvang van de organisatie',
-    fields: ['employees', 'revenue', 'locations'],
-    required: true
+    title: 'Opdrachtgevers',
+    description: 'Type opdrachtgevers (CKV)',
+    fields: ['clientTypes'],
+    required: true,
+    score: 0
   },
   {
     id: 4,
-    title: 'Branche / Industrie',
-    description: 'Sector waarin het bedrijf actief is',
-    fields: ['primary', 'secondary', 'sbicodes'],
-    required: true
+    title: 'Perspectief branche',
+    description: 'Branche perspectief (CKV)',
+    fields: ['industryPerspective'],
+    required: true,
+    score: 0
   },
   {
     id: 5,
-    title: 'Geografische dekking',
-    description: 'Gebieden waar het bedrijf actief is',
-    fields: ['regions', 'national', 'international', 'countries'],
-    required: true
+    title: 'Imago',
+    description: 'Imago van de organisatie (CKV)',
+    fields: ['organizationImage'],
+    required: true,
+    score: 0
   },
   {
     id: 6,
-    title: 'Producten / Diensten',
-    description: 'Wat het bedrijf aanbiedt',
-    fields: ['main', 'description', 'uniqueSellingPoints'],
-    required: true
+    title: 'Regio',
+    description: 'Regio waar actief (CKV)',
+    fields: ['activeRegions'],
+    required: true,
+    score: 0
   },
   {
     id: 7,
-    title: 'Doelgroep',
-    description: 'Wie zijn de klanten',
-    fields: ['b2b', 'b2c', 'b2g', 'segments', 'description'],
-    required: true
+    title: 'Branche',
+    description: 'Branche van de organisatie (CKV)',
+    fields: ['industry'],
+    required: true,
+    score: 0
   },
   {
     id: 8,
-    title: 'Bedrijfscultuur & Waarden',
-    description: 'Kernwaarden en cultuur',
-    fields: ['coreValues', 'workEnvironment', 'socialResponsibility'],
-    required: true
+    title: 'Aantal medewerkers',
+    description: 'Grootte van de organisatie',
+    fields: ['employeeCount'],
+    required: true,
+    score: 5
   },
   {
     id: 9,
-    title: 'Groeifase',
-    description: 'Huidige fase van het bedrijf',
-    fields: ['growthPhase'],
-    required: true
+    title: 'Matchingselementen',
+    description: 'Elementen voor tender matching',
+    fields: ['matchingElements'],
+    required: true,
+    score: 15
   },
   {
     id: 10,
-    title: 'Budget voor Aanbestedingen',
-    description: 'Financiële capaciteit voor projecten',
-    fields: ['min', 'max', 'averageProjectSize'],
-    required: true
+    title: 'Impact',
+    description: 'Positie in Kraljic matrix',
+    fields: ['kraljicPosition'],
+    required: true,
+    score: 10
   },
   {
     id: 11,
-    title: 'Ervaring met aanbestedingen',
-    description: 'Eerdere ervaring met tenders',
-    fields: ['level', 'previousTenders', 'successRate'],
-    required: true
+    title: 'Dienstverlening',
+    description: 'Potentieel voor dienstverlening',
+    fields: ['servicePotential'],
+    required: true,
+    score: 15
   },
   {
     id: 12,
-    title: 'Drijfveren voor aanbestedingen',
-    description: 'Waarom wilt u aanbestedingen doen',
-    fields: ['tenderMotivations'],
-    required: true
+    title: 'Issue',
+    description: 'Vraagstukken',
+    fields: ['issues'],
+    required: true,
+    score: 20
   },
   {
     id: 13,
-    title: 'Soort opdrachten',
-    description: 'Type projecten van interesse',
-    fields: ['categories', 'preferredDuration', 'contractTypes'],
-    required: true
+    title: 'Financieel',
+    description: 'Contractwaarde',
+    fields: ['contractValue'],
+    required: true,
+    score: 10
   },
   {
     id: 14,
-    title: 'Samenwerkingsvoorkeuren',
-    description: 'Hoe wilt u samenwerken',
-    fields: ['consortium', 'subcontracting', 'mainContracting', 'preferredPartners'],
-    required: true
+    title: 'Samenwerkingsduur',
+    description: 'Duur van de samenwerking',
+    fields: ['collaborationDuration'],
+    required: true,
+    score: 5
   },
   {
     id: 15,
-    title: 'CPV Codes',
-    description: 'Relevante CPV codes voor matching',
-    fields: ['primary', 'secondary', 'description'],
-    required: true
+    title: 'Kredietwaardigheid',
+    description: 'Kredietwaardigheid score (CKV)',
+    fields: ['creditworthiness'],
+    required: true,
+    score: 0
   }
 ];

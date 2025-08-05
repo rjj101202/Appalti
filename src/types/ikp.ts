@@ -1,116 +1,58 @@
 // IKP (Ideaal Klant Profiel) type definitions
 
 export interface IKPData {
-  // 1. Persoonlijke gegevens
-  personalDetails: {
-    companyName: string;
-    kvkNumber: string;
-    website?: string;
-    linkedin?: string;
-  };
-
-  // 2. Contactpersoon
-  contactPerson: {
-    name: string;
-    function: string;
-    email: string;
-    phone: string;
-    linkedin?: string;
-  };
-
-  // 3. Organisatiegrootte
-  organizationSize: {
-    employees: number;
-    revenue?: number; // in euros
-    locations?: number;
-  };
-
-  // 4. Branche / Industrie
-  industry: {
-    primary: string;
-    secondary?: string[];
-    sbicodes?: string[];
-  };
-
-  // 5. Geografische dekking
-  geographicCoverage: {
-    regions: string[]; // e.g., ["Noord-Holland", "Zuid-Holland"]
-    national: boolean;
-    international: boolean;
-    countries?: string[];
-  };
-
-  // 6. Producten / Diensten
-  productsServices: {
-    main: string[];
-    description: string;
-    uniqueSellingPoints?: string[];
-  };
-
-  // 7. Doelgroep
-  targetAudience: {
-    b2b: boolean;
-    b2c: boolean;
-    b2g: boolean;
-    segments: string[];
-    description?: string;
-  };
-
-  // 8. Bedrijfscultuur & Waarden
-  culture: {
-    coreValues: string[];
-    workEnvironment: string;
-    socialResponsibility?: string[];
-  };
-
-  // 9. Groeifase
-  growthPhase: 'startup' | 'scaleup' | 'mature' | 'enterprise';
-
-  // 10. Budget voor Aanbestedingen
-  tenderBudget: {
-    min: number;
-    max: number;
-    averageProjectSize?: number;
-  };
-
-  // 11. Ervaring met aanbestedingen
-  tenderExperience: {
-    level: 'none' | 'beginner' | 'intermediate' | 'expert';
-    previousTenders?: number;
-    successRate?: number; // percentage
-  };
-
-  // 12. Drijfveren voor aanbestedingen
-  tenderMotivations: string[]; // e.g., ["growth", "stability", "innovation"]
-
-  // 13. Soort opdrachten
-  projectTypes: {
-    categories: string[];
-    preferredDuration: 'short' | 'medium' | 'long' | 'any';
-    contractTypes: string[]; // e.g., ["fixed-price", "time-material"]
-  };
-
-  // 14. Samenwerkingsvoorkeuren
-  collaborationPreferences: {
-    consortium: boolean;
-    subcontracting: boolean;
-    mainContracting: boolean;
-    preferredPartners?: string[];
-  };
-
-  // 15. CPV Codes
-  cpvCodes: {
-    primary: string[];
-    secondary?: string[];
-    description?: string[];
-  };
-
+  // 1. Organisatie (15%)
+  organisationType: string; // e.g., "Soort organisatie"
+  
+  // 2. Besluitvorming in Nederland (5%)
+  decisionMakingLocation: string;
+  
+  // 3. Opdrachtgevers (CKV)
+  clientTypes: string[];
+  
+  // 4. Perspectief branche (CKV)
+  industryPerspective: string;
+  
+  // 5. Imago (CKV)
+  organizationImage: string;
+  
+  // 6. Regio (CKV)
+  activeRegions: string[];
+  
+  // 7. Branche (CKV)
+  industry: string;
+  
+  // 8. Aantal medewerkers (5%)
+  employeeCount: string; // e.g., "1-10", "10-50", etc.
+  
+  // 9. Matchingselementen (15%)
+  matchingElements: string[];
+  
+  // 10. Impact - Positie in Kraljic matrix (10%)
+  kraljicPosition: string;
+  
+  // 11. Dienstverlening - Potentieel voor dienstverlening (15%)
+  servicePotential: string;
+  
+  // 12. Issue - Vraagstukken (20%)
+  issues: string[];
+  
+  // 13. Financieel - Contractwaarde (10%)
+  contractValue: string;
+  
+  // 14. Samenwerkingsduur (5%)
+  collaborationDuration: string;
+  
+  // 15. Kredietwaardigheid (CKV)
+  creditworthiness: string;
+  
   // Metadata
-  metadata: {
+  metadata?: {
     createdAt: Date;
     updatedAt: Date;
     completedSteps: number;
     lastCompletedStep: number;
+    totalScore?: number;
   };
 }
 
@@ -121,6 +63,7 @@ export interface IKPStep {
   description: string;
   fields: string[];
   required: boolean;
+  score?: number; // Score weight for this step
 }
 
 // Validation status for each step
@@ -132,33 +75,60 @@ export interface IKPValidation {
 
 // Options for select fields
 export const IKP_OPTIONS = {
-  growthPhase: [
-    { value: 'startup', label: 'Startup (0-2 jaar)' },
-    { value: 'scaleup', label: 'Scale-up (2-5 jaar)' },
-    { value: 'mature', label: 'Volwassen (5-10 jaar)' },
-    { value: 'enterprise', label: 'Enterprise (10+ jaar)' }
+  organisationType: [
+    { value: 'private_equity', label: 'Organisatie: geleid door Private Equity' },
+    { value: 'growth_strategy', label: 'Groei- en veranderingsstrategie' },
+    { value: 'other', label: 'Anders' }
   ],
   
-  experienceLevel: [
-    { value: 'none', label: 'Geen ervaring' },
-    { value: 'beginner', label: 'Beginner (1-5 tenders)' },
-    { value: 'intermediate', label: 'Gemiddeld (5-20 tenders)' },
-    { value: 'expert', label: 'Expert (20+ tenders)' }
+  decisionMaking: [
+    { value: 'yes', label: 'Ja' },
+    { value: 'no', label: 'Nee' },
+    { value: 'partial', label: 'Gedeeltelijk' }
   ],
   
-  projectDuration: [
-    { value: 'short', label: 'Kort (< 6 maanden)' },
-    { value: 'medium', label: 'Middellang (6-12 maanden)' },
-    { value: 'long', label: 'Lang (> 12 maanden)' },
-    { value: 'any', label: 'Geen voorkeur' }
+  employeeCount: [
+    { value: '1-10', label: '1-10 medewerkers' },
+    { value: '10-50', label: '10-50 medewerkers' },
+    { value: '50-100', label: '50-100 medewerkers' },
+    { value: '100-250', label: '100-250 medewerkers' },
+    { value: '250-500', label: '250-500 medewerkers' },
+    { value: '500+', label: '500+ medewerkers' }
   ],
   
-  motivations: [
-    { value: 'growth', label: 'Groei & uitbreiding' },
-    { value: 'stability', label: 'Stabiliteit & zekerheid' },
-    { value: 'innovation', label: 'Innovatie & ontwikkeling' },
-    { value: 'impact', label: 'Maatschappelijke impact' },
-    { value: 'network', label: 'Netwerk uitbreiding' }
+  kraljicMatrix: [
+    { value: 'strategic', label: 'Strategisch' },
+    { value: 'leverage', label: 'Hefboom' },
+    { value: 'bottleneck', label: 'Knelpunt' },
+    { value: 'routine', label: 'Routine' }
+  ],
+  
+  servicePotential: [
+    { value: 'high', label: 'Hoog potentieel' },
+    { value: 'medium', label: 'Gemiddeld potentieel' },
+    { value: 'low', label: 'Laag potentieel' }
+  ],
+  
+  contractValue: [
+    { value: '<100k', label: '< €100.000' },
+    { value: '100k-500k', label: '€100.000 - €500.000' },
+    { value: '500k-1m', label: '€500.000 - €1.000.000' },
+    { value: '1m-5m', label: '€1.000.000 - €5.000.000' },
+    { value: '>5m', label: '> €5.000.000' }
+  ],
+  
+  collaborationDuration: [
+    { value: '<1year', label: '< 1 jaar' },
+    { value: '1-3years', label: '1-3 jaar' },
+    { value: '3-5years', label: '3-5 jaar' },
+    { value: '>5years', label: '> 5 jaar' }
+  ],
+  
+  creditworthiness: [
+    { value: 'excellent', label: 'Uitstekend' },
+    { value: 'good', label: 'Goed' },
+    { value: 'sufficient', label: 'Voldoende' },
+    { value: 'insufficient', label: 'Onvoldoende' }
   ],
   
   regions: [
