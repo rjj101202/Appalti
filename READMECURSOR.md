@@ -281,6 +281,31 @@ Alle environment variables zijn geconfigureerd in Vercel dashboard.
 6. **`/src/lib/auth0.ts`** - Auth0 exports (v4.x compatible)
 7. **`/src/lib/auth/context.ts`** - Auth context met MongoDB sync
 
+## 📚 SESSIE LOGS
+
+### BIEB SESSIE - 5 Augustus 2025, 18:22
+**Wat hebben we gedaan:**
+- ✅ Auth0 integratie via NextAuth.js geïmplementeerd
+- ✅ Vercel deployment werkend gekregen
+- ✅ Platform basis opgezet met Next.js 15.4.5
+- ✅ Auth0 "Both" mode geconfigureerd (persoonlijk + organisatie login)
+- ⚠️ Registratie in Auth0 geeft nog 400 Bad Request error
+
+**Belangrijke wijzigingen:**
+- **LOCALHOST DRAAIT OP POORT 3001** (niet 3000!)
+  - Dit kwam omdat we per ongeluk twee vensters open hadden
+  - Alle Auth0 callbacks moeten naar `localhost:3001`
+  - `.env.local` moet `NEXTAUTH_URL="http://localhost:3001"` hebben
+- **Environment variables**: Alles met quotes voor consistentie
+- **Vercel werkt**: https://appalti-prod-vercel.vercel.app
+
+**Volgende stap:**
+- Debug waarom Auth0 registratie 400 error geeft
+- Mogelijk organizations configuratie in Auth0 dashboard checken
+- Auth0 application settings valideren
+
+---
+
 ## ⚠️ KRITIEKE TECHNISCHE NOTES
 
 ### NextAuth.js GEÏMPLEMENTEERD (Augustus 2025)
