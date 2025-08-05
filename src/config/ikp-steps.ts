@@ -3,122 +3,137 @@ import { IKPStep } from '@/types/ikp';
 export const IKP_STEPS: IKPStep[] = [
   {
     id: 1,
-    title: 'Organisatie',
-    description: 'Soort organisatie',
-    fields: ['organisationType'],
+    title: 'Geografische scope',
+    description: 'In welke provincies is de organisatie actief?',
+    fields: ['geographicScope'],
     required: true,
-    score: 15
+    scoreType: 'CKV',
+    score: 0
   },
   {
     id: 2,
-    title: 'Besluitvorming in Nederland',
-    description: 'Waar wordt de besluitvorming gedaan',
-    fields: ['decisionMakingLocation'],
+    title: 'Omvang in aantal werkzame personen',
+    description: 'Hoeveel medewerkers heeft de organisatie?',
+    fields: ['employeeCount'],
     required: true,
-    score: 5
+    scoreType: 'CKV',
+    score: 0
   },
   {
     id: 3,
     title: 'Opdrachtgevers',
-    description: 'Type opdrachtgevers (CKV)',
+    description: 'Voor welk type opdrachtgevers werkt de organisatie?',
     fields: ['clientTypes'],
     required: true,
+    scoreType: 'CKV',
     score: 0
   },
   {
     id: 4,
-    title: 'Perspectief branche',
-    description: 'Branche perspectief (CKV)',
-    fields: ['industryPerspective'],
+    title: 'Branche',
+    description: 'In welke branche(s) is de organisatie actief?',
+    fields: ['industry'],
     required: true,
+    scoreType: 'CKV',
     score: 0
   },
   {
     id: 5,
-    title: 'Imago',
-    description: 'Imago van de organisatie (CKV)',
-    fields: ['organizationImage'],
+    title: 'Opdrachtgever DNA/matchingselementen',
+    description: 'Wat zijn de belangrijkste matchingselementen voor deze organisatie?',
+    fields: ['clientDNA'],
     required: true,
-    score: 0
+    scoreType: 'percentage',
+    score: 15
   },
   {
     id: 6,
-    title: 'Regio',
-    description: 'Regio waar actief (CKV)',
-    fields: ['activeRegions'],
+    title: 'Concurrentie - Soort',
+    description: 'Wat voor soort concurrentie heeft de organisatie?',
+    fields: ['competitionType'],
     required: true,
-    score: 0
+    scoreType: 'percentage',
+    score: 4
   },
   {
     id: 7,
-    title: 'Branche',
-    description: 'Branche van de organisatie (CKV)',
-    fields: ['industry'],
+    title: 'Concurrentie - Aantal',
+    description: 'Hoeveel concurrenten zijn er actief in deze markt?',
+    fields: ['competitionCount'],
     required: true,
-    score: 0
+    scoreType: 'percentage',
+    score: 4
   },
   {
     id: 8,
-    title: 'Aantal medewerkers',
-    description: 'Grootte van de organisatie',
-    fields: ['employeeCount'],
+    title: 'Impact - Positie in Kraljic matrix',
+    description: 'Wat is de positie in de Kraljic matrix?',
+    fields: ['kraljicPosition'],
     required: true,
-    score: 5
+    scoreType: 'percentage',
+    score: 10
   },
   {
     id: 9,
-    title: 'Matchingselementen',
-    description: 'Elementen voor tender matching',
-    fields: ['matchingElements'],
+    title: 'Dienstverlening - Potentiële dienstverlening',
+    description: 'Welke diensten kan de organisatie potentieel leveren?',
+    fields: ['potentialServices'],
     required: true,
+    scoreType: 'percentage',
     score: 15
   },
   {
     id: 10,
-    title: 'Impact',
-    description: 'Positie in Kraljic matrix',
-    fields: ['kraljicPosition'],
+    title: 'Dienstverlening - Potentieel voor additionele dienstverlening',
+    description: 'Welke additionele diensten kunnen worden aangeboden?',
+    fields: ['additionalServices'],
     required: true,
-    score: 10
+    scoreType: 'percentage',
+    score: 2
   },
   {
     id: 11,
-    title: 'Dienstverlening',
-    description: 'Potentieel voor dienstverlening',
-    fields: ['servicePotential'],
-    required: true,
-    score: 15
-  },
-  {
-    id: 12,
-    title: 'Issue',
-    description: 'Vraagstukken',
+    title: 'Issue - Vraagstukken',
+    description: 'Welke vraagstukken spelen er bij deze organisatie?',
     fields: ['issues'],
     required: true,
+    scoreType: 'percentage',
     score: 20
   },
   {
-    id: 13,
-    title: 'Financieel',
-    description: 'Contractwaarde',
+    id: 12,
+    title: 'Financieel - Potentieel contractwaarde',
+    description: 'Wat is de potentiële contractwaarde?',
     fields: ['contractValue'],
     required: true,
+    scoreType: 'percentage',
+    score: 10
+  },
+  {
+    id: 13,
+    title: 'Financieel - Brutomarge',
+    description: 'Wat is de verwachte brutomarge?',
+    fields: ['grossMargin'],
+    required: true,
+    scoreType: 'percentage',
     score: 10
   },
   {
     id: 14,
     title: 'Samenwerkingsduur',
-    description: 'Duur van de samenwerking',
+    description: 'Wat is de verwachte duur van de samenwerking?',
     fields: ['collaborationDuration'],
     required: true,
-    score: 5
+    scoreType: 'percentage',
+    score: 10
   },
   {
     id: 15,
     title: 'Kredietwaardigheid',
-    description: 'Kredietwaardigheid score (CKV)',
+    description: 'Wat is de kredietwaardigheid van de organisatie?',
     fields: ['creditworthiness'],
     required: true,
+    scoreType: 'CKV',
     score: 0
   }
 ];

@@ -1,50 +1,60 @@
 // IKP (Ideaal Klant Profiel) type definitions
 
 export interface IKPData {
-  // 1. Organisatie (15%)
-  organisationType: string; // e.g., "Soort organisatie"
+  // 1. Geografische scope (CKV)
+  geographicScope: string[]; // Provincies waar actief
   
-  // 2. Besluitvorming in Nederland (5%)
-  decisionMakingLocation: string;
-  
-  // 3. Opdrachtgevers (CKV)
-  clientTypes: string[];
-  
-  // 4. Perspectief branche (CKV)
-  industryPerspective: string;
-  
-  // 5. Imago (CKV)
-  organizationImage: string;
-  
-  // 6. Regio (CKV)
-  activeRegions: string[];
-  
-  // 7. Branche (CKV)
-  industry: string;
-  
-  // 8. Aantal medewerkers (5%)
+  // 2. Omvang in aantal werkzame personen (CKV)
   employeeCount: string; // e.g., "1-10", "10-50", etc.
   
-  // 9. Matchingselementen (15%)
-  matchingElements: string[];
+  // 3. Opdrachtgevers (CKV)
+  clientTypes: string[]; // Type opdrachtgevers
   
-  // 10. Impact - Positie in Kraljic matrix (10%)
-  kraljicPosition: string;
+  // 4. Branche (CKV)
+  industry: string[]; // Branches waar actief
   
-  // 11. Dienstverlening - Potentieel voor dienstverlening (15%)
-  servicePotential: string;
+  // 5. Opdrachtgever DNA/matchingselementen (15%)
+  clientDNA: string[]; // Matchingselementen
   
-  // 12. Issue - Vraagstukken (20%)
-  issues: string[];
+  // 6. Concurrentie - Soort (4%)
+  competitionType: string; // Soort concurrentie
   
-  // 13. Financieel - Contractwaarde (10%)
-  contractValue: string;
+  // 7. Concurrentie - Aantal (4%)
+  competitionCount: string; // Aantal concurrenten
   
-  // 14. Samenwerkingsduur (5%)
-  collaborationDuration: string;
+  // 8. Impact - Positie in Kraljic matrix (10%)
+  kraljicPosition: string; // Strategic, Leverage, Bottleneck, Routine
+  
+  // 9. Dienstverlening - Potentiële dienstverlening (15%)
+  potentialServices: string[]; // Potentiële diensten
+  
+  // 10. Dienstverlening - Potentieel voor additionele dienstverlening (2%)
+  additionalServices: string[]; // Additionele diensten
+  
+  // 11. Issue - Vraagstukken (20%)
+  issues: string[]; // Vraagstukken
+  
+  // 12. Financieel - Potentieel contractwaarde (10%)
+  contractValue: string; // Contractwaarde range
+  
+  // 13. Financieel - Brutomarge (10%)
+  grossMargin: string; // Brutomarge percentage
+  
+  // 14. Samenwerkingsduur (10%)
+  collaborationDuration: string; // Duur van samenwerking
   
   // 15. Kredietwaardigheid (CKV)
-  creditworthiness: string;
+  creditworthiness: string; // Kredietwaardigheid score
+  
+  // CKV Status - tracks if all CKV requirements are met
+  ckvStatus?: {
+    geographicScope: boolean;
+    employeeCount: boolean;
+    clientTypes: boolean;
+    industry: boolean;
+    creditworthiness: boolean;
+    allCkvMet: boolean;
+  };
   
   // Metadata
   metadata?: {
@@ -53,6 +63,7 @@ export interface IKPData {
     completedSteps: number;
     lastCompletedStep: number;
     totalScore?: number;
+    ckvPassed?: boolean; // All CKV criteria passed
   };
 }
 
@@ -63,7 +74,8 @@ export interface IKPStep {
   description: string;
   fields: string[];
   required: boolean;
-  score?: number; // Score weight for this step
+  scoreType: 'CKV' | 'percentage'; // CKV = Critical Knock-out Value (harde eis)
+  score: number; // Score weight for this step (0 for CKV, percentage for others)
 }
 
 // Validation status for each step
@@ -75,16 +87,10 @@ export interface IKPValidation {
 
 // Options for select fields
 export const IKP_OPTIONS = {
-  organisationType: [
-    { value: 'private_equity', label: 'Organisatie: geleid door Private Equity' },
-    { value: 'growth_strategy', label: 'Groei- en veranderingsstrategie' },
-    { value: 'other', label: 'Anders' }
-  ],
-  
-  decisionMaking: [
-    { value: 'yes', label: 'Ja' },
-    { value: 'no', label: 'Nee' },
-    { value: 'partial', label: 'Gedeeltelijk' }
+  provinces: [
+    'Groningen', 'Friesland', 'Drenthe', 'Overijssel', 'Flevoland',
+    'Gelderland', 'Utrecht', 'Noord-Holland', 'Zuid-Holland', 'Zeeland',
+    'Noord-Brabant', 'Limburg'
   ],
   
   employeeCount: [
@@ -96,17 +102,47 @@ export const IKP_OPTIONS = {
     { value: '500+', label: '500+ medewerkers' }
   ],
   
+  clientTypes: [
+    { value: 'government', label: 'Overheid' },
+    { value: 'semi-government', label: 'Semi-overheid' },
+    { value: 'corporate', label: 'Bedrijfsleven' },
+    { value: 'non-profit', label: 'Non-profit' },
+    { value: 'healthcare', label: 'Zorg' },
+    { value: 'education', label: 'Onderwijs' }
+  ],
+  
+  industries: [
+    { value: 'it', label: 'IT & Technologie' },
+    { value: 'consultancy', label: 'Consultancy' },
+    { value: 'construction', label: 'Bouw' },
+    { value: 'logistics', label: 'Logistiek' },
+    { value: 'healthcare', label: 'Gezondheidszorg' },
+    { value: 'education', label: 'Onderwijs' },
+    { value: 'finance', label: 'Financiële dienstverlening' },
+    { value: 'retail', label: 'Retail' },
+    { value: 'manufacturing', label: 'Productie' },
+    { value: 'energy', label: 'Energie' }
+  ],
+  
+  competitionType: [
+    { value: 'direct', label: 'Directe concurrentie' },
+    { value: 'indirect', label: 'Indirecte concurrentie' },
+    { value: 'substitute', label: 'Substituten' },
+    { value: 'mixed', label: 'Gemengd' }
+  ],
+  
+  competitionCount: [
+    { value: '0-5', label: '0-5 concurrenten' },
+    { value: '6-10', label: '6-10 concurrenten' },
+    { value: '11-20', label: '11-20 concurrenten' },
+    { value: '20+', label: 'Meer dan 20 concurrenten' }
+  ],
+  
   kraljicMatrix: [
     { value: 'strategic', label: 'Strategisch' },
     { value: 'leverage', label: 'Hefboom' },
     { value: 'bottleneck', label: 'Knelpunt' },
     { value: 'routine', label: 'Routine' }
-  ],
-  
-  servicePotential: [
-    { value: 'high', label: 'Hoog potentieel' },
-    { value: 'medium', label: 'Gemiddeld potentieel' },
-    { value: 'low', label: 'Laag potentieel' }
   ],
   
   contractValue: [
@@ -117,6 +153,14 @@ export const IKP_OPTIONS = {
     { value: '>5m', label: '> €5.000.000' }
   ],
   
+  grossMargin: [
+    { value: '0-10', label: '0-10%' },
+    { value: '10-20', label: '10-20%' },
+    { value: '20-30', label: '20-30%' },
+    { value: '30-40', label: '30-40%' },
+    { value: '40+', label: '40%+' }
+  ],
+  
   collaborationDuration: [
     { value: '<1year', label: '< 1 jaar' },
     { value: '1-3years', label: '1-3 jaar' },
@@ -125,15 +169,9 @@ export const IKP_OPTIONS = {
   ],
   
   creditworthiness: [
-    { value: 'excellent', label: 'Uitstekend' },
-    { value: 'good', label: 'Goed' },
-    { value: 'sufficient', label: 'Voldoende' },
-    { value: 'insufficient', label: 'Onvoldoende' }
-  ],
-  
-  regions: [
-    'Groningen', 'Friesland', 'Drenthe', 'Overijssel', 'Flevoland',
-    'Gelderland', 'Utrecht', 'Noord-Holland', 'Zuid-Holland', 'Zeeland',
-    'Noord-Brabant', 'Limburg'
+    { value: 'excellent', label: 'Uitstekend (A+/AA)' },
+    { value: 'good', label: 'Goed (A/BBB)' },
+    { value: 'sufficient', label: 'Voldoende (BB/B)' },
+    { value: 'insufficient', label: 'Onvoldoende (C of lager)' }
   ]
 };

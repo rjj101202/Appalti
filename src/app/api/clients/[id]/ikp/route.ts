@@ -24,18 +24,32 @@ export async function PUT(
       );
     }
     
-    // Calculate completed steps based on the IKP data
-    const completedSteps = calculateCompletedSteps(body);
-    const ikpStatus = completedSteps === 15 ? 'completed' : 'in_progress';
+    // Calculate completed steps and validate CKV
+    const { completed, ckvStatus, totalScore } = calculateCompletedSteps(body);
+    const ikpStatus = completed === 15 && ckvStatus.allCkvMet ? 'completed' : 'in_progress';
+    
+    // Add CKV status and metadata to the IKP data
+    const ikpDataWithMeta = {
+      ...body,
+      ckvStatus,
+      metadata: {
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        completedSteps: completed,
+        lastCompletedStep: completed,
+        totalScore,
+        ckvPassed: ckvStatus.allCkvMet
+      }
+    };
     
     // Update the client with IKP data
     const updatedClient = await repository.update(
       params.id,
       tenantId,
       {
-        ikpData: body,
+        ikpData: ikpDataWithMeta,
         ikpStatus,
-        ikpCompletedSteps: completedSteps,
+        ikpCompletedSteps: completed,
         ikpLastUpdated: new Date(),
       },
       userId
@@ -98,37 +112,69 @@ export async function GET(
   }
 }
 
-// Helper function to calculate completed steps
-function calculateCompletedSteps(ikpData: any): number {
+// Helper function to calculate completed steps and validate CKV
+function calculateCompletedSteps(ikpData: any): { completed: number; ckvStatus: any; totalScore: number } {
   let completed = 0;
+  let totalScore = 0;
   
-  // Define which fields correspond to each step
+  // Define which fields correspond to each step with their scores
   const stepFields = [
-    ['organisationType'], // Step 1 - Organisatie
-    ['decisionMakingLocation'], // Step 2 - Besluitvorming in Nederland
-    ['clientTypes'], // Step 3 - Opdrachtgevers
-    ['industryPerspective'], // Step 4 - Perspectief branche
-    ['organizationImage'], // Step 5 - Imago
-    ['activeRegions'], // Step 6 - Regio
-    ['industry'], // Step 7 - Branche
-    ['employeeCount'], // Step 8 - Aantal medewerkers
-    ['matchingElements'], // Step 9 - Matchingselementen
-    ['kraljicPosition'], // Step 10 - Impact
-    ['servicePotential'], // Step 11 - Dienstverlening
-    ['issues'], // Step 12 - Issue
-    ['contractValue'], // Step 13 - Financieel
-    ['collaborationDuration'], // Step 14 - Samenwerkingsduur
-    ['creditworthiness'], // Step 15 - Kredietwaardigheid
+    { fields: ['geographicScope'], scoreType: 'CKV', score: 0 },
+    { fields: ['employeeCount'], scoreType: 'CKV', score: 0 },
+    { fields: ['clientTypes'], scoreType: 'CKV', score: 0 },
+    { fields: ['industry'], scoreType: 'CKV', score: 0 },
+    { fields: ['clientDNA'], scoreType: 'percentage', score: 15 },
+    { fields: ['competitionType'], scoreType: 'percentage', score: 4 },
+    { fields: ['competitionCount'], scoreType: 'percentage', score: 4 },
+    { fields: ['kraljicPosition'], scoreType: 'percentage', score: 10 },
+    { fields: ['potentialServices'], scoreType: 'percentage', score: 15 },
+    { fields: ['additionalServices'], scoreType: 'percentage', score: 2 },
+    { fields: ['issues'], scoreType: 'percentage', score: 20 },
+    { fields: ['contractValue'], scoreType: 'percentage', score: 10 },
+    { fields: ['grossMargin'], scoreType: 'percentage', score: 10 },
+    { fields: ['collaborationDuration'], scoreType: 'percentage', score: 10 },
+    { fields: ['creditworthiness'], scoreType: 'CKV', score: 0 }
   ];
   
-  stepFields.forEach(fields => {
-    const hasData = fields.some(field => {
+  // Track CKV status
+  const ckvStatus = {
+    geographicScope: false,
+    employeeCount: false,
+    clientTypes: false,
+    industry: false,
+    creditworthiness: false,
+    allCkvMet: false
+  };
+  
+  stepFields.forEach((step, index) => {
+    const hasData = step.fields.some(field => {
       const value = ikpData[field];
       return value !== undefined && value !== null && value !== '' && 
              (Array.isArray(value) ? value.length > 0 : true);
     });
-    if (hasData) completed++;
+    
+    if (hasData) {
+      completed++;
+      
+      // Update CKV status
+      if (step.scoreType === 'CKV') {
+        const field = step.fields[0];
+        if (field in ckvStatus) {
+          ckvStatus[field as keyof typeof ckvStatus] = true;
+        }
+      } else {
+        // Add to total score for percentage-based fields
+        totalScore += step.score;
+      }
+    }
   });
   
-  return completed;
+  // Check if all CKV requirements are met
+  ckvStatus.allCkvMet = ckvStatus.geographicScope && 
+                        ckvStatus.employeeCount && 
+                        ckvStatus.clientTypes && 
+                        ckvStatus.industry && 
+                        ckvStatus.creditworthiness;
+  
+  return { completed, ckvStatus, totalScore };
 }
