@@ -19,7 +19,74 @@ Je werkt aan het Appalti AI Sales Platform - een multi-tenant SaaS platform voor
 - **Anthropic AI**: Document analyse & content generatie
 - **OpenAI**: Content review & suggesties
 
-## 📁 PROJECT STRUCTUUR
+## 👥 GEBRUIKERS & BEDRIJVEN STRUCTUUR
+
+### Hiërarchie Overview
+```
+Platform (Appalti AI)
+├── Company (Bedrijf) - bv. "Appalti", "Klant ABC", "Partner XYZ"
+│   ├── Users (Medewerkers)
+│   │   ├── Owner (Eigenaar/Admin)
+│   │   ├── Members (Teamleden)
+│   │   └── Viewers (Read-only gebruikers)
+│   └── Resources
+│       ├── Client Companies
+│       ├── Tenders
+│       └── Bids
+```
+
+### Hoe het werkt:
+1. **Companies** zijn de hoofdentiteiten
+   - Elk bedrijf heeft zijn eigen `tenantId`
+   - Alle data is strikt gescheiden per bedrijf
+   - Bedrijven kunnen zijn: Appalti zelf, klanten, partners
+
+2. **Users** behoren ALTIJD tot een Company
+   - Via `memberships` collection gekoppeld
+   - Een user kan bij meerdere companies horen
+   - Rollen zijn per company (je kunt admin zijn bij A, viewer bij B)
+
+3. **Multi-Tenancy** zorgt voor isolatie
+   - `tenantId` in ELKE database query
+   - Collega's zien alleen data van hun eigen company
+   - Veilige scheiding tussen bedrijven
+
+4. **Rollen & Rechten**
+   ```typescript
+   CompanyRole:
+   - OWNER: Volledige controle, kan bedrijf verwijderen
+   - ADMIN: Beheer users, rollen, alle functies
+   - MEMBER: Normale gebruiker, kan werken met tenders/bids
+   - VIEWER: Alleen lezen, geen wijzigingen
+   
+   PlatformRole (alleen voor Appalti medewerkers):
+   - SUPER_ADMIN: Toegang tot alle bedrijven
+   - SUPPORT: Kan helpen bij alle bedrijven
+   ```
+
+5. **Samenwerking Features**
+   - **Dashboard**: Overzicht van team activiteit
+   - **Taken verdelen**: Bids toewijzen aan teamleden
+   - **Notificaties**: Updates over team acties
+   - **Audit log**: Wie deed wat en wanneer
+
+### Voorbeeld Scenario:
+```
+Bedrijf: "Bouwbedrijf De Vries"
+├── Jan (OWNER) - kan alles
+├── Marie (ADMIN) - beheert team
+├── Pieter (MEMBER) - werkt aan tenders
+└── Lisa (VIEWER) - bekijkt voortgang
+
+Workflow:
+1. Marie voegt nieuwe tender toe
+2. Wijst deze toe aan Pieter
+3. Pieter werkt aan bid (4 stappen)
+4. Jan reviewt en approveert
+5. Lisa kan alles volgen
+```
+
+## 📁 Project Structuur
 
 ```
 /workspace/
