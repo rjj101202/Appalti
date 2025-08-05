@@ -22,20 +22,75 @@ export interface AuthContext {
  * Get auth context voor API routes
  */
 export async function getAuthContext(req: NextRequest): Promise<AuthContext | null> {
-  // Tijdelijk: return hardcoded auth context voor development
-  // TODO: Implementeer Auth0 v5 of een andere auth oplossing
-  return {
-    userId: 'temp-user-id',
-    auth0Id: 'temp-auth0-id',
-    email: 'admin@appalti.nl',
-    name: 'Admin User',
-    tenantId: 'appalti',
-    companyId: 'temp-company-id',
-    companyRole: CompanyRole.OWNER,
-    platformRole: PlatformRole.SUPER_ADMIN,
-    isAuthenticated: true,
-    isAppaltiUser: true
-  };
+  try {
+    // Get NextAuth session
+    const { auth } = await import('@/lib/auth');
+    const session = await auth();
+    
+    if (!session || !session.user || !session.user.email) {
+      return null;
+    }
+    
+    // Get user from database
+    const { getUserRepository } = await import('@/lib/db/repositories/userRepository');
+    const userRepo = await getUserRepository();
+    const dbUser = await userRepo.findByEmail(session.user.email);
+    
+    if (!dbUser || !dbUser._id) {
+      // User not synced yet - create user
+      const { user: newUser } = await userRepo.findOrCreate({
+        auth0Id: session.user.id || `auth0|${Date.now()}`, // NextAuth uses different ID format
+        email: session.user.email,
+        name: session.user.name || session.user.email,
+        avatar: session.user.image || undefined,
+        emailVerified: true, // NextAuth only allows verified emails
+      });
+      
+      // If new Appalti user, add to Appalti company
+      if (session.user.email.endsWith('@appalti.nl')) {
+        const { getCompanyRepository } = await import('@/lib/db/repositories/companyRepository');
+        const companyRepo = await getCompanyRepository();
+        const appaltiCompany = await companyRepo.getAppaltiCompany();
+        
+        if (appaltiCompany && appaltiCompany._id && newUser._id) {
+          const membershipRepo = await getMembershipRepository();
+          await membershipRepo.create({
+            userId: newUser._id.toString(),
+            companyId: appaltiCompany._id.toString(),
+            tenantId: appaltiCompany.tenantId,
+            companyRole: CompanyRole.MEMBER,
+            invitedBy: appaltiCompany.createdBy.toString(),
+          });
+        }
+      }
+      
+      return getAuthContext(req); // Retry with created user
+    }
+    
+    // Get active membership
+    const membershipRepo = await getMembershipRepository();
+    const memberships = await membershipRepo.findByUser(dbUser._id.toString(), true);
+    
+    // Voor nu, pak de eerste actieve membership
+    // Later: implement tenant switching
+    const activeMembership = memberships[0];
+    
+    return {
+      userId: dbUser._id.toString(),
+      auth0Id: session.user.id || dbUser.auth0Id,
+      email: session.user.email,
+      name: session.user.name || session.user.email,
+      tenantId: activeMembership?.tenantId || 'default',
+      companyId: activeMembership?.companyId.toString(),
+      companyRole: activeMembership?.companyRole,
+      platformRole: activeMembership?.platformRole,
+      isAuthenticated: true,
+      isAppaltiUser: session.user.email.endsWith('@appalti.nl')
+    };
+  } catch (error) {
+    console.error('Error getting auth context:', error);
+    return null;
+  }
 }
 
 /**

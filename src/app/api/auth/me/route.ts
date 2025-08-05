@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
-  // Tijdelijk: return hardcoded user voor development
-  // TODO: Implementeer Auth0 v5 of een andere auth oplossing
-  return NextResponse.json({ 
-    user: {
-      email: 'admin@appalti.nl',
-      name: 'Admin User',
-      picture: null,
+  try {
+    const session = await auth();
+    
+    if (!session || !session.user) {
+      return NextResponse.json({ user: null });
     }
-  });
+    
+    return NextResponse.json({ 
+      user: {
+        email: session.user.email,
+        name: session.user.name,
+        picture: session.user.image,
+      }
+    });
+  } catch (error) {
+    console.error('Error getting user:', error);
+    return NextResponse.json({ user: null });
+  }
 }
