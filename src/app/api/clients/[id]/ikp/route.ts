@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@auth0/nextjs-auth0';
-import clientCompanyRepository from '@/lib/db/repositories/clientCompanyRepository';
+import { getClientCompanyRepository } from '@/lib/db/repositories/clientCompanyRepository';
 import { IKPData } from '@/types/ikp';
 
 // GET /api/clients/[id]/ikp - Get IKP data for a client
@@ -17,7 +17,8 @@ export async function GET(
     // Get tenantId from user
     const tenantId = session.user.sub;
     
-    const client = await clientCompanyRepository.findById(params.id, tenantId);
+    const repository = await getClientCompanyRepository();
+    const client = await repository.findById(params.id, tenantId);
     if (!client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
@@ -50,7 +51,8 @@ export async function PUT(
     // Get tenantId from user
     const tenantId = session.user.sub;
     
-    const client = await clientCompanyRepository.findById(params.id, tenantId);
+    const repository = await getClientCompanyRepository();
+    const client = await repository.findById(params.id, tenantId);
     if (!client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
@@ -61,7 +63,7 @@ export async function PUT(
                       completedSteps === 15 ? 'completed' : 'in_progress';
 
     // Update the client with IKP data
-    const updatedClient = await clientCompanyRepository.update(
+    const updatedClient = await repository.update(
       params.id, 
       client.tenantId,
       {

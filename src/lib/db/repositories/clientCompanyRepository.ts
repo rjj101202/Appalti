@@ -82,6 +82,7 @@ export class ClientCompanyRepository {
   async updateIKPStatus(
     id: string,
     tenantId: string,
+    updatedBy: string,
     ikpStatus: ClientCompany['ikpStatus'],
     completedSteps?: number
   ): Promise<boolean> {
@@ -103,7 +104,7 @@ export class ClientCompanyRepository {
     return result.modifiedCount > 0;
   }
 
-  async archive(id: string, tenantId: string): Promise<boolean> {
+  async delete(id: string, tenantId: string): Promise<boolean> {
     const result = await this.collection.updateOne(
       { 
         _id: new ObjectId(id), 
