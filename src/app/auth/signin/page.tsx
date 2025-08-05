@@ -22,6 +22,7 @@ export default function SignIn() {
           <button
             onClick={() => signIn("auth0", { callbackUrl })}
             className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+            style={{ padding: "12px 16px" }}
           >
             Inloggen met Auth0
           </button>

@@ -8,6 +8,8 @@ NEXTAUTH_URL='http://localhost:3000'
 # Voor Vercel (AANPASSEN!):
 # NEXTAUTH_URL='https://appalti-prod-vercel.vercel.app'
 NEXTAUTH_SECRET='o6Ywr2haQXExJMBa1FERko8OKmSRCQVHLfHQNDrpjaA='
+# BELANGRIJK: Als je poort 3001 gebruikt:
+# NEXTAUTH_URL='http://localhost:3001'
 
 # Auth0 (via NextAuth) - BELANGRIJK: CLIENT_ID en CLIENT_SECRET heb je al!
 AUTH0_CLIENT_ID='5lMCYhSojEqRbiOQmbsxiLIyyUN4lKvj'

@@ -220,17 +220,21 @@ Alle environment variables zijn geconfigureerd in Vercel dashboard.
 - **NextAuth.js v5 (beta)** met Auth0 als provider
 - **MongoDB adapter** voor session storage
 - **Environment variabelen** (BELANGRIJK - kopieer van voorbeeldenv):
-  - `NEXTAUTH_URL='http://localhost:3000'` (Vercel: je app URL)
+  - `NEXTAUTH_URL='http://localhost:3000'` (OF 3001 als je die poort gebruikt!)
   - `NEXTAUTH_SECRET='o6Ywr2haQXExJMBa1FERko8OKmSRCQVHLfHQNDrpjaA='`
   - `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_ISSUER_BASE_URL`
 - **Auth routes**:
   - `/api/auth/signin` - Login
   - `/api/auth/signout` - Logout
-  - `/api/auth/[...nextauth]` - NextAuth handlers
+  - `/api/auth/[...nextauth]` - NextAuth handlers (NIET [auth0]!)
 - **Custom pages**:
   - `/auth/signin` - Custom login page
   - `/auth/error` - Error handling
 - **SessionProvider** in root layout voor client components
+- **FIXES Augustus 2025**:
+  - Tailwind `px-3` error opgelost met inline styles
+  - NextAuth secret toegevoegd aan config
+  - Auth0 callback URL in dashboard moet poort matchen!
 
 ### MongoDB User Sync
 - **TIJDELIJK**: User wordt aangemaakt in `getAuthContext` bij eerste login

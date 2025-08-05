@@ -1,1 +1,0 @@
-// Deze route wordt niet meer gebruikt - zie [...nextauth] folder
