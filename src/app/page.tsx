@@ -1,21 +1,28 @@
 'use client';
 
-import { useUser } from '@auth0/nextjs-auth0/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowRight, Zap, Shield, TrendingUp, Users } from 'lucide-react';
 
 export default function Home() {
-  const { user, error, isLoading } = useUser();
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
 
-  // Als ingelogd, redirect naar dashboard
   useEffect(() => {
-    if (user && !isLoading) {
-      router.push('/dashboard');
-    }
-  }, [user, isLoading, router]);
+    // Check auth status
+    fetch('/api/auth/me')
+      .then(res => res.json())
+      .then(data => {
+        if (data.user) {
+          setUser(data.user);
+          router.push('/dashboard');
+        }
+        setIsLoading(false);
+      })
+      .catch(() => setIsLoading(false));
+  }, [router]);
 
   return (
     <div className="min-h-screen">
