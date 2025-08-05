@@ -3,6 +3,7 @@
 export interface IKPData {
   // 1. Geografische scope (CKV)
   geographicScope: string[]; // Provincies waar actief
+  geographicScopeWeights?: Record<string, number>; // Wegingen per provincie
   
   // 2. Omvang in aantal werkzame personen (CKV)
   employeeCount: string; // e.g., "1-10", "10-50", etc.
