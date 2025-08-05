@@ -1,4 +1,5 @@
-import { withMiddlewareAuthRequired } from '@auth0/nextjs-auth0/edge';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
 export const config = {
   matcher: [
@@ -14,4 +15,8 @@ export const config = {
   ],
 };
 
-export default withMiddlewareAuthRequired();
+// Tijdelijk disabled voor deployment
+export function middleware(request: NextRequest) {
+  // Voor nu, laat alle requests door
+  return NextResponse.next();
+}
