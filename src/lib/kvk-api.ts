@@ -97,15 +97,18 @@ class KVKAPIService {
     this.jwtSecret = process.env.KVK_JWT_SECRET || '';
     this.password = process.env.KVK_PASSWORD || '';
     
-    // Enable mock mode if API credentials are not configured or if explicitly set
-    this.useMockData = process.env.USE_MOCK_KVK === 'true' || !this.apiKey;
+    // Enable mock mode only if explicitly requested OR when neither API key nor JWT credentials are configured
+    const hasApiKey = !!this.apiKey;
+    const hasJwtCreds = !!this.jwtSecret && !!this.password;
+    this.useMockData = process.env.USE_MOCK_KVK === 'true' || (!hasApiKey && !hasJwtCreds);
     
     // Debug logging
     console.log('KVK API initialized with:');
-    console.log('- API Key configured:', !!this.apiKey);
+    console.log('- API Key configured:', hasApiKey);
     console.log('- JWT Secret configured:', !!this.jwtSecret);
     console.log('- Password configured:', !!this.password);
     console.log('- Using mock data:', this.useMockData);
+    console.log('- Auth method:', hasApiKey ? 'apiKey' : (hasJwtCreds ? 'jwt' : 'mock'));
   }
 
   private generateToken(): string {
