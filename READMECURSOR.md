@@ -1,6 +1,6 @@
 # 🤖 CURSOR AGENT DOCUMENTATIE - APPALTI AI SALES PLATFORM
 
-> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-14 14:05 UTC).
+> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-14 14:15 UTC).
 
 ## 🎯 MISSIE
 Je werkt aan het Appalti AI Sales Platform - een multi-tenant SaaS platform voor AI-gestuurde aanbestedingsbeheer. Het platform moet zowel Appalti's interne team als externe klanten bedienen.
@@ -262,6 +262,23 @@ Alleen `ClientCompanyRepository` bestaat momenteel:
 ### Vercel Environment Variables ✅
 Alle environment variables zijn geconfigureerd in Vercel dashboard.
 
+#### Huidige variabelen (All Environments, zonder secrets)
+- NEXTAUTH_URL
+- NEXTAUTH_SECRET
+- NEXTAUTH_DEBUG (tijdelijk: `1` voor uitgebreide logs)
+- AUTH0_ISSUER_BASE_URL
+- AUTH0_CLIENT_ID
+- AUTH0_CLIENT_SECRET
+- AUTH0_SCOPE (Added Aug 5)
+- MONGODB_URI
+- MONGODB_DB
+- KVK_JWT_SECRET (Added Aug 5)
+- KVK_PASSWORD (Added Aug 5)
+- ANTHROPIC_API_KEY (Added Aug 5)
+- TENDERNED_API_URL (Added Aug 5)
+- TENDERNED_USERNAME (Added Aug 5)
+- TENDERNED_PASSWORD (Added Aug 5)
+
 ### Auth0 Dashboard Configuration ✅
 - **Allowed Callback URLs**: 
   - `http://localhost:3000/api/auth/callback`
@@ -399,24 +416,8 @@ Door: Cursor Agent (Fundering Fase)
 
 ## 📜 Changelog Updates
 
-### 2025-08-14
-- Tenant-koppeling doorgevoerd in API-routes:
-  - `src/app/api/clients/route.ts` gebruikt nu `requireAuth` en `auth.tenantId`/`auth.userId` i.p.v. hardcoded waarden.
-  - `src/app/api/clients/[id]/route.ts` leest tenantId uit `requireAuth` voor GET/PUT.
-  - `src/app/api/clients/[id]/ikp/route.ts` gebruikt `auth.tenantId` en `auth.userId` voor validatie en writes.
-- Auth0→MongoDB sync verbeterd:
-  - In `src/lib/auth.ts` (NextAuth signIn callback) wordt de user gesynchroniseerd met onze `users`-collectie en worden @appalti.nl-gebruikers automatisch aan de Appalti company gekoppeld (membership aanmaken indien nodig).
-- Uitnodigingen toegevoegd:
-  - `POST /api/memberships/invite` (rolvereiste: ADMIN in company) maakt een invite-token aan. Houdt rekening met `allowedEmailDomains` in company settings.
-  - `POST /api/memberships/accept` valideert token + e-mailmatch en maakt membership aan.
-- Registratie-flow aangescherpt:
-  - `join-company` in `src/app/api/auth/registration/route.ts` eist e-mailmatch met invite en respecteert `allowedEmailDomains`.
-- Notities:
-  - TenantId is unieke sleutel per company (organization) en wordt gebruikt als multi-tenant filter in alle data queries/writes.
-  - Domain-whitelisting kan per company via `settings.allowedEmailDomains`.
-
-### 2025-08-14 13:55 UTC
-- UI: Dashboard sidebar toont nu de daadwerkelijke NextAuth sessie-gebruiker i.p.v. hardcoded `test@appalti.ai` (`src/components/layouts/DashboardLayout.tsx`).
+### 2025-08-14 14:15 UTC
+- Docs: Vercel environment-variabelenlijst toegevoegd (All Environments) inclusief `NEXTAUTH_DEBUG=1` voor extra logging.
 
 ### 2025-08-14 14:05 UTC
 - Logging/Debugging:
@@ -424,3 +425,6 @@ Door: Cursor Agent (Fundering Fase)
   - Nieuw endpoint: `GET /api/health` met DB ping + sessiestatus (veilig, geen secrets).
   - NextAuth debug via env `NEXTAUTH_DEBUG=1` en extra logs in `session`/`signIn` callbacks.
 - UI: Logout-knop toegevoegd in dashboard header (linkt naar `/api/auth/signout`).
+
+### 2025-08-14 13:55 UTC
+- UI: Dashboard sidebar toont nu de daadwerkelijke NextAuth sessie-gebruiker i.p.v. hardcoded `test@appalti.ai` (`src/components/layouts/DashboardLayout.tsx`).
