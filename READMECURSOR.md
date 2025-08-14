@@ -1,5 +1,7 @@
 # 🤖 CURSOR AGENT DOCUMENTATIE - APPALTI AI SALES PLATFORM
 
+> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-14).
+
 ## 🎯 MISSIE
 Je werkt aan het Appalti AI Sales Platform - een multi-tenant SaaS platform voor AI-gestuurde aanbestedingsbeheer. Het platform moet zowel Appalti's interne team als externe klanten bedienen.
 
@@ -392,3 +394,16 @@ Alle environment variables zijn geconfigureerd in Vercel dashboard.
 
 Laatste update: ${new Date().toISOString()}
 Door: Cursor Agent (Fundering Fase)
+
+---
+
+## 📜 Changelog Updates
+
+### 2025-08-14
+- Tenant-koppeling doorgevoerd in API-routes:
+  - `src/app/api/clients/route.ts` gebruikt nu `requireAuth` en `auth.tenantId`/`auth.userId` i.p.v. hardcoded waarden.
+  - `src/app/api/clients/[id]/route.ts` leest tenantId uit `requireAuth` voor GET/PUT.
+  - `src/app/api/clients/[id]/ikp/route.ts` gebruikt `auth.tenantId` en `auth.userId` voor validatie en writes.
+- Auth0→MongoDB sync verbeterd:
+  - In `src/lib/auth.ts` (NextAuth signIn callback) wordt de user gesynchroniseerd met onze `users`-collectie en worden @appalti.nl-gebruikers automatisch aan de Appalti company gekoppeld (membership aanmaken indien nodig).
+- Opmerking: Multi-tenancy blijft via `tenantId` in elk document. Alle create/read/update endpoints gebruiken nu de tenant uit de sessiecontext.

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClientCompanyRepository } from '@/lib/db/repositories/clientCompanyRepository';
+import { requireAuth } from '@/lib/auth/context';
 
 // PUT /api/clients/[id]/ikp - Update IKP data for a client
 export async function PUT(
@@ -8,15 +9,18 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    
-    // TODO: Get tenantId and userId from auth context
-    const tenantId = 'appalti'; // Hardcoded for now
-    const userId = 'test-user'; // Hardcoded for now
+    const auth = await requireAuth(request);
+    if (!auth.tenantId) {
+      return NextResponse.json(
+        { error: 'No active tenant' },
+        { status: 400 }
+      );
+    }
     
     const repository = await getClientCompanyRepository();
     
     // Check if client exists
-    const client = await repository.findById(params.id, tenantId);
+    const client = await repository.findById(params.id, auth.tenantId);
     if (!client) {
       return NextResponse.json(
         { error: 'Client company not found' },
@@ -45,14 +49,14 @@ export async function PUT(
     // Update the client with IKP data
     const updatedClient = await repository.update(
       params.id,
-      tenantId,
+      auth.tenantId,
       {
         ikpData: ikpDataWithMeta,
         ikpStatus,
         ikpCompletedSteps: completed,
         ikpLastUpdated: new Date(),
       },
-      userId
+      auth.userId
     );
     
     if (!updatedClient) {
@@ -81,11 +85,16 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    // TODO: Get tenantId from auth context
-    const tenantId = 'appalti'; // Hardcoded for now
+    const auth = await requireAuth(request);
+    if (!auth.tenantId) {
+      return NextResponse.json(
+        { error: 'No active tenant' },
+        { status: 400 }
+      );
+    }
     
     const repository = await getClientCompanyRepository();
-    const client = await repository.findById(params.id, tenantId);
+    const client = await repository.findById(params.id, auth.tenantId);
     
     if (!client) {
       return NextResponse.json(

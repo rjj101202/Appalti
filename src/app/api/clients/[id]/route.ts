@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClientCompanyRepository } from '@/lib/db/repositories/clientCompanyRepository';
+import { requireAuth } from '@/lib/auth/context';
 
 // GET /api/clients/[id] - Get specific client company
 export async function GET(
@@ -7,11 +8,16 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    // TODO: Get tenantId from auth context
-    const tenantId = 'appalti'; // Hardcoded for now
-    
+    const auth = await requireAuth(request);
+    if (!auth.tenantId) {
+      return NextResponse.json(
+        { error: 'No active tenant' },
+        { status: 400 }
+      );
+    }
+
     const repository = await getClientCompanyRepository();
-    const client = await repository.findById(params.id, tenantId);
+    const client = await repository.findById(params.id, auth.tenantId);
     
     if (!client) {
       return NextResponse.json(
@@ -40,21 +46,24 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    
-    // TODO: Get tenantId and userId from auth context
-    const tenantId = 'appalti'; // Hardcoded for now
-    const userId = 'test-user'; // Hardcoded for now
-    
+    const auth = await requireAuth(request);
+    if (!auth.tenantId) {
+      return NextResponse.json(
+        { error: 'No active tenant' },
+        { status: 400 }
+      );
+    }
+
     const repository = await getClientCompanyRepository();
     
     // Remove fields that shouldn't be updated directly
-    const { _id, tenantId: _, createdAt, createdBy, ...updates } = body;
+    const { _id, tenantId: _tenant, createdAt, createdBy, ...updates } = body;
     
     const updatedClient = await repository.update(
       params.id,
-      tenantId,
+      auth.tenantId,
       updates,
-      userId
+      auth.userId
     );
     
     if (!updatedClient) {
