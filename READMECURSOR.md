@@ -1,6 +1,6 @@
 # 🤖 CURSOR AGENT DOCUMENTATIE - APPALTI AI SALES PLATFORM
 
-> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-14 14:30 UTC).
+> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-14 14:40 UTC).
 
 ## 🎯 MISSIE
 Je werkt aan het Appalti AI Sales Platform - een multi-tenant SaaS platform voor AI-gestuurde aanbestedingsbeheer. Het platform moet zowel Appalti's interne team als externe klanten bedienen.
@@ -415,6 +415,9 @@ Door: Cursor Agent (Fundering Fase)
 ---
 
 ## 📜 Changelog Updates
+
+### 2025-08-14 14:40 UTC
+- KVK_USERNAME env toegevoegd; JWT-auth gebruikt nu `KVK_USERNAME` (fallback: `TNXML08196`). Logs tonen of de username is geconfigureerd.
 
 ### 2025-08-14 14:30 UTC
 - KVK API mock-toggle verbeterd: mock is alleen actief als `USE_MOCK_KVK=true` of wanneer zowel `KVK_API` (api key) als (`KVK_JWT_SECRET` + `KVK_PASSWORD`) ontbreken. Logt nu ook welke auth-methode gebruikt wordt.

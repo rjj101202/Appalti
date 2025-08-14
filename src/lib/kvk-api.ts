@@ -89,6 +89,7 @@ class KVKAPIService {
   private apiKey: string;
   private jwtSecret: string;
   private password: string;
+  private username: string;
   private useMockData: boolean;
 
   constructor() {
@@ -96,6 +97,7 @@ class KVKAPIService {
     this.apiKey = process.env.KVK_API || '';
     this.jwtSecret = process.env.KVK_JWT_SECRET || '';
     this.password = process.env.KVK_PASSWORD || '';
+    this.username = process.env.KVK_USERNAME || 'TNXML08196';
     
     // Enable mock mode only if explicitly requested OR when neither API key nor JWT credentials are configured
     const hasApiKey = !!this.apiKey;
@@ -107,6 +109,7 @@ class KVKAPIService {
     console.log('- API Key configured:', hasApiKey);
     console.log('- JWT Secret configured:', !!this.jwtSecret);
     console.log('- Password configured:', !!this.password);
+    console.log('- Username configured:', !!process.env.KVK_USERNAME);
     console.log('- Using mock data:', this.useMockData);
     console.log('- Auth method:', hasApiKey ? 'apiKey' : (hasJwtCreds ? 'jwt' : 'mock'));
   }
@@ -114,7 +117,7 @@ class KVKAPIService {
   private generateToken(): string {
     // KVK API requires a JWT token with specific claims
     const payload = {
-      username: 'TNXML08196', // This is typically the KVK username
+      username: this.username,
       password: this.password,
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + 3600 // 1 hour expiry
