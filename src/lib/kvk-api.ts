@@ -142,15 +142,15 @@ class KVKAPIService {
         'Accept': 'application/json'
       };
 
-      // Try different authentication methods
-      if (this.jwtSecret && this.password) {
-        // JWT based auth
-        const token = this.generateToken();
-        headers['Authorization'] = `Bearer ${token}`;
-      } else if (this.apiKey) {
-        // API key based auth - try different header names
+      // Prefer API key when available, else fall back to JWT
+      if (this.apiKey) {
         headers['X-API-Key'] = this.apiKey;
         headers['apikey'] = this.apiKey;
+        console.log('KVK auth method (number): apiKey');
+      } else if (this.jwtSecret && this.password) {
+        const token = this.generateToken();
+        headers['Authorization'] = `Bearer ${token}`;
+        console.log('KVK auth method (number): jwt');
       }
       
       const response = await fetch(url, {
@@ -210,15 +210,15 @@ class KVKAPIService {
         'Accept': 'application/json'
       };
 
-      // Try different authentication methods
-      if (this.jwtSecret && this.password) {
-        // JWT based auth
-        const token = this.generateToken();
-        headers['Authorization'] = `Bearer ${token}`;
-      } else if (this.apiKey) {
-        // API key based auth - try different header names
+      // Prefer API key when available, else fall back to JWT
+      if (this.apiKey) {
         headers['X-API-Key'] = this.apiKey;
         headers['apikey'] = this.apiKey;
+        console.log('KVK auth method (name): apiKey');
+      } else if (this.jwtSecret && this.password) {
+        const token = this.generateToken();
+        headers['Authorization'] = `Bearer ${token}`;
+        console.log('KVK auth method (name): jwt');
       }
       
       const response = await fetch(url, {
