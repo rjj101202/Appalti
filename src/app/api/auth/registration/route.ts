@@ -127,6 +127,29 @@ export async function POST(request: NextRequest) {
           );
         }
         
+        // Enforce invite email must match the authenticated user
+        const userEmail = auth.email.toLowerCase();
+        const inviteEmail = invite.email.toLowerCase();
+        if (userEmail !== inviteEmail) {
+          return NextResponse.json(
+            { error: 'Invite email does not match your account' },
+            { status: 403 }
+          );
+        }
+        
+        // If company has domain whitelist, enforce it
+        const allowedDomains = company.settings?.allowedEmailDomains as string[] | undefined;
+        if (allowedDomains && allowedDomains.length > 0) {
+          const domain = userEmail.split('@')[1];
+          const domainAllowed = allowedDomains.some(d => d.toLowerCase() === domain);
+          if (!domainAllowed) {
+            return NextResponse.json(
+              { error: 'Your email domain is not allowed for this company' },
+              { status: 403 }
+            );
+          }
+        }
+        
         // Create membership
         membership = await membershipRepo.create({
           userId: auth.userId,

@@ -406,4 +406,11 @@ Door: Cursor Agent (Fundering Fase)
   - `src/app/api/clients/[id]/ikp/route.ts` gebruikt `auth.tenantId` en `auth.userId` voor validatie en writes.
 - Auth0→MongoDB sync verbeterd:
   - In `src/lib/auth.ts` (NextAuth signIn callback) wordt de user gesynchroniseerd met onze `users`-collectie en worden @appalti.nl-gebruikers automatisch aan de Appalti company gekoppeld (membership aanmaken indien nodig).
-- Opmerking: Multi-tenancy blijft via `tenantId` in elk document. Alle create/read/update endpoints gebruiken nu de tenant uit de sessiecontext.
+- Uitnodigingen toegevoegd:
+  - `POST /api/memberships/invite` (rolvereiste: ADMIN in company) maakt een invite-token aan. Houdt rekening met `allowedEmailDomains` in company settings.
+  - `POST /api/memberships/accept` valideert token + e-mailmatch en maakt membership aan.
+- Registratie-flow aangescherpt:
+  - `join-company` in `src/app/api/auth/registration/route.ts` eist e-mailmatch met invite en respecteert `allowedEmailDomains`.
+- Notities:
+  - TenantId is unieke sleutel per company (organization) en wordt gebruikt als multi-tenant filter in alle data queries/writes.
+  - Domain-whitelisting kan per company via `settings.allowedEmailDomains`.
