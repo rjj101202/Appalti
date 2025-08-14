@@ -1,6 +1,6 @@
 # 🤖 CURSOR AGENT DOCUMENTATIE - APPALTI AI SALES PLATFORM
 
-> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-14 13:55 UTC).
+> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-14 14:05 UTC).
 
 ## 🎯 MISSIE
 Je werkt aan het Appalti AI Sales Platform - een multi-tenant SaaS platform voor AI-gestuurde aanbestedingsbeheer. Het platform moet zowel Appalti's interne team als externe klanten bedienen.
@@ -417,3 +417,10 @@ Door: Cursor Agent (Fundering Fase)
 
 ### 2025-08-14 13:55 UTC
 - UI: Dashboard sidebar toont nu de daadwerkelijke NextAuth sessie-gebruiker i.p.v. hardcoded `test@appalti.ai` (`src/components/layouts/DashboardLayout.tsx`).
+
+### 2025-08-14 14:05 UTC
+- Logging/Debugging:
+  - Uitgebreide MongoDB logging en kortere `serverSelectionTimeoutMS` in `src/lib/mongodb.ts` + `pingDatabase()` helper.
+  - Nieuw endpoint: `GET /api/health` met DB ping + sessiestatus (veilig, geen secrets).
+  - NextAuth debug via env `NEXTAUTH_DEBUG=1` en extra logs in `session`/`signIn` callbacks.
+- UI: Logout-knop toegevoegd in dashboard header (linkt naar `/api/auth/signout`).

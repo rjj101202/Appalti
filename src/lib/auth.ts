@@ -7,6 +7,8 @@ import { getCompanyRepository } from "@/lib/db/repositories/companyRepository"
 import { getMembershipRepository } from "@/lib/db/repositories/membershipRepository"
 import { CompanyRole } from "@/lib/db/models/Membership"
 
+const NEXTAUTH_DEBUG = process.env.NEXTAUTH_DEBUG === '1' || process.env.NODE_ENV === 'development';
+
 export const { 
   handlers: { GET, POST },
   auth,
@@ -30,6 +32,7 @@ export const {
   adapter: MongoDBAdapter(clientPromise),
   callbacks: {
     async session({ session, token, user }) {
+      if (NEXTAUTH_DEBUG) console.log('[NextAuth] Session callback in', { hasSession: !!session, userId: user?.id });
       // Add custom fields to session
       if (session?.user) {
         session.user.id = user.id;
@@ -44,9 +47,10 @@ export const {
     },
     async signIn({ user, account, profile }) {
       console.log('[NextAuth] SignIn callback:', {
-        user: user?.email,
+        email: user?.email,
         provider: account?.provider,
         type: account?.type,
+        providerAccountId: account?.providerAccountId,
       });
       
       // Require email for mapping
@@ -117,5 +121,5 @@ export const {
   session: {
     strategy: "database",
   },
-  debug: process.env.NODE_ENV === "development",
+  debug: NEXTAUTH_DEBUG,
 });

@@ -117,9 +117,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
           <div style={{ flex: 1 }} />
 
-          <a href="/" className="btn btn-secondary">
-            Terug naar Home
-          </a>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <a href="/api/auth/signout" className="btn btn-secondary">
+              Logout
+            </a>
+            <a href="/" className="btn btn-secondary">
+              Terug naar Home
+            </a>
+          </div>
         </header>
 
         {/* Page content */}
