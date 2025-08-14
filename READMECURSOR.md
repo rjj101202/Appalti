@@ -1,6 +1,6 @@
 # 🤖 CURSOR AGENT DOCUMENTATIE - APPALTI AI SALES PLATFORM
 
-> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-14).
+> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-14 13:55 UTC).
 
 ## 🎯 MISSIE
 Je werkt aan het Appalti AI Sales Platform - een multi-tenant SaaS platform voor AI-gestuurde aanbestedingsbeheer. Het platform moet zowel Appalti's interne team als externe klanten bedienen.
@@ -414,3 +414,6 @@ Door: Cursor Agent (Fundering Fase)
 - Notities:
   - TenantId is unieke sleutel per company (organization) en wordt gebruikt als multi-tenant filter in alle data queries/writes.
   - Domain-whitelisting kan per company via `settings.allowedEmailDomains`.
+
+### 2025-08-14 13:55 UTC
+- UI: Dashboard sidebar toont nu de daadwerkelijke NextAuth sessie-gebruiker i.p.v. hardcoded `test@appalti.ai` (`src/components/layouts/DashboardLayout.tsx`).
