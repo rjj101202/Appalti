@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -20,6 +21,11 @@ const navigation = [
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const { data: session } = useSession();
+
+  const displayName = session?.user?.name || session?.user?.email || 'User';
+  const displayEmail = session?.user?.email || '';
+  const initial = (displayName?.charAt(0) || 'U').toUpperCase();
 
   return (
     <div className="dashboard-container">
@@ -83,14 +89,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               color: 'white',
               fontWeight: '500'
             }}>
-              U
+              {initial}
             </div>
             <div style={{ marginLeft: '12px' }}>
               <p style={{ margin: 0, fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                Test User
+                {displayName}
               </p>
               <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
-                test@appalti.ai
+                {displayEmail}
               </p>
             </div>
           </div>
@@ -111,9 +117,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
           <div style={{ flex: 1 }} />
 
-          <a href="/" className="btn btn-secondary">
-            Terug naar Home
-          </a>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <a href="/api/auth/signout" className="btn btn-secondary">
+              Logout
+            </a>
+            <a href="/" className="btn btn-secondary">
+              Terug naar Home
+            </a>
+          </div>
         </header>
 
         {/* Page content */}

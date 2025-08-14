@@ -1,5 +1,7 @@
 # 🤖 CURSOR AGENT DOCUMENTATIE - APPALTI AI SALES PLATFORM
 
+> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-14 14:15 UTC).
+
 ## 🎯 MISSIE
 Je werkt aan het Appalti AI Sales Platform - een multi-tenant SaaS platform voor AI-gestuurde aanbestedingsbeheer. Het platform moet zowel Appalti's interne team als externe klanten bedienen.
 
@@ -260,6 +262,23 @@ Alleen `ClientCompanyRepository` bestaat momenteel:
 ### Vercel Environment Variables ✅
 Alle environment variables zijn geconfigureerd in Vercel dashboard.
 
+#### Huidige variabelen (All Environments, zonder secrets)
+- NEXTAUTH_URL
+- NEXTAUTH_SECRET
+- NEXTAUTH_DEBUG (tijdelijk: `1` voor uitgebreide logs)
+- AUTH0_ISSUER_BASE_URL
+- AUTH0_CLIENT_ID
+- AUTH0_CLIENT_SECRET
+- AUTH0_SCOPE (Added Aug 5)
+- MONGODB_URI
+- MONGODB_DB
+- KVK_JWT_SECRET (Added Aug 5)
+- KVK_PASSWORD (Added Aug 5)
+- ANTHROPIC_API_KEY (Added Aug 5)
+- TENDERNED_API_URL (Added Aug 5)
+- TENDERNED_USERNAME (Added Aug 5)
+- TENDERNED_PASSWORD (Added Aug 5)
+
 ### Auth0 Dashboard Configuration ✅
 - **Allowed Callback URLs**: 
   - `http://localhost:3000/api/auth/callback`
@@ -392,3 +411,20 @@ Alle environment variables zijn geconfigureerd in Vercel dashboard.
 
 Laatste update: ${new Date().toISOString()}
 Door: Cursor Agent (Fundering Fase)
+
+---
+
+## 📜 Changelog Updates
+
+### 2025-08-14 14:15 UTC
+- Docs: Vercel environment-variabelenlijst toegevoegd (All Environments) inclusief `NEXTAUTH_DEBUG=1` voor extra logging.
+
+### 2025-08-14 14:05 UTC
+- Logging/Debugging:
+  - Uitgebreide MongoDB logging en kortere `serverSelectionTimeoutMS` in `src/lib/mongodb.ts` + `pingDatabase()` helper.
+  - Nieuw endpoint: `GET /api/health` met DB ping + sessiestatus (veilig, geen secrets).
+  - NextAuth debug via env `NEXTAUTH_DEBUG=1` en extra logs in `session`/`signIn` callbacks.
+- UI: Logout-knop toegevoegd in dashboard header (linkt naar `/api/auth/signout`).
+
+### 2025-08-14 13:55 UTC
+- UI: Dashboard sidebar toont nu de daadwerkelijke NextAuth sessie-gebruiker i.p.v. hardcoded `test@appalti.ai` (`src/components/layouts/DashboardLayout.tsx`).
