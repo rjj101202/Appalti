@@ -1,6 +1,6 @@
 # 🤖 CURSOR AGENT DOCUMENTATIE - APPALTI AI SALES PLATFORM
 
-> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-14 14:40 UTC).
+> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-15 11:05 UTC).
 
 ## 🎯 MISSIE
 Je werkt aan het Appalti AI Sales Platform - een multi-tenant SaaS platform voor AI-gestuurde aanbestedingsbeheer. Het platform moet zowel Appalti's interne team als externe klanten bedienen.
@@ -415,6 +415,16 @@ Door: Cursor Agent (Fundering Fase)
 ---
 
 ## 📜 Changelog Updates
+
+### 2025-08-15 11:05 UTC
+- KVK integratie geactualiseerd naar publieke endpoints:
+  - Naamzoek: `GET https://api.kvk.nl/api/v2/zoeken?naam=...&resultatenPerPagina=...` (app endpoint: `/api/kvk/search?name=...&limit=...`).
+  - Basisprofiel op KvK-nummer: `GET https://api.kvk.nl/api/v1/basisprofielen/{kvkNummer}` (app endpoint: `/api/kvk/search?kvkNumber=...`).
+  - Fallback-auth blijft: API key → JWT.
+- Nieuwe aggregator:
+  - `kvkAPI.getAggregatedCompany(kvkNumber)` haalt basisprofiel + naamgevingen (vestigingenlijst) + vestigingsprofielen (per vestigingsnummer) op en mapt naar rijk object met handelsnamen, sbi, adressen, websites en alle vestigingen.
+  - App endpoint: `/api/kvk/search?kvkNumber=...&full=true` geeft het volledige geaggregeerde profiel terug.
+- Mock-toggle verbeterd: `USE_MOCK_KVK` accepteert nu `true/1/yes/on` (case-insensitive).
 
 ### 2025-08-14 14:40 UTC
 - KVK_USERNAME env toegevoegd; JWT-auth gebruikt nu `KVK_USERNAME` (fallback: `TNXML08196`). Logs tonen of de username is geconfigureerd.

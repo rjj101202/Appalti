@@ -63,6 +63,62 @@ interface BasisprofielV1 {
     postcode?: string;
     plaats?: string;
   }>;
+  websites?: string[];
+  // vestigingen-lijsten kunnen in verschillende secties voorkomen; we laten dit flexibel
+  aantalCommercieleVestigingen?: number;
+  aantalNietCommercieleVestigingen?: number;
+  totaalAantalVestigingen?: number;
+  vestigingen?: Array<{
+    vestigingsnummer: string;
+    eersteHandelsnaam?: string;
+    volledigAdres?: string;
+  }>;
+}
+
+interface VestigingsprofielV1 {
+  vestigingsnummer: string;
+  kvkNummer: string;
+  eersteHandelsnaam?: string;
+  handelsnamen?: Array<{ naam: string }> | string[];
+  adressen?: Array<{
+    type?: string;
+    volledigAdres?: string;
+    straatnaam?: string;
+    huisnummer?: string | number;
+    postcode?: string;
+    plaats?: string;
+  }>;
+  websites?: string[];
+  sbiActiviteiten?: Array<{ sbiCode: string; sbiOmschrijving: string; indHoofdactiviteit?: boolean }>;
+}
+
+interface NaamgevingenV1 {
+  kvkNummer: string;
+  naam?: string;
+  statutaireNaam?: string;
+  ookGenoemd?: string;
+  vestigingen?: Array<{
+    vestigingsnummer: string;
+    eersteHandelsnaam?: string;
+  }>;
+}
+
+export interface KVKAggregatedCompany {
+  kvkNumber: string;
+  rsin?: string;
+  name?: string;                // hoofdnaam
+  statutaireNaam?: string;
+  handelsnamen?: string[];
+  websites?: string[];
+  sbiActiviteiten?: Array<{ sbiCode: string; omschrijving: string; hoofd?: boolean }>;
+  adressen?: Array<{ type?: string; straat?: string; huisnummer?: string; postcode?: string; plaats?: string }>;
+  vestigingen?: Array<{
+    vestigingsnummer: string;
+    naam?: string;
+    adressen?: Array<{ type?: string; straat?: string; huisnummer?: string; postcode?: string; plaats?: string }>;
+    websites?: string[];
+    sbiActiviteiten?: Array<{ sbiCode: string; omschrijving: string; hoofd?: boolean }>;
+  }>;
 }
 
 // Mock data for development
@@ -303,6 +359,100 @@ class KVKAPIService {
       // Return empty array instead of throwing
       return [];
     }
+  }
+
+  // New: direct fetch helpers
+  async getBasisprofiel(kvkNumber: string): Promise<BasisprofielV1 | null> {
+    if (this.useMockData) {
+      const m = MOCK_COMPANIES.find(c => c.kvkNumber === kvkNumber);
+      if (!m) return null;
+      return {
+        kvkNummer: m.kvkNumber,
+        naam: m.name,
+        adressen: m.addresses?.map(a => ({ type: a.type, straatnaam: a.street, huisnummer: a.houseNumber, postcode: a.postalCode, plaats: a.city }))
+      } as BasisprofielV1;
+    }
+    const url = `${this.baseUrlV1}/basisprofielen/${kvkNumber}`;
+    const res = await fetch(url, { headers: this.buildHeaders('number'), signal: AbortSignal.timeout(10000) });
+    if (!res.ok) return null;
+    return res.json();
+  }
+
+  async getVestigingsprofiel(vestigingsnummer: string): Promise<VestigingsprofielV1 | null> {
+    if (this.useMockData) {
+      return null; // not modeling vestiging in mock
+    }
+    const url = `${this.baseUrlV1}/vestigingsprofielen/${vestigingsnummer}`;
+    const res = await fetch(url, { headers: this.buildHeaders('number'), signal: AbortSignal.timeout(10000) });
+    if (!res.ok) return null;
+    return res.json();
+  }
+
+  async getNaamgevingen(kvkNumber: string): Promise<NaamgevingenV1 | null> {
+    if (this.useMockData) {
+      return { kvkNummer: kvkNumber, naam: 'Mock', vestigingen: [] } as NaamgevingenV1;
+    }
+    const url = `${this.baseUrlV1}/naamgevingen/kvknummer?kvkNummer=${kvkNumber}`;
+    const res = await fetch(url, { headers: this.buildHeaders('number'), signal: AbortSignal.timeout(10000) });
+    if (!res.ok) return null;
+    return res.json();
+  }
+
+  // Aggregate full company from KVK (best effort)
+  async getAggregatedCompany(kvkNumber: string, maxVestigingen: number = 10): Promise<KVKAggregatedCompany | null> {
+    const bp = await this.getBasisprofiel(kvkNumber);
+    if (!bp) return null;
+
+    const handelsnamen: string[] = Array.isArray(bp.handelsnamen)
+      ? (bp.handelsnamen as any[]).map(h => typeof h === 'string' ? h : h.naam)
+      : [];
+
+    const sbi = (bp.sbiActiviteiten || []).map(a => ({ sbiCode: a.sbiCode, omschrijving: a.sbiOmschrijving, hoofd: !!a.indHoofdactiviteit }));
+
+    const adressen = (bp.adressen || []).map(a => ({
+      type: a.type,
+      straat: a.straatnaam,
+      huisnummer: String(a.huisnummer || ''),
+      postcode: a.postcode,
+      plaats: a.plaats
+    }));
+
+    // Try naamgevingen to get full vestiging list
+    const ng = await this.getNaamgevingen(kvkNumber);
+    const vestigingIds = (ng?.vestigingen || []).slice(0, maxVestigingen).map(v => v.vestigingsnummer);
+
+    const vestigingen: KVKAggregatedCompany['vestigingen'] = [];
+    for (const id of vestigingIds) {
+      const vp = await this.getVestigingsprofiel(id);
+      if (!vp) continue;
+      const vAddrs = (vp.adressen || []).map(a => ({
+        type: a.type,
+        straat: a.straatnaam,
+        huisnummer: String(a.huisnummer || ''),
+        postcode: a.postcode,
+        plaats: a.plaats
+      }));
+      const vSbi = (vp.sbiActiviteiten || []).map(a => ({ sbiCode: a.sbiCode, omschrijving: a.sbiOmschrijving, hoofd: !!a.indHoofdactiviteit }));
+      const vHandels = Array.isArray(vp.handelsnamen) ? (vp.handelsnamen as any[]).map(h => typeof h === 'string' ? h : h.naam) : [];
+      vestigingen.push({
+        vestigingsnummer: vp.vestigingsnummer,
+        naam: vp.eersteHandelsnaam || vHandels[0],
+        adressen: vAddrs,
+        websites: vp.websites,
+        sbiActiviteiten: vSbi
+      });
+    }
+
+    return {
+      kvkNumber: bp.kvkNummer,
+      name: bp.naam || bp.statutaireNaam,
+      statutaireNaam: bp.statutaireNaam,
+      handelsnamen,
+      websites: bp.websites,
+      sbiActiviteiten: sbi,
+      adressen,
+      vestigingen
+    };
   }
 
   // Transform kept for backwards compatibility (callers already use it)

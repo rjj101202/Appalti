@@ -6,6 +6,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const kvkNumber = searchParams.get('kvkNumber');
     const name = searchParams.get('name');
+    const full = searchParams.get('full') === 'true';
 
     if (!kvkNumber && !name) {
       return NextResponse.json(
@@ -15,7 +16,15 @@ export async function GET(request: NextRequest) {
     }
 
     if (kvkNumber) {
-      // Search by KVK number
+      if (full) {
+        const agg = await kvkAPI.getAggregatedCompany(kvkNumber);
+        if (!agg) {
+          return NextResponse.json({ error: 'Company not found' }, { status: 404 });
+        }
+        return NextResponse.json({ success: true, data: agg });
+      }
+
+      // Lightweight: basic mapping
       const company = await kvkAPI.searchByKvkNumber(kvkNumber);
       
       if (!company) {
@@ -31,7 +40,9 @@ export async function GET(request: NextRequest) {
       });
     } else if (name) {
       // Search by name
-      const companies = await kvkAPI.searchByName(name);
+      const limitParam = searchParams.get('limit');
+      const limit = limitParam ? Math.min(Math.max(parseInt(limitParam, 10) || 10, 1), 50) : 10;
+      const companies = await kvkAPI.searchByName(name, limit);
       
       return NextResponse.json({
         success: true,
