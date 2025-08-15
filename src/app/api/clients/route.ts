@@ -65,15 +65,16 @@ export async function POST(request: NextRequest) {
 			}
 		}
 		
-		// Optional enrichment from KVK if kvkNumber provided
+		// Default enrichment: true when kvkNumber is present, unless explicitly disabled
+		const shouldEnrich = !!body.kvkNumber && !(body.enrich === false || body.enrich === 'false');
 		let enriched: any = {};
-		if (body.kvkNumber && (body.enrich === true || body.enrich === 'true')) {
+		if (shouldEnrich) {
 			try {
 				const agg = await kvkAPI.getAggregatedCompany(body.kvkNumber);
 				if (agg) {
 					enriched = {
 						name: body.name || agg.name || agg.statutaireNaam,
-						legalForm: body.legalForm || undefined, // v1 basisprofielen bevat geen directe rechtsvorm string; later uitbreiden
+						legalForm: body.legalForm || undefined,
 						address: agg.adressen?.[0] ? {
 							street: `${agg.adressen[0].straat || ''} ${agg.adressen[0].huisnummer || ''}`.trim(),
 							postalCode: agg.adressen[0].postcode || '',
