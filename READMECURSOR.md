@@ -1,6 +1,6 @@
 # 🤖 CURSOR AGENT DOCUMENTATIE - APPALTI AI SALES PLATFORM
 
-> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-15 13:05 UTC).
+> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-15 13:20 UTC).
 
 ## 🎯 MISSIE
 Je werkt aan het Appalti AI Sales Platform - een multi-tenant SaaS platform voor AI-gestuurde aanbestedingsbeheer. Het platform moet zowel Appalti's interne team als externe klanten bedienen.
@@ -415,6 +415,11 @@ Door: Cursor Agent (Fundering Fase)
 ---
 
 ## 📜 Changelog Updates
+
+### 2025-08-15 13:20 UTC
+- Membership invite accept is nu idempotent:
+  - Als de user al lid is, markeren we de invite als geaccepteerd en retourneren we `success` i.p.v. 500.
+  - Rate limiting toegevoegd op accept; audit event gelogd.
 
 ### 2025-08-15 13:05 UTC
 - Rate limiting (optioneel): Upstash Redis limiter geconfigureerd; automatisch uit als env ontbreekt. Toegepast op KVK search/suggest en invites.

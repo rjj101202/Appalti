@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/context';
 import { getCompanyRepository } from '@/lib/db/repositories/companyRepository';
 import { getMembershipRepository } from '@/lib/db/repositories/membershipRepository';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { writeAudit } from '@/lib/audit';
 
 // POST /api/memberships/accept
 // Body: { inviteToken: string }
 export async function POST(request: NextRequest) {
   try {
+    const rl = await checkRateLimit(request, 'membership:accept');
+    if (!rl.allow) {
+      return NextResponse.json({ error: 'Too Many Requests' }, { status: 429 });
+    }
+
     const auth = await requireAuth(request);
     const { inviteToken } = await request.json();
 
@@ -44,6 +51,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Idempotent: if membership already exists, just accept invite and return success
+    const existing = await membershipRepo.findByUserAndCompany(auth.userId, company._id!.toString());
+    if (existing && existing.isActive) {
+      await membershipRepo.acceptInvite(inviteToken);
+      await writeAudit({
+        action: 'membership.invite.accept',
+        actorUserId: auth.userId,
+        tenantId: company.tenantId,
+        companyId: company._id!.toString(),
+        resourceType: 'membershipInvite',
+        resourceId: invite._id?.toString(),
+        metadata: { alreadyMember: true }
+      });
+      return NextResponse.json({ success: true, membershipId: existing._id?.toString(), alreadyMember: true });
+    }
+
     // Create membership
     const membership = await membershipRepo.create({
       userId: auth.userId,
@@ -55,6 +78,16 @@ export async function POST(request: NextRequest) {
 
     // Mark invite as accepted
     await membershipRepo.acceptInvite(inviteToken);
+
+    await writeAudit({
+      action: 'membership.invite.accept',
+      actorUserId: auth.userId,
+      tenantId: company.tenantId,
+      companyId: company._id!.toString(),
+      resourceType: 'membership',
+      resourceId: membership._id?.toString(),
+      metadata: { invitedRole: invite.invitedRole }
+    });
 
     return NextResponse.json({ success: true, membershipId: membership._id?.toString() });
   } catch (error) {
