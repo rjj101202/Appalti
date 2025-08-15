@@ -19,11 +19,50 @@ interface KVKCompany {
   employees?: string;
 }
 
-interface KVKSearchResult {
-  data: {
-    items: KVKCompany[];
-    totalItems: number;
-  };
+// Shapes for public KVK APIs we use
+interface ZoekenV2Response {
+  pagina: number;
+  resultatenPerPagina: number;
+  totaal: number;
+  resultaten: Array<{
+    kvkNummer: string;
+    vestigingsnummer?: string;
+    naam: string;
+    adres?: {
+      binnenlandsAdres?: {
+        type?: string;
+        straatnaam?: string;
+        huisnummer?: number;
+        huisletter?: string;
+        postcode?: string;
+        plaats?: string;
+      };
+      buitenlandsAdres?: {
+        straatHuisnummer?: string;
+        postcodeWoonplaats?: string;
+        land?: string;
+      }
+    };
+    type?: string;
+  }>;
+}
+
+interface BasisprofielV1 {
+  kvkNummer: string;
+  naam?: string;
+  statutaireNaam?: string;
+  handelsnamen?: Array<{ naam: string }> | string[];
+  sbiActiviteiten?: Array<{ sbiCode: string; sbiOmschrijving: string; indHoofdactiviteit?: boolean }>;
+  adressen?: Array<{
+    type?: string;
+    volledigAdres?: string;
+    straatnaam?: string;
+    huisnummer?: string | number;
+    huisnummerToevoeging?: string;
+    huisletter?: string;
+    postcode?: string;
+    plaats?: string;
+  }>;
 }
 
 // Mock data for development
@@ -85,7 +124,8 @@ const MOCK_COMPANIES: KVKCompany[] = [
 ];
 
 class KVKAPIService {
-  private baseUrl: string = 'https://api.kvk.nl/api/v1';
+  private baseUrlV1: string = 'https://api.kvk.nl/api/v1';
+  private baseUrlV2: string = 'https://api.kvk.nl/api/v2';
   private apiKey: string;
   private jwtSecret: string;
   private password: string;
@@ -116,6 +156,22 @@ class KVKAPIService {
     console.log('- Auth method:', hasApiKey ? 'apiKey' : (hasJwtCreds ? 'jwt' : 'mock'));
   }
 
+  private buildHeaders(kind: 'name' | 'number'): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Accept': 'application/json'
+    };
+    if (this.apiKey) {
+      headers['apikey'] = this.apiKey;
+      headers['X-API-Key'] = this.apiKey;
+      console.log(`KVK auth method (${kind}): apiKey`);
+    } else if (this.jwtSecret && this.password) {
+      const token = this.generateToken();
+      headers['Authorization'] = `Bearer ${token}`;
+      console.log(`KVK auth method (${kind}): jwt`);
+    }
+    return headers;
+  }
+
   private generateToken(): string {
     // KVK API requires a JWT token with specific claims
     const payload = {
@@ -128,6 +184,43 @@ class KVKAPIService {
     return jwt.sign(payload, this.jwtSecret);
   }
 
+  // Map Zoeken v2 item to our generic company shape (minimal)
+  private mapZoekenItemToCompany(item: ZoekenV2Response['resultaten'][number]): KVKCompany {
+    const b = item.adres?.binnenlandsAdres;
+    return {
+      kvkNumber: item.kvkNummer,
+      name: item.naam,
+      addresses: b ? [{
+        type: 'bezoekadres',
+        street: b.straatnaam || '',
+        houseNumber: String(b.huisnummer || ''),
+        postalCode: b.postcode || '',
+        city: b.plaats || ''
+      }] : [],
+      hasEntryInBusinessRegister: true
+    };
+  }
+
+  // Map Basisprofiel v1 to our shape
+  private mapBasisprofielToCompany(bp: BasisprofielV1): KVKCompany {
+    // Pick hoofdactiviteit indien aanwezig
+    const hoofd = bp.sbiActiviteiten?.find(a => a.indHoofdactiviteit) || bp.sbiActiviteiten?.[0];
+    const addr = bp.adressen?.[0];
+    return {
+      kvkNumber: bp.kvkNummer,
+      name: bp.naam || bp.statutaireNaam || '',
+      businessActivity: hoofd ? { sbiCode: hoofd.sbiCode, sbiDescription: hoofd.sbiOmschrijving } : undefined,
+      addresses: addr ? [{
+        type: addr.type || 'bezoekadres',
+        street: addr.straatnaam || '',
+        houseNumber: String(addr.huisnummer || ''),
+        postalCode: addr.postcode || '',
+        city: addr.plaats || ''
+      }] : [],
+      hasEntryInBusinessRegister: true
+    };
+  }
+
   async searchByKvkNumber(kvkNumber: string): Promise<KVKCompany | null> {
     if (this.useMockData) {
       console.log('Using mock data for KVK number search:', kvkNumber);
@@ -136,56 +229,30 @@ class KVKAPIService {
     }
 
     try {
-      // Try different API formats - some APIs use API key in headers, others in URL
-      const url = `${this.baseUrl}/search/companies?kvkNumber=${kvkNumber}`;
-      
-      console.log('Searching KVK by number:', kvkNumber);
+      // Basisprofiel v1 supports path segment or query; we use path segment
+      const url = `${this.baseUrlV1}/basisprofielen/${kvkNumber}`;
+      console.log('Searching KVK (basisprofiel) by number:', kvkNumber);
       console.log('Request URL:', url);
-      
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      };
 
-      // Prefer API key when available, else fall back to JWT
-      if (this.apiKey) {
-        headers['X-API-Key'] = this.apiKey;
-        headers['apikey'] = this.apiKey;
-        console.log('KVK auth method (number): apiKey');
-      } else if (this.jwtSecret && this.password) {
-        const token = this.generateToken();
-        headers['Authorization'] = `Bearer ${token}`;
-        console.log('KVK auth method (number): jwt');
-      }
-      
       const response = await fetch(url, {
         method: 'GET',
-        headers,
-        // Add timeout to prevent hanging requests
-        signal: AbortSignal.timeout(10000) // 10 second timeout
+        headers: this.buildHeaders('number'),
+        signal: AbortSignal.timeout(10000)
       });
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error('KVK API error:', response.status, errorText);
-        
-        // If we get a 401, we might be using the wrong auth method
         if (response.status === 401) {
           console.error('Authentication failed. Check your API credentials.');
         }
-        
         return null;
       }
 
-      const result: KVKSearchResult = await response.json();
-      
-      if (result.data.items.length > 0) {
-        return result.data.items[0];
-      }
-
-      return null;
+      const bp: BasisprofielV1 = await response.json();
+      return this.mapBasisprofielToCompany(bp);
     } catch (error) {
-      console.error('Error searching KVK:', error);
+      console.error('Error searching KVK (basisprofiel):', error);
       if (error instanceof Error) {
         console.error('Error details:', error.message);
         console.error('Error stack:', error.stack);
@@ -205,63 +272,42 @@ class KVKAPIService {
     }
 
     try {
-      const url = `${this.baseUrl}/search/companies?name=${encodeURIComponent(name)}&limit=${limit}`;
-      
+      // Zoeken v2 expects parameter naam and resultatenPerPagina
+      const url = `${this.baseUrlV2}/zoeken?naam=${encodeURIComponent(name)}&resultatenPerPagina=${limit}`;
       console.log('Searching KVK by name:', name);
       console.log('Request URL:', url);
-      
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      };
 
-      // Prefer API key when available, else fall back to JWT
-      if (this.apiKey) {
-        headers['X-API-Key'] = this.apiKey;
-        headers['apikey'] = this.apiKey;
-        console.log('KVK auth method (name): apiKey');
-      } else if (this.jwtSecret && this.password) {
-        const token = this.generateToken();
-        headers['Authorization'] = `Bearer ${token}`;
-        console.log('KVK auth method (name): jwt');
-      }
-      
       const response = await fetch(url, {
         method: 'GET',
-        headers,
-        // Add timeout to prevent hanging requests
-        signal: AbortSignal.timeout(10000) // 10 second timeout
+        headers: this.buildHeaders('name'),
+        signal: AbortSignal.timeout(10000)
       });
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error('KVK API error:', response.status, errorText);
-        
-        // If we get a 401, we might be using the wrong auth method
         if (response.status === 401) {
           console.error('Authentication failed. Check your API credentials.');
         }
-        
         return [];
       }
 
-      const result: KVKSearchResult = await response.json();
-      return result.data.items;
+      const result: ZoekenV2Response = await response.json();
+      return (result.resultaten || []).map(item => this.mapZoekenItemToCompany(item));
     } catch (error) {
       console.error('Error searching KVK by name:', error);
       if (error instanceof Error) {
         console.error('Error details:', error.message);
         console.error('Error stack:', error.stack);
       }
-      
       // Return empty array instead of throwing
       return [];
     }
   }
 
-  // Transform KVK data to our format
+  // Transform kept for backwards compatibility (callers already use it)
   transformCompanyData(kvkData: KVKCompany) {
-    const mainAddress = kvkData.addresses?.find(addr => addr.type === 'hoofdvestiging') || kvkData.addresses?.[0];
+    const mainAddress = kvkData.addresses?.[0];
     
     return {
       kvkNumber: kvkData.kvkNumber,
@@ -270,7 +316,7 @@ class KVKAPIService {
       sbiCode: kvkData.businessActivity?.sbiCode,
       sbiDescription: kvkData.businessActivity?.sbiDescription,
       address: mainAddress ? {
-        street: `${mainAddress.street} ${mainAddress.houseNumber}`,
+        street: `${mainAddress.street || ''} ${mainAddress.houseNumber || ''}`.trim(),
         postalCode: mainAddress.postalCode,
         city: mainAddress.city
       } : null,
