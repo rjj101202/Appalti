@@ -12,6 +12,7 @@ export class ClientCompanyRepository {
     this.collection.createIndex({ tenantId: 1, name: 1 });
     this.collection.createIndex({ tenantId: 1, kvkNumber: 1 });
     this.collection.createIndex({ tenantId: 1, status: 1 });
+    this.collection.createIndex({ tenantId: 1, createdAt: -1, _id: -1 });
   }
 
   async create(input: CreateClientCompanyInput): Promise<ClientCompany> {
@@ -53,6 +54,30 @@ export class ClientCompanyRepository {
       .find(filter)
       .sort({ createdAt: -1 })
       .toArray();
+  }
+
+  async findPaginated(
+    tenantId: string,
+    options: { limit: number; cursor?: string; includeArchived?: boolean }
+  ): Promise<{ items: ClientCompany[]; nextCursor?: string }> {
+    const filter: any = { tenantId };
+    if (!options.includeArchived) {
+      filter.status = { $ne: 'archived' };
+    }
+
+    if (options.cursor) {
+      // Cursor is last seen _id
+      filter._id = { $lt: new ObjectId(options.cursor) };
+    }
+
+    const items = await this.collection
+      .find(filter)
+      .sort({ _id: -1 })
+      .limit(options.limit)
+      .toArray();
+
+    const nextCursor = items.length === options.limit ? items[items.length - 1]._id?.toString() : undefined;
+    return { items, nextCursor };
   }
 
   async update(

@@ -34,7 +34,7 @@ const createClientSchema = z.object({
 	enrich: z.union([z.boolean(), z.string()]).optional()
 }).refine(d => !!(d.name || d.kvkNumber), { message: 'Company name or kvkNumber is required' });
 
-// GET /api/clients - Get all client companies
+// GET /api/clients - Get all client companies (paginated)
 export async function GET(request: NextRequest) {
 	try {
 		const auth = await requireAuth(request);
@@ -46,12 +46,18 @@ export async function GET(request: NextRequest) {
 			);
 		}
 		
+		const { searchParams } = new URL(request.url);
+		const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
+		const cursor = searchParams.get('cursor') || undefined;
+		const includeArchived = searchParams.get('includeArchived') === 'true';
+		
 		const repository = await getClientCompanyRepository();
-		const clients = await repository.findAll(auth.tenantId);
+		const { items, nextCursor } = await repository.findPaginated(auth.tenantId, { limit, cursor, includeArchived });
 		
 		return NextResponse.json({
 			success: true,
-			data: clients
+			data: items,
+			nextCursor
 		});
 	} catch (error) {
 		console.error('Error fetching clients:', error);

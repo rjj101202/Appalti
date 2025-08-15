@@ -70,10 +70,17 @@ export async function getAuthContext(req: NextRequest): Promise<AuthContext | nu
     // Get active membership
     const membershipRepo = await getMembershipRepository();
     const memberships = await membershipRepo.findByUser(dbUser._id.toString(), true);
-    
-    // Voor nu, pak de eerste actieve membership
-    // Later: implement tenant switching
-    const activeMembership = memberships[0];
+
+    // Respecteer actieve company/tenant cookie als aanwezig
+    const cookies = req.cookies;
+    const activeCompanyCookie = cookies.get?.('activeCompanyId')?.value;
+    const activeTenantCookie = cookies.get?.('activeTenantId')?.value;
+
+    let activeMembership = memberships[0];
+    if (activeCompanyCookie) {
+      const match = memberships.find(m => m.companyId.toString() === activeCompanyCookie && (!activeTenantCookie || m.tenantId === activeTenantCookie));
+      if (match) activeMembership = match;
+    }
     
     return {
       userId: dbUser._id.toString(),

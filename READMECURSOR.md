@@ -1,6 +1,6 @@
 # 🤖 CURSOR AGENT DOCUMENTATIE - APPALTI AI SALES PLATFORM
 
-> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-15 12:10 UTC).
+> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-15 12:35 UTC).
 
 ## 🎯 MISSIE
 Je werkt aan het Appalti AI Sales Platform - een multi-tenant SaaS platform voor AI-gestuurde aanbestedingsbeheer. Het platform moet zowel Appalti's interne team als externe klanten bedienen.
@@ -415,6 +415,14 @@ Door: Cursor Agent (Fundering Fase)
 ---
 
 ## 📜 Changelog Updates
+
+### 2025-08-15 12:35 UTC
+- Tenant switcher (server):
+  - Nieuwe route `POST /api/auth/switch-tenant` die membership valideert en cookies `activeCompanyId` en `activeTenantId` zet.
+  - `getAuthContext` leest deze cookies om de actieve tenant/company te bepalen i.p.v. altijd de eerste membership.
+- Paginatie clients:
+  - `GET /api/clients` ondersteunt nu `?limit=` (default 20, max 100) en `?cursor=` (op basis van `_id`), plus `includeArchived`.
+  - `ClientCompanyRepository.findPaginated` toegevoegd; extra index `{ tenantId, createdAt, _id }`.
 
 ### 2025-08-15 12:10 UTC
 - Validatie en performance:
