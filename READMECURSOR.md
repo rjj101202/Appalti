@@ -1,6 +1,6 @@
 # 🤖 CURSOR AGENT DOCUMENTATIE - APPALTI AI SALES PLATFORM
 
-> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-15 13:40 UTC).
+> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-15 14:00 UTC).
 
 ## 🎯 MISSIE
 Je werkt aan het Appalti AI Sales Platform - een multi-tenant SaaS platform voor AI-gestuurde aanbestedingsbeheer. Het platform moet zowel Appalti's interne team als externe klanten bedienen.
@@ -415,6 +415,12 @@ Door: Cursor Agent (Fundering Fase)
 ---
 
 ## 📜 Changelog Updates
+
+### 2025-08-15 14:00 UTC
+- Avatar upload:
+  - Nieuwe endpoint `POST /api/users/me/avatar` (multipart/form-data, veld `file`) uploadt naar Vercel Blob en slaat de URL op bij de user.
+  - Profielpagina heeft nu een file‑input; na upload wordt de URL automatisch ingevuld.
+  - Dependency: `@vercel/blob`; configuratie via Vercel project (Blob geactiveerd). Geen extra env vereist; optioneel `BLOB_READ_WRITE_TOKEN` als je tokens gebruikt.
 
 ### 2025-08-15 13:40 UTC
 - Profielpagina toegevoegd:

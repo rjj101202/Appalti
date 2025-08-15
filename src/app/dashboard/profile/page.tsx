@@ -12,6 +12,7 @@ export default function ProfilePage() {
 	const [inviteRole, setInviteRole] = useState('member');
 	const [inviteResult, setInviteResult] = useState<string>('');
 	const [saveMsg, setSaveMsg] = useState<string>('');
+	const [uploadMsg, setUploadMsg] = useState<string>('');
 
 	useEffect(() => {
 		(async () => {
@@ -38,6 +39,17 @@ export default function ProfilePage() {
 			body: JSON.stringify({ name, image })
 		});
 		if (res.ok) setSaveMsg('Opgeslagen'); else setSaveMsg('Opslaan mislukt');
+	}
+
+	async function uploadAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+		if (!e.target.files || e.target.files.length === 0) return;
+		setUploadMsg('');
+		const file = e.target.files[0];
+		const form = new FormData();
+		form.append('file', file);
+		const res = await fetch('/api/users/me/avatar', { method: 'POST', body: form });
+		const json = await res.json();
+		if (res.ok) { setImage(json.url); setUploadMsg('Geüpload'); } else { setUploadMsg(json.error || 'Upload mislukt'); }
 	}
 
 	async function sendInvite(e: React.FormEvent) {
@@ -75,6 +87,11 @@ export default function ProfilePage() {
 								<label>
 									Avatar URL
 									<input value={image} onChange={e=>setImage(e.target.value)} className="input" />
+								</label>
+								<label>
+									Upload avatar
+									<input type="file" accept="image/*" onChange={uploadAvatar} className="input" />
+									{uploadMsg && <span style={{ color: '#6b7280' }}>{uploadMsg}</span>}
 								</label>
 								<button className="btn btn-primary" type="submit">Opslaan</button>
 								{saveMsg && <span style={{ color: '#6b7280' }}>{saveMsg}</span>}
