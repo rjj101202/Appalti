@@ -3,11 +3,18 @@ import { requireAuth, requireCompanyRole } from '@/lib/auth/context';
 import { getCompanyRepository } from '@/lib/db/repositories/companyRepository';
 import { getMembershipRepository } from '@/lib/db/repositories/membershipRepository';
 import { CompanyRole } from '@/lib/db/models/Membership';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { writeAudit } from '@/lib/audit';
 
 // POST /api/memberships/invite
 // Body: { companyId: string, email: string, role: CompanyRole }
 export async function POST(request: NextRequest) {
   try {
+    const rl = await checkRateLimit(request, 'membership:invite');
+    if (!rl.allow) {
+      return NextResponse.json({ error: 'Too Many Requests' }, { status: 429 });
+    }
+
     const auth = await requireAuth(request);
     const { companyId, email, role } = await request.json();
 
@@ -45,6 +52,16 @@ export async function POST(request: NextRequest) {
       role,
       auth.userId
     );
+
+    await writeAudit({
+      action: 'membership.invite.create',
+      actorUserId: auth.userId,
+      tenantId: company.tenantId,
+      companyId,
+      resourceType: 'membershipInvite',
+      resourceId: invite._id?.toString(),
+      metadata: { email: email.toLowerCase(), role }
+    });
 
     return NextResponse.json({ success: true, inviteToken: invite.inviteToken });
   } catch (error) {

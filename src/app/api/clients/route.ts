@@ -4,6 +4,7 @@ import { requireAuth, requireCompanyRole } from '@/lib/auth/context';
 import { kvkAPI } from '@/lib/kvk-api';
 import { CompanyRole } from '@/lib/db/models/Membership';
 import { z } from 'zod';
+import { writeAudit } from '@/lib/audit';
 
 const createClientSchema = z.object({
 	name: z.string().min(1).optional(),
@@ -157,6 +158,16 @@ export async function POST(request: NextRequest) {
 			handelsnamen: data.handelsnamen || enriched.handelsnamen,
 			kvkData: data.kvkData || enriched.kvkData,
 			createdBy: auth.userId
+		});
+		
+		await writeAudit({
+			action: 'client_company.create',
+			actorUserId: auth.userId,
+			tenantId: auth.tenantId,
+			companyId: auth.companyId,
+			resourceType: 'clientCompany',
+			resourceId: clientCompany._id?.toString(),
+			metadata: { kvkNumber: clientCompany.kvkNumber, isOwnCompany: clientCompany.isOwnCompany }
 		});
 		
 		return NextResponse.json({

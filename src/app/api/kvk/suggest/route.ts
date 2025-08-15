@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kvkAPI } from '@/lib/kvk-api';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
   try {
+    const rl = await checkRateLimit(request, 'kvk:suggest');
+    if (!rl.allow) {
+      return NextResponse.json({ error: 'Too Many Requests' }, { status: 429 });
+    }
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get('q');
 

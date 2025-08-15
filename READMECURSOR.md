@@ -1,6 +1,6 @@
 # 🤖 CURSOR AGENT DOCUMENTATIE - APPALTI AI SALES PLATFORM
 
-> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-15 12:35 UTC).
+> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-15 13:05 UTC).
 
 ## 🎯 MISSIE
 Je werkt aan het Appalti AI Sales Platform - een multi-tenant SaaS platform voor AI-gestuurde aanbestedingsbeheer. Het platform moet zowel Appalti's interne team als externe klanten bedienen.
@@ -415,6 +415,11 @@ Door: Cursor Agent (Fundering Fase)
 ---
 
 ## 📜 Changelog Updates
+
+### 2025-08-15 13:05 UTC
+- Rate limiting (optioneel): Upstash Redis limiter geconfigureerd; automatisch uit als env ontbreekt. Toegepast op KVK search/suggest en invites.
+- Sentry: `@sentry/nextjs` init (client/server) actief indien `SENTRY_DSN` gezet is.
+- Audit logging: `auditLogs` collectie + logging op client create/update/delete en invite create.
 
 ### 2025-08-15 12:35 UTC
 - Tenant switcher (server):

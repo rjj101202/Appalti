@@ -3,6 +3,7 @@ import { getClientCompanyRepository } from '@/lib/db/repositories/clientCompanyR
 import { requireAuth, requireCompanyRole } from '@/lib/auth/context';
 import { CompanyRole } from '@/lib/db/models/Membership';
 import { z } from 'zod';
+import { writeAudit } from '@/lib/audit';
 
 const updateClientSchema = z.object({
 	name: z.string().min(1).optional(),
@@ -110,6 +111,16 @@ export async function PUT(
         { status: 404 }
       );
     }
+
+    await writeAudit({
+      action: 'client_company.update',
+      actorUserId: auth.userId,
+      tenantId: auth.tenantId,
+      companyId: auth.companyId,
+      resourceType: 'clientCompany',
+      resourceId: updatedClient._id?.toString(),
+      metadata: { fields: Object.keys(data) }
+    });
     
     return NextResponse.json({
       success: true,
@@ -154,6 +165,15 @@ export async function DELETE(
         { status: 404 }
       );
     }
+
+    await writeAudit({
+      action: 'client_company.delete',
+      actorUserId: auth.userId,
+      tenantId: auth.tenantId,
+      companyId: auth.companyId,
+      resourceType: 'clientCompany',
+      resourceId: params.id
+    });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
