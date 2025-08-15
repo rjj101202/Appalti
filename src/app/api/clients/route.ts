@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClientCompanyRepository } from '@/lib/db/repositories/clientCompanyRepository';
 import { requireAuth } from '@/lib/auth/context';
+import { kvkAPI } from '@/lib/kvk-api';
 
 // GET /api/clients - Get all client companies
 export async function GET(request: NextRequest) {
@@ -44,16 +45,16 @@ export async function POST(request: NextRequest) {
 		}
 		
 		// Validate required fields
-		if (!body.name) {
+		if (!body.name && !body.kvkNumber) {
 			return NextResponse.json(
-				{ error: 'Company name is required' },
+				{ error: 'Company name or kvkNumber is required' },
 				{ status: 400 }
 			);
 		}
 		
 		const repository = await getClientCompanyRepository();
 		
-		// Check if company already exists
+		// Prevent duplicates on kvk
 		if (body.kvkNumber) {
 			const existing = await repository.findByKvkNumber(body.kvkNumber, auth.tenantId);
 			if (existing) {
@@ -64,16 +65,56 @@ export async function POST(request: NextRequest) {
 			}
 		}
 		
+		// Optional enrichment from KVK if kvkNumber provided
+		let enriched: any = {};
+		if (body.kvkNumber && (body.enrich === true || body.enrich === 'true')) {
+			try {
+				const agg = await kvkAPI.getAggregatedCompany(body.kvkNumber);
+				if (agg) {
+					enriched = {
+						name: body.name || agg.name || agg.statutaireNaam,
+						legalForm: body.legalForm || undefined, // v1 basisprofielen bevat geen directe rechtsvorm string; later uitbreiden
+						address: agg.adressen?.[0] ? {
+							street: `${agg.adressen[0].straat || ''} ${agg.adressen[0].huisnummer || ''}`.trim(),
+							postalCode: agg.adressen[0].postcode || '',
+							city: agg.adressen[0].plaats || '',
+							country: 'NL'
+						} : body.address,
+						addresses: agg.adressen?.map(a => ({
+							type: a.type,
+							street: a.straat,
+							houseNumber: a.huisnummer,
+							postalCode: a.postcode,
+							city: a.plaats,
+							country: 'NL'
+						})),
+						websites: agg.websites,
+						handelsnamen: agg.handelsnamen,
+						sbiCode: agg.sbiActiviteiten?.find(s => s.hoofd)?.sbiCode || agg.sbiActiviteiten?.[0]?.sbiCode,
+						sbiDescription: agg.sbiActiviteiten?.find(s => s.hoofd)?.omschrijving || agg.sbiActiviteiten?.[0]?.omschrijving,
+						kvkData: agg
+					};
+				}
+			} catch (e) {
+				console.warn('KVK enrichment failed:', e);
+			}
+		}
+		
 		// Create the client company
 		const clientCompany = await repository.create({
 			tenantId: auth.tenantId,
-			name: body.name,
+			name: body.name || enriched.name,
 			kvkNumber: body.kvkNumber,
-			legalForm: body.legalForm,
-			address: body.address,
-			sbiCode: body.sbiCode,
-			sbiDescription: body.sbiDescription,
+			legalForm: body.legalForm || enriched.legalForm,
+			address: body.address || enriched.address,
+			addresses: body.addresses || enriched.addresses,
+			website: body.website,
+			websites: body.websites || enriched.websites,
+			sbiCode: body.sbiCode || enriched.sbiCode,
+			sbiDescription: body.sbiDescription || enriched.sbiDescription,
 			employees: body.employees,
+			handelsnamen: body.handelsnamen || enriched.handelsnamen,
+			kvkData: body.kvkData || enriched.kvkData,
 			createdBy: auth.userId
 		});
 		
