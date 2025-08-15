@@ -77,29 +77,32 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
         {/* Bottom section */}
         <div style={{ borderTop: '1px solid #e5e7eb', padding: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              backgroundColor: '#9333ea',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontWeight: '500'
-            }}>
-              {initial}
+          <Link href="/dashboard/profile" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                backgroundColor: '#9333ea',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontWeight: '500'
+              }}>
+                {initial}
+              </div>
+              <div style={{ marginLeft: '12px' }}>
+                <p style={{ margin: 0, fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                  {displayName}
+                </p>
+                <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
+                  {displayEmail}
+                </p>
+                <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Mijn profiel ›</p>
+              </div>
             </div>
-            <div style={{ marginLeft: '12px' }}>
-              <p style={{ margin: 0, fontSize: '14px', fontWeight: '500', color: '#374151' }}>
-                {displayName}
-              </p>
-              <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
-                {displayEmail}
-              </p>
-            </div>
-          </div>
+          </Link>
         </div>
       </div>
 
