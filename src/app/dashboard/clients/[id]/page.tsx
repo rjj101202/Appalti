@@ -79,15 +79,22 @@ export default function ClientDetailPage() {
       <div className="page-container">
         {/* Header */}
         <div className="header-section">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-            <Link href="/dashboard/clients" style={{ color: '#6b7280', textDecoration: 'none' }}>
-              ← Terug
-            </Link>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+                <Link href="/dashboard/clients" style={{ color: '#6b7280', textDecoration: 'none' }}>
+                  ← Terug
+                </Link>
+              </div>
+              <h1>{client.name}</h1>
+              {client.kvkNumber && (
+                <p style={{ color: '#6b7280' }}>KVK: {client.kvkNumber}</p>
+              )}
+            </div>
+            <div>
+              <button className="btn btn-danger" onClick={deleteClient}>Verwijder Bedrijf</button>
+            </div>
           </div>
-          <h1>{client.name}</h1>
-          {client.kvkNumber && (
-            <p style={{ color: '#6b7280' }}>KVK: {client.kvkNumber}</p>
-          )}
         </div>
 
         {/* Company Info Card */}
@@ -206,15 +213,6 @@ export default function ClientDetailPage() {
             >
               Bekijk Bids
             </Link>
-          </div>
-
-          {/* Delete Card */}
-          <div className="card">
-            <h3 style={{ marginBottom: '0.5rem' }}>Verwijderen</h3>
-            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
-              Verwijder deze client company permanent.
-            </p>
-            <button className="btn btn-danger" onClick={deleteClient}>Verwijder Bedrijf</button>
           </div>
         </div>
       </div>
