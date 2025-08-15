@@ -85,3 +85,36 @@ export async function PUT(
     );
   }
 }
+
+// DELETE /api/clients/[id] - Delete client company
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const auth = await requireAuth(request);
+    if (!auth.tenantId) {
+      return NextResponse.json(
+        { error: 'No active tenant' },
+        { status: 400 }
+      );
+    }
+
+    const repository = await getClientCompanyRepository();
+    const ok = await repository.delete(params.id, auth.tenantId);
+    if (!ok) {
+      return NextResponse.json(
+        { error: 'Client company not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting client:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete client company' },
+      { status: 500 }
+    );
+  }
+}

@@ -36,6 +36,18 @@ export default function ClientDetailPage() {
     }
   };
 
+  const deleteClient = async () => {
+    if (!confirm('Weet je zeker dat je dit bedrijf wilt verwijderen? Dit kan niet ongedaan worden gemaakt.')) return;
+    try {
+      const res = await fetch(`/api/clients/${params.id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Verwijderen mislukt');
+      router.push('/dashboard/clients');
+    } catch (e: any) {
+      alert(e.message || 'Verwijderen mislukt');
+    }
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -196,19 +208,13 @@ export default function ClientDetailPage() {
             </Link>
           </div>
 
-          {/* Tender Matching Card */}
+          {/* Delete Card */}
           <div className="card">
-            <h3 style={{ marginBottom: '0.5rem' }}>Tender Matching</h3>
+            <h3 style={{ marginBottom: '0.5rem' }}>Verwijderen</h3>
             <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
-              Vind nieuwe tender opportunities op basis van het IKP.
+              Verwijder deze client company permanent.
             </p>
-            <button 
-              className="btn btn-secondary"
-              disabled={client.ikpStatus !== 'completed'}
-              style={{ opacity: client.ikpStatus !== 'completed' ? 0.5 : 1 }}
-            >
-              {client.ikpStatus !== 'completed' ? 'IKP Vereist' : 'Zoek Tenders'}
-            </button>
+            <button className="btn btn-danger" onClick={deleteClient}>Verwijder Bedrijf</button>
           </div>
         </div>
       </div>

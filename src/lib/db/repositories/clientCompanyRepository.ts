@@ -119,6 +119,11 @@ export class ClientCompanyRepository {
 
     return result.modifiedCount > 0;
   }
+
+  async delete(id: string, tenantId: string): Promise<boolean> {
+    const result = await this.collection.deleteOne({ _id: new ObjectId(id), tenantId });
+    return result.deletedCount > 0;
+  }
 }
 
 // Singleton instance
