@@ -102,7 +102,9 @@ class KVKAPIService {
     // Enable mock mode only if explicitly requested OR when neither API key nor JWT credentials are configured
     const hasApiKey = !!this.apiKey;
     const hasJwtCreds = !!this.jwtSecret && !!this.password;
-    this.useMockData = process.env.USE_MOCK_KVK === 'true' || (!hasApiKey && !hasJwtCreds);
+    const mockFlag = (process.env.USE_MOCK_KVK || '').toLowerCase();
+    const mockRequested = ['true', '1', 'yes', 'on'].includes(mockFlag);
+    this.useMockData = mockRequested || (!hasApiKey && !hasJwtCreds);
     
     // Debug logging
     console.log('KVK API initialized with:');
