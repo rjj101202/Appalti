@@ -1,6 +1,6 @@
 # 🤖 CURSOR AGENT DOCUMENTATIE - APPALTI AI SALES PLATFORM
 
-> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-15 11:45 UTC).
+> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-15 12:10 UTC).
 
 ## 🎯 MISSIE
 Je werkt aan het Appalti AI Sales Platform - een multi-tenant SaaS platform voor AI-gestuurde aanbestedingsbeheer. Het platform moet zowel Appalti's interne team als externe klanten bedienen.
@@ -415,6 +415,12 @@ Door: Cursor Agent (Fundering Fase)
 ---
 
 ## 📜 Changelog Updates
+
+### 2025-08-15 12:10 UTC
+- Validatie en performance:
+  - Zod-validatie toegevoegd aan `/api/clients` (POST en PUT). Ongeldige bodies geven nu duidelijke 400 fouten met details.
+  - Eenvoudige in-memory KVK-cache met TTL (configureerbaar via `KVK_CACHE_TTL_MS`, default 10 min) voor `basisprofielen`, `naamgevingen`, `vestigingsprofielen`, `searchByName`, `searchByKvkNumber`.
+- Beveiliging: Role‑checks uit eerdere commit blijven actief (ADMIN vereist voor mutaties).
 
 ### 2025-08-15 11:45 UTC
 - Fundering updates (commit refs: 2714ce3, 0667a53, 277a043, 005b1f5):

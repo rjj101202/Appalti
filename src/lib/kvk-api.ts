@@ -187,6 +187,12 @@ class KVKAPIService {
   private password: string;
   private username: string;
   private useMockData: boolean;
+  private cacheTTL: number;
+  private basisprofielCache = new Map<string, { value: BasisprofielV1 | null; expiresAt: number }>();
+  private naamgevingenCache = new Map<string, { value: NaamgevingenV1 | null; expiresAt: number }>();
+  private vestigingsprofielCache = new Map<string, { value: VestigingsprofielV1 | null; expiresAt: number }>();
+  private searchNameCache = new Map<string, { value: KVKCompany[]; expiresAt: number }>();
+  private searchNumberCache = new Map<string, { value: KVKCompany | null; expiresAt: number }>();
 
   constructor() {
     // Use KVK_API for the API key
@@ -201,6 +207,9 @@ class KVKAPIService {
     const mockFlag = (process.env.USE_MOCK_KVK || '').toLowerCase();
     const mockRequested = ['true', '1', 'yes', 'on'].includes(mockFlag);
     this.useMockData = mockRequested || (!hasApiKey && !hasJwtCreds);
+
+    // Cache TTL (default 10 min)
+    this.cacheTTL = parseInt(process.env.KVK_CACHE_TTL_MS || '600000', 10);
     
     // Debug logging
     console.log('KVK API initialized with:');
@@ -210,6 +219,7 @@ class KVKAPIService {
     console.log('- Username configured:', !!process.env.KVK_USERNAME);
     console.log('- Using mock data:', this.useMockData);
     console.log('- Auth method:', hasApiKey ? 'apiKey' : (hasJwtCreds ? 'jwt' : 'mock'));
+    console.log('- Cache TTL (ms):', this.cacheTTL);
   }
 
   private buildHeaders(kind: 'name' | 'number'): Record<string, string> {
@@ -238,6 +248,20 @@ class KVKAPIService {
     };
 
     return jwt.sign(payload, this.jwtSecret);
+  }
+
+  private getFromCache<T>(cache: Map<string, { value: T; expiresAt: number }>, key: string): T | null {
+    const entry = cache.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      cache.delete(key);
+      return null;
+    }
+    return entry.value;
+  }
+
+  private setInCache<T>(cache: Map<string, { value: T; expiresAt: number }>, key: string, value: T) {
+    cache.set(key, { value, expiresAt: Date.now() + this.cacheTTL });
   }
 
   // Map Zoeken v2 item to our generic company shape (minimal)
@@ -284,6 +308,10 @@ class KVKAPIService {
       return company || null;
     }
 
+    const cacheKey = kvkNumber;
+    const cached = this.getFromCache(this.searchNumberCache, cacheKey);
+    if (cached !== null) return cached;
+
     try {
       // Basisprofiel v1 supports path segment or query; we use path segment
       const url = `${this.baseUrlV1}/basisprofielen/${kvkNumber}`;
@@ -302,17 +330,21 @@ class KVKAPIService {
         if (response.status === 401) {
           console.error('Authentication failed. Check your API credentials.');
         }
+        this.setInCache(this.searchNumberCache, cacheKey, null);
         return null;
       }
 
       const bp: BasisprofielV1 = await response.json();
-      return this.mapBasisprofielToCompany(bp);
+      const mapped = this.mapBasisprofielToCompany(bp);
+      this.setInCache(this.searchNumberCache, cacheKey, mapped);
+      return mapped;
     } catch (error) {
       console.error('Error searching KVK (basisprofiel):', error);
       if (error instanceof Error) {
         console.error('Error details:', error.message);
         console.error('Error stack:', error.stack);
       }
+      this.setInCache(this.searchNumberCache, cacheKey, null);
       return null;
     }
   }
@@ -326,6 +358,10 @@ class KVKAPIService {
       );
       return filtered.slice(0, limit);
     }
+
+    const cacheKey = `${name}|${limit}`;
+    const cached = this.getFromCache(this.searchNameCache, cacheKey);
+    if (cached) return cached;
 
     try {
       // Zoeken v2 expects parameter naam and resultatenPerPagina
@@ -345,17 +381,21 @@ class KVKAPIService {
         if (response.status === 401) {
           console.error('Authentication failed. Check your API credentials.');
         }
+        this.setInCache(this.searchNameCache, cacheKey, []);
         return [];
       }
 
       const result: ZoekenV2Response = await response.json();
-      return (result.resultaten || []).map(item => this.mapZoekenItemToCompany(item));
+      const mapped = (result.resultaten || []).map(item => this.mapZoekenItemToCompany(item));
+      this.setInCache(this.searchNameCache, cacheKey, mapped);
+      return mapped;
     } catch (error) {
       console.error('Error searching KVK by name:', error);
       if (error instanceof Error) {
         console.error('Error details:', error.message);
         console.error('Error stack:', error.stack);
       }
+      this.setInCache(this.searchNameCache, cacheKey, []);
       // Return empty array instead of throwing
       return [];
     }
@@ -372,30 +412,45 @@ class KVKAPIService {
         adressen: m.addresses?.map(a => ({ type: a.type, straatnaam: a.street, huisnummer: a.houseNumber, postcode: a.postalCode, plaats: a.city }))
       } as BasisprofielV1;
     }
+    const cacheKey = kvkNumber;
+    const cached = this.getFromCache(this.basisprofielCache, cacheKey);
+    if (cached !== null) return cached;
     const url = `${this.baseUrlV1}/basisprofielen/${kvkNumber}`;
     const res = await fetch(url, { headers: this.buildHeaders('number'), signal: AbortSignal.timeout(10000) });
-    if (!res.ok) return null;
-    return res.json();
+    if (!res.ok) { this.setInCache(this.basisprofielCache, cacheKey, null); return null; }
+    const json = await res.json();
+    this.setInCache(this.basisprofielCache, cacheKey, json);
+    return json;
   }
 
   async getVestigingsprofiel(vestigingsnummer: string): Promise<VestigingsprofielV1 | null> {
     if (this.useMockData) {
       return null; // not modeling vestiging in mock
     }
+    const cacheKey = vestigingsnummer;
+    const cached = this.getFromCache(this.vestigingsprofielCache, cacheKey);
+    if (cached !== null) return cached;
     const url = `${this.baseUrlV1}/vestigingsprofielen/${vestigingsnummer}`;
     const res = await fetch(url, { headers: this.buildHeaders('number'), signal: AbortSignal.timeout(10000) });
-    if (!res.ok) return null;
-    return res.json();
+    if (!res.ok) { this.setInCache(this.vestigingsprofielCache, cacheKey, null); return null; }
+    const json = await res.json();
+    this.setInCache(this.vestigingsprofielCache, cacheKey, json);
+    return json;
   }
 
   async getNaamgevingen(kvkNumber: string): Promise<NaamgevingenV1 | null> {
     if (this.useMockData) {
       return { kvkNummer: kvkNumber, naam: 'Mock', vestigingen: [] } as NaamgevingenV1;
     }
+    const cacheKey = kvkNumber;
+    const cached = this.getFromCache(this.naamgevingenCache, cacheKey);
+    if (cached !== null) return cached;
     const url = `${this.baseUrlV1}/naamgevingen/kvknummer?kvkNummer=${kvkNumber}`;
     const res = await fetch(url, { headers: this.buildHeaders('number'), signal: AbortSignal.timeout(10000) });
-    if (!res.ok) return null;
-    return res.json();
+    if (!res.ok) { this.setInCache(this.naamgevingenCache, cacheKey, null); return null; }
+    const json = await res.json();
+    this.setInCache(this.naamgevingenCache, cacheKey, json);
+    return json;
   }
 
   // Aggregate full company from KVK (best effort)

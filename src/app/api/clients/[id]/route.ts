@@ -2,6 +2,34 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getClientCompanyRepository } from '@/lib/db/repositories/clientCompanyRepository';
 import { requireAuth, requireCompanyRole } from '@/lib/auth/context';
 import { CompanyRole } from '@/lib/db/models/Membership';
+import { z } from 'zod';
+
+const updateClientSchema = z.object({
+	name: z.string().min(1).optional(),
+	isOwnCompany: z.boolean().optional(),
+	legalForm: z.string().optional(),
+	address: z.object({
+		street: z.string().optional(),
+		postalCode: z.string().optional(),
+		city: z.string().optional(),
+		country: z.string().optional()
+	}).optional(),
+	addresses: z.array(z.object({
+		type: z.string().optional(),
+		street: z.string().optional(),
+		houseNumber: z.string().optional(),
+		postalCode: z.string().optional(),
+		city: z.string().optional(),
+		country: z.string().optional()
+	})).optional(),
+	website: z.string().url().optional(),
+	websites: z.array(z.string().url()).optional(),
+	sbiCode: z.string().optional(),
+	sbiDescription: z.string().optional(),
+	employees: z.string().optional(),
+	handelsnamen: z.array(z.string()).optional(),
+	kvkData: z.any().optional()
+}).strict();
 
 // GET /api/clients/[id] - Get specific client company
 export async function GET(
@@ -47,6 +75,12 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
+    const parse = updateClientSchema.safeParse(body);
+    if (!parse.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parse.error.issues }, { status: 400 });
+    }
+    const data = parse.data;
+
     const auth = await requireAuth(request);
     if (!auth.tenantId) {
       return NextResponse.json(
@@ -62,13 +96,11 @@ export async function PUT(
 
     const repository = await getClientCompanyRepository();
     
-    // Remove fields that shouldn't be updated directly
-    const { _id, tenantId: _tenant, createdAt, createdBy, ...updates } = body;
-    
+    // Remove fields that shouldn't be updated directly handled by schema (no _id/tenantId/etc.)
     const updatedClient = await repository.update(
       params.id,
       auth.tenantId,
-      updates,
+      data,
       auth.userId
     );
     

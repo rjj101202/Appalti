@@ -3,6 +3,36 @@ import { getClientCompanyRepository } from '@/lib/db/repositories/clientCompanyR
 import { requireAuth, requireCompanyRole } from '@/lib/auth/context';
 import { kvkAPI } from '@/lib/kvk-api';
 import { CompanyRole } from '@/lib/db/models/Membership';
+import { z } from 'zod';
+
+const createClientSchema = z.object({
+	name: z.string().min(1).optional(),
+	kvkNumber: z.string().regex(/^[0-9]{8}$/).optional(),
+	isOwnCompany: z.boolean().optional(),
+	legalForm: z.string().optional(),
+	address: z.object({
+		street: z.string().optional(),
+		postalCode: z.string().optional(),
+		city: z.string().optional(),
+		country: z.string().optional()
+	}).optional(),
+	addresses: z.array(z.object({
+		type: z.string().optional(),
+		street: z.string().optional(),
+		houseNumber: z.string().optional(),
+		postalCode: z.string().optional(),
+		city: z.string().optional(),
+		country: z.string().optional()
+	})).optional(),
+	website: z.string().url().optional(),
+	websites: z.array(z.string().url()).optional(),
+	sbiCode: z.string().optional(),
+	sbiDescription: z.string().optional(),
+	employees: z.string().optional(),
+	handelsnamen: z.array(z.string()).optional(),
+	kvkData: z.any().optional(),
+	enrich: z.union([z.boolean(), z.string()]).optional()
+}).refine(d => !!(d.name || d.kvkNumber), { message: 'Company name or kvkNumber is required' });
 
 // GET /api/clients - Get all client companies
 export async function GET(request: NextRequest) {
@@ -36,6 +66,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
 	try {
 		const body = await request.json();
+		const parse = createClientSchema.safeParse(body);
+		if (!parse.success) {
+			return NextResponse.json({ error: 'Invalid request body', details: parse.error.issues }, { status: 400 });
+		}
+		const data = parse.data;
+		
 		const auth = await requireAuth(request);
 		
 		if (!auth.tenantId) {
@@ -49,19 +85,10 @@ export async function POST(request: NextRequest) {
 			throw new Error('Forbidden');
 		});
 		
-		// Validate required fields
-		if (!body.name && !body.kvkNumber) {
-			return NextResponse.json(
-				{ error: 'Company name or kvkNumber is required' },
-				{ status: 400 }
-			);
-		}
-		
-		const repository = await getClientCompanyRepository();
-		
 		// Prevent duplicates on kvk
-		if (body.kvkNumber) {
-			const existing = await repository.findByKvkNumber(body.kvkNumber, auth.tenantId);
+		if (data.kvkNumber) {
+			const repository = await getClientCompanyRepository();
+			const existing = await repository.findByKvkNumber(data.kvkNumber, auth.tenantId);
 			if (existing) {
 				return NextResponse.json(
 					{ error: 'A company with this KVK number already exists' },
@@ -70,22 +97,23 @@ export async function POST(request: NextRequest) {
 			}
 		}
 		
+		const repository = await getClientCompanyRepository();
 		// Default enrichment: true when kvkNumber is present, unless explicitly disabled
-		const shouldEnrich = !!body.kvkNumber && !(body.enrich === false || body.enrich === 'false');
+		const shouldEnrich = !!data.kvkNumber && !(data.enrich === false || data.enrich === 'false');
 		let enriched: any = {};
 		if (shouldEnrich) {
 			try {
-				const agg = await kvkAPI.getAggregatedCompany(body.kvkNumber);
+				const agg = await kvkAPI.getAggregatedCompany(data.kvkNumber!);
 				if (agg) {
 					enriched = {
-						name: body.name || agg.name || agg.statutaireNaam,
-						legalForm: body.legalForm || undefined,
+						name: data.name || agg.name || agg.statutaireNaam,
+						legalForm: data.legalForm || undefined,
 						address: agg.adressen?.[0] ? {
 							street: `${agg.adressen[0].straat || ''} ${agg.adressen[0].huisnummer || ''}`.trim(),
 							postalCode: agg.adressen[0].postcode || '',
 							city: agg.adressen[0].plaats || '',
 							country: 'NL'
-						} : body.address,
+						} : data.address,
 						addresses: agg.adressen?.map(a => ({
 							type: a.type,
 							street: a.straat,
@@ -109,19 +137,19 @@ export async function POST(request: NextRequest) {
 		// Create the client company
 		const clientCompany = await repository.create({
 			tenantId: auth.tenantId,
-			name: body.name || enriched.name,
-			kvkNumber: body.kvkNumber,
-			legalForm: body.legalForm || enriched.legalForm,
-			isOwnCompany: body.isOwnCompany === true,
-			address: body.address || enriched.address,
-			addresses: body.addresses || enriched.addresses,
-			website: body.website,
-			websites: body.websites || enriched.websites,
-			sbiCode: body.sbiCode || enriched.sbiCode,
-			sbiDescription: body.sbiDescription || enriched.sbiDescription,
-			employees: body.employees,
-			handelsnamen: body.handelsnamen || enriched.handelsnamen,
-			kvkData: body.kvkData || enriched.kvkData,
+			name: data.name || enriched.name,
+			kvkNumber: data.kvkNumber,
+			legalForm: data.legalForm || enriched.legalForm,
+			isOwnCompany: data.isOwnCompany === true,
+			address: data.address || enriched.address,
+			addresses: data.addresses || enriched.addresses,
+			website: data.website,
+			websites: data.websites || enriched.websites,
+			sbiCode: data.sbiCode || enriched.sbiCode,
+			sbiDescription: data.sbiDescription || enriched.sbiDescription,
+			employees: data.employees,
+			handelsnamen: data.handelsnamen || enriched.handelsnamen,
+			kvkData: data.kvkData || enriched.kvkData,
 			createdBy: auth.userId
 		});
 		
