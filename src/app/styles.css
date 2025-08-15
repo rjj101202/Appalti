@@ -85,6 +85,16 @@ nav {
   background-color: #f9fafb;
 }
 
+/* Danger button */
+.btn-danger {
+  background-color: #ef4444; /* red-500 */
+  color: #ffffff;
+}
+
+.btn-danger:hover {
+  background-color: #dc2626; /* red-600 */
+}
+
 /* Hero Section */
 .hero {
   padding: 5rem 0;
