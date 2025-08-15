@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClientCompanyRepository } from '@/lib/db/repositories/clientCompanyRepository';
-import { requireAuth } from '@/lib/auth/context';
+import { requireAuth, requireCompanyRole } from '@/lib/auth/context';
+import { CompanyRole } from '@/lib/db/models/Membership';
 
 // GET /api/clients/[id] - Get specific client company
 export async function GET(
@@ -54,6 +55,11 @@ export async function PUT(
       );
     }
 
+    // Only admins/owners can update
+    await requireCompanyRole(request, auth.companyId || '', CompanyRole.ADMIN).catch(() => {
+      throw new Error('Forbidden');
+    });
+
     const repository = await getClientCompanyRepository();
     
     // Remove fields that shouldn't be updated directly
@@ -77,8 +83,11 @@ export async function PUT(
       success: true,
       data: updatedClient
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating client:', error);
+    if (error.message === 'Forbidden') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     return NextResponse.json(
       { error: 'Failed to update client company' },
       { status: 500 }
@@ -100,6 +109,11 @@ export async function DELETE(
       );
     }
 
+    // Only admins/owners can delete
+    await requireCompanyRole(request, auth.companyId || '', CompanyRole.ADMIN).catch(() => {
+      throw new Error('Forbidden');
+    });
+
     const repository = await getClientCompanyRepository();
     const ok = await repository.delete(params.id, auth.tenantId);
     if (!ok) {
@@ -110,8 +124,11 @@ export async function DELETE(
     }
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting client:', error);
+    if (error.message === 'Forbidden') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     return NextResponse.json(
       { error: 'Failed to delete client company' },
       { status: 500 }

@@ -8,6 +8,7 @@ export interface ClientCompany {
 	name: string;
 	kvkNumber?: string;
 	legalForm?: string;
+	isOwnCompany?: boolean; // true = eigen bedrijf binnen tenant
 	
 	// Contact details
 	website?: string;
@@ -63,6 +64,7 @@ export interface CreateClientCompanyInput {
 	name: string;
 	kvkNumber?: string;
 	createdBy: string;
+	isOwnCompany?: boolean;
 	// Optional fields from KVK search
 	legalForm?: string;
 	address?: {

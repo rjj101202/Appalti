@@ -1,6 +1,6 @@
 # 🤖 CURSOR AGENT DOCUMENTATIE - APPALTI AI SALES PLATFORM
 
-> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-15 11:05 UTC).
+> LET OP: Dit document wordt actief bijgewerkt. Zie onderaan "Changelog Updates" voor de laatste wijzigingen (laatste update toegevoegd op: 2025-08-15 11:45 UTC).
 
 ## 🎯 MISSIE
 Je werkt aan het Appalti AI Sales Platform - een multi-tenant SaaS platform voor AI-gestuurde aanbestedingsbeheer. Het platform moet zowel Appalti's interne team als externe klanten bedienen.
@@ -416,6 +416,22 @@ Door: Cursor Agent (Fundering Fase)
 
 ## 📜 Changelog Updates
 
+### 2025-08-15 11:45 UTC
+- Fundering updates (commit refs: 2714ce3, 0667a53, 277a043, 005b1f5):
+  - Autorisatie aangescherpt voor mutaties van client companies:
+    - POST/PUT/DELETE `/api/clients` routes vereisen nu minimaal ADMIN (tenant‑scoped) via `requireCompanyRole(...)`.
+  - Model `ClientCompany` uitgebreid:
+    - `isOwnCompany?: boolean` om “eigen bedrijf” binnen tenant te ondersteunen naast klantbedrijven.
+    - Eerder al: `websites[]`, `handelsnamen[]`, `addresses[]`, `kvkData`.
+  - Verrijking standaard bij create met `kvkNumber` (tenzij `enrich=false`); aggregator gebruikt v2/zoeken + v1/basisprofielen + v1/naamgevingen + v1/vestigingsprofielen.
+  - UI verbeteringen:
+    - Detailpagina: rode “Verwijder Bedrijf” knop rechtsboven met hoverstate; oude kaart onder “Acties” verwijderd.
+- Aanbevolen vervolgstappen (niet‑blocking, nog te doen):
+  - Request body‑validatie met Zod op alle POST/PUT.
+  - Paginatie/cursor op listing endpoints + extra indexen.
+  - KVK caching + retry/backoff; optioneel background enrichment.
+  - Observability: Sentry voor serverless/client; structured logs met correlatie‑IDs.
+
 ### 2025-08-15 11:05 UTC
 - KVK integratie geactualiseerd naar publieke endpoints:
   - Naamzoek: `GET https://api.kvk.nl/api/v2/zoeken?naam=...&resultatenPerPagina=...` (app endpoint: `/api/kvk/search?name=...&limit=...`).
@@ -441,6 +457,3 @@ Door: Cursor Agent (Fundering Fase)
   - Nieuw endpoint: `GET /api/health` met DB ping + sessiestatus (veilig, geen secrets).
   - NextAuth debug via env `NEXTAUTH_DEBUG=1` en extra logs in `session`/`signIn` callbacks.
 - UI: Logout-knop toegevoegd in dashboard header (linkt naar `/api/auth/signout`).
-
-### 2025-08-14 13:55 UTC
-- UI: Dashboard sidebar toont nu de daadwerkelijke NextAuth sessie-gebruiker i.p.v. hardcoded `test@appalti.ai` (`src/components/layouts/DashboardLayout.tsx`).

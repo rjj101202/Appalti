@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClientCompanyRepository } from '@/lib/db/repositories/clientCompanyRepository';
-import { requireAuth } from '@/lib/auth/context';
+import { requireAuth, requireCompanyRole } from '@/lib/auth/context';
 import { kvkAPI } from '@/lib/kvk-api';
+import { CompanyRole } from '@/lib/db/models/Membership';
 
 // GET /api/clients - Get all client companies
 export async function GET(request: NextRequest) {
@@ -43,6 +44,10 @@ export async function POST(request: NextRequest) {
 				{ status: 400 }
 			);
 		}
+		// Only admins/owners can create
+		await requireCompanyRole(request, auth.companyId || '', CompanyRole.ADMIN).catch(() => {
+			throw new Error('Forbidden');
+		});
 		
 		// Validate required fields
 		if (!body.name && !body.kvkNumber) {
@@ -107,6 +112,7 @@ export async function POST(request: NextRequest) {
 			name: body.name || enriched.name,
 			kvkNumber: body.kvkNumber,
 			legalForm: body.legalForm || enriched.legalForm,
+			isOwnCompany: body.isOwnCompany === true,
 			address: body.address || enriched.address,
 			addresses: body.addresses || enriched.addresses,
 			website: body.website,
@@ -123,8 +129,11 @@ export async function POST(request: NextRequest) {
 			success: true,
 			data: clientCompany
 		}, { status: 201 });
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Error creating client:', error);
+		if (error.message === 'Forbidden') {
+			return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+		}
 		return NextResponse.json(
 			{ error: 'Failed to create client company' },
 			{ status: 500 }
