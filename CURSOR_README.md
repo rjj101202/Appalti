@@ -212,6 +212,7 @@ Doel: Enterprise‑review per fase (approve/reject + feedback), met gates naar v
 - Teamleden (scaffold):
   - `src/app/api/companies/[id]/members/route.ts` (nieuw): lijst memberships + user info (tenant‑scoped; MEMBER+)
   - UI: `src/app/dashboard/clients/[id]/page.tsx` – kaart “Teamleden” met “Bekijk Teamleden” en link voor uitnodigen
+  - Invite accept UI: `src/app/invite/page.tsx` (nieuw) – accepteert invite tokens; forceert login indien nodig en zet tenant‑cookies
 
 ## 📁 Project Structuur
 
@@ -360,3 +361,6 @@ YYYY-MM-DD HH:mm TZ
 
 2025-08-18 11:05 UTC
 - Docs: sectie “Gebruikersregistratie & sync (Auth0 → NextAuth → MongoDB)” toegevoegd met verificatie‑stappen en Auth0 checklist.
+
+2025-08-18 11:20 UTC
+- Teamleden: endpoint `GET /api/companies/[id]/members` en UI‑kaart toegevoegd; invite accept pagina `/invite` toegevoegd.
