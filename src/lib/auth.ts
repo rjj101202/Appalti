@@ -42,6 +42,19 @@ export const {
           // We'll add role logic here later
           session.user.isAppaltiUser = true;
         }
+
+        // Verrijk sessie met tenant/company context en rollen
+        try {
+          const membershipRepo = await getMembershipRepository();
+          const memberships = await membershipRepo.findByUser(user.id, true);
+          const active = memberships[0];
+          (session as any).tenantId = active?.tenantId;
+          (session as any).companyId = active?.companyId?.toString();
+          (session as any).companyRole = active?.companyRole;
+          (session as any).platformRole = active?.platformRole;
+        } catch (e) {
+          if (NEXTAUTH_DEBUG) console.warn('[NextAuth] Session enrichment failed:', e);
+        }
       }
       return session;
     },

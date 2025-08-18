@@ -63,17 +63,7 @@ Broncode: `src/lib/auth.ts`, `middleware.ts`, `src/lib/auth/context.ts`, `src/ap
 - `getAuthContext` leest de NextAuth sessie, zoekt de user in MongoDB, bepaalt actieve membership en respecteert cookies `activeCompanyId`/`activeTenantId`. RBAC helpers: `requireAuth`, `requireCompanyRole`, `requirePlatformRole`, `requireTenant`.
 - Endpoint `POST /api/auth/switch-tenant` valideert membership en zet cookies `activeCompanyId` en `activeTenantId`.
 
-Belangrijke nuance: `getAuthContext` maakt nog een user aan als deze ontbreekt. Omdat `callbacks.signIn` al synchroniseert, kan deze fallback worden uitgefaseerd om double‑path logica te voorkomen.
-
-### Auth0 / NextAuth configuratie
-- Nodige env variabelen (ZONDER secrets in dit document):
-  - `NEXTAUTH_URL`, `NEXTAUTH_SECRET`
-  - `AUTH0_ISSUER_BASE_URL`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`
-  - Optioneel: `NEXTAUTH_DEBUG=1` voor uitgebreide logs
-- Auth0 dashboard (minimaal):
-  - Allowed Callback URLs: `[BASE_URL]/api/auth/callback`
-  - Allowed Logout URLs: `[BASE_URL]`
-  - Allowed Web Origins: `[BASE_URL]`
+Belangrijke wijziging: fallback user‑aanmaak in `getAuthContext` is verwijderd; user‑sync gebeurt nu uitsluitend in `callbacks.signIn`. De `session` callback verrijft de sessie met `tenantId`, `companyId`, `companyRole` en `platformRole`.
 
 ## 💾 Database & Data‑model
 
@@ -117,7 +107,7 @@ Overzicht van de relevante mappen/onderdelen in deze repo:
 │   │   └── kvk-api.ts          # KVK API client & aggregator
 │   └── types/                  # TypeScript definities (ikp.ts, models.ts)
 ├── middleware.ts               # Auth middleware (Next.js)
-└── KOPIEREADME.md              # Dit document
+└── CURSOR_README.md            # Dit document
 ```
 
 ## 👤 Rollen & RBAC
@@ -251,4 +241,3 @@ YYYY-MM-DD HH:mm TZ
 
 2025-08-14 14:40/14:30/14:15/14:05 UTC
 - Env uitbreidingen, logging/debugging, Vercel env‑lijst en health endpoint.
-

@@ -6,6 +6,10 @@ declare module "next-auth" {
       id: string
       isAppaltiUser?: boolean
     } & DefaultSession["user"]
+    tenantId?: string
+    companyId?: string
+    companyRole?: string
+    platformRole?: string
   }
 
   interface User {
