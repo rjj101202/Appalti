@@ -121,6 +121,16 @@ Tenders/Bids (praktisch uit te werken):
 - `src/lib/db/repositories/clientCompanyRepository.ts`:
   - In `create(...)`: check toegevoegd om maximaal één `isOwnCompany=true` per tenant toe te staan
   - In `update(...)`: guard toegevoegd tegen togglen naar meerdere own companies binnen dezelfde tenant
+ - Nieuwe funderingsbestanden voor Tenders & Bids (scaffolding):
+   - `src/lib/db/models/Tender.ts` (nieuw): basis tender model en input types
+   - `src/lib/db/models/Bid.ts` (nieuw): bid model met 4 fasen (storyline, 65%, 80%, final)
+   - `src/lib/db/repositories/tenderRepository.ts` (nieuw): create/find/update/delete/paginate
+   - `src/lib/db/repositories/bidRepository.ts` (nieuw): create, stage status update
+   - Endpoints:
+     - `src/app/api/tenders/route.ts` (GET, POST)
+     - `src/app/api/tenders/[id]/route.ts` (GET, PUT, DELETE)
+     - `src/app/api/bids/route.ts` (POST)
+     - `src/app/api/bids/[id]/stages/[stage]/submit/route.ts` (POST)
 
 ## 📁 Project Structuur
 
@@ -267,6 +277,9 @@ YYYY-MM-DD HH:mm TZ
 - Data: `Company.settings.modes` toegevoegd (enterprise/self toggles).
 - Repo: `CompanyRepository.updateModes(...)` helper toegevoegd voor toggles.
 - Repo: `ClientCompanyRepository` enforce “max 1 eigen bedrijf per tenant” bij create/update.
+
+2025-08-18 10:40 UTC
+- Scaffolding: Tender/Bid modellen, repositories en basis API endpoints toegevoegd (tenant‑scoped, RBAC op mutaties, enterprise‑gating volgt).
 
 2025-08-15 14:00 UTC
 - Avatar upload endpoint (`POST /api/users/me/avatar`) met Vercel Blob; profielpagina ondersteunt upload.
