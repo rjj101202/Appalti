@@ -184,6 +184,67 @@ export default function ClientEditPage() {
             <button className="btn btn-secondary" onClick={reEnrich} disabled={saving || !form.kvkNumber}>Verrijk via KVK</button>
           </div>
         </div>
+
+        {/* Teamleden sectie */}
+        <div className="card" style={{ marginTop: '2rem' }}>
+          <h2 style={{ marginBottom: '1rem' }}>Teamleden</h2>
+          <p style={{ color: '#6b7280', marginBottom: '1rem' }}>Bekijk teamleden en nodig nieuwe gebruikers uit voor dit bedrijf.</p>
+          <div style={{ display:'flex', gap:'0.5rem', marginBottom:'1rem' }}>
+            <button
+              className="btn btn-secondary"
+              onClick={async () => {
+                try {
+                  const res = await fetch(`/api/clients/${params.id}/members`);
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error || 'Laden mislukt');
+                  const lines = (data.data || []).map((m: any) => `${m.name || m.email} – ${m.companyRole}`);
+                  alert(lines.length ? lines.join('\n') : 'Nog geen teamleden');
+                } catch (e: any) {
+                  alert(e?.message || 'Kon teamleden niet laden');
+                }
+              }}
+            >
+              Bekijk Teamleden
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={async () => {
+                const email = prompt('E‑mail adres van de uit te nodigen gebruiker');
+                if (!email) return;
+                const role = prompt('Rol (owner/admin/member/viewer)', 'member') || 'member';
+                try {
+                  const res = await fetch(`/api/clients/${params.id}/invite`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, role })
+                  });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error || 'Uitnodigen mislukt');
+                  alert(`Uitnodiging aangemaakt. Token (tijdelijk): ${data.inviteToken}`);
+                } catch (e: any) {
+                  alert(e?.message || 'Uitnodigen mislukt');
+                }
+              }}
+            >
+              Nodig gebruiker uit
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={async () => {
+                try {
+                  const res = await fetch(`/api/clients/${params.id}/provision-company`, { method: 'POST' });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error || 'Aanmaken client‑omgeving mislukt');
+                  alert('Client‑omgeving is aangemaakt.');
+                } catch (e: any) {
+                  alert(e?.message || 'Provision mislukt');
+                }
+              }}
+            >
+              Client‑omgeving aanmaken
+            </button>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );

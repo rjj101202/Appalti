@@ -210,9 +210,14 @@ Doel: Enterprise‑review per fase (approve/reject + feedback), met gates naar v
     - `src/app/api/bids/route.ts` (POST)
     - `src/app/api/bids/[id]/stages/[stage]/submit/route.ts` (POST)
 - Teamleden (scaffold):
-  - `src/app/api/companies/[id]/members/route.ts` (nieuw): lijst memberships + user info (tenant‑scoped; MEMBER+)
-  - UI: `src/app/dashboard/clients/[id]/page.tsx` – kaart “Teamleden” met “Bekijk Teamleden” en link voor uitnodigen
-  - Invite accept UI: `src/app/invite/page.tsx` (nieuw) – accepteert invite tokens; forceert login indien nodig en zet tenant‑cookies
+  - Client‑tenant koppeling:
+    - `src/lib/db/models/ClientCompany.ts` → `linkedCompanyId?: ObjectId`
+    - `src/app/api/clients/[id]/provision-company` (POST) – maakt eigen tenant/company voor client en koppelt via `linkedCompanyId`
+    - `src/app/api/clients/[id]/members` (GET) – lijst teamleden van de client‑tenant
+    - `src/app/api/clients/[id]/invite` (POST) – invite voor client‑tenant (maakt zo nodig eerst de tenant)
+    - UI: `src/app/dashboard/clients/[id]/edit/page.tsx` – Teamleden‑sectie onderaan (provision + lijst + uitnodigen)
+  - `src/app/api/companies/[id]/members/route.ts` blijft leden van actieve company tonen (platformcontext)
+  - Invite accept UI: `src/app/invite/page.tsx` – accepteert invite tokens; forceert login indien nodig en zet tenant‑cookies
 
 ## 📁 Project Structuur
 

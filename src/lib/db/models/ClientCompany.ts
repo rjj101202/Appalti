@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 export interface ClientCompany {
 	_id?: ObjectId;
 	tenantId: string; // For multi-tenancy
+	linkedCompanyId?: ObjectId; // Company in eigen tenant voor client (voor teamleden/invites)
 	
 	// Basic company info
 	name: string;
