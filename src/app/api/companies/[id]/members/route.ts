@@ -17,6 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const userRepo = await getUserRepository();
     const members = await membershipRepo.findByCompany(targetCompanyId, true);
 
+    // Toon alleen leden van de actieve company (targetCompanyId)
     const enriched = await Promise.all(members.map(async m => {
       const u = await userRepo.findById(m.userId.toString());
       return {
