@@ -215,6 +215,11 @@ YYYY-MM-DD HH:mm TZ
 - Korte beschrijving van de wijziging(en)
 ```
 
+2025-08-18 09:35 UTC
+- Auth: fallback user‑aanmaak in `getAuthContext` verwijderd; user‑sync uitsluitend via NextAuth `callbacks.signIn`.
+- Auth: sessie verrijkt met `tenantId`, `companyId`, `companyRole`, `platformRole` in `session` callback.
+- Docs: hernoemd `KOPIEREADME.md` → `CURSOR_README.md` en `READMECURSOR.md` → `OUDERVERSIE_RMC.md`.
+
 2025-08-15 14:00 UTC
 - Avatar upload endpoint (`POST /api/users/me/avatar`) met Vercel Blob; profielpagina ondersteunt upload.
 
