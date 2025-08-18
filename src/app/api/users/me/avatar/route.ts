@@ -3,7 +3,8 @@ import { requireAuth } from '@/lib/auth/context';
 import { put } from '@vercel/blob';
 import { getUserRepository } from '@/lib/db/repositories/userRepository';
 
-export const runtime = 'edge';
+// Use node runtime because this route imports MongoDB repositories
+export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
 	try {
