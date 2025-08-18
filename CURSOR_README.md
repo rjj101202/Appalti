@@ -82,6 +82,34 @@ Broncode: `src/lib/mongodb.ts`, `src/lib/db/models/*`, `src/lib/db/repositories/
 - `UserRepository`, `CompanyRepository`, `MembershipRepository`, `ClientCompanyRepository` (in tegenstelling tot oudere documentatie zijn ze alle vier aanwezig).
 - Indices en guards per repo zorgen voor tenant‑scoping en performance (paginatie op `_id` cursor voor clients).
 
+## 🧩 Enterprise (voor anderen) vs Self (eigen bedrijf)
+
+Model en gedrag:
+- `ClientCompany.isOwnCompany: boolean`
+  - `true` = “Self”: jouw eigen bedrijf binnen de tenant. Gebruik dit voor eigen IKP en eigen tenders.
+  - `false` (default) = “Enterprise”: klantbedrijf waarvoor jouw tenant tenders kan schrijven.
+- Datamodel is tenant‑gebaseerd (`tenantId`); koppel logica via `tenantId`, niet via `companyId` veld in `clientCompanies`.
+
+Aanbevelingen/constraints:
+- Maximaal één `isOwnCompany=true` per tenant (uniekheid afdwingen via code en optioneel index: partial unique `{ tenantId, isOwnCompany }` met filter `isOwnCompany: true`).
+- UI: bij aanmaken “Bedrijf toevoegen” een toggle “Dit is ons eigen bedrijf”. Verberg/disable deze toggle zodra er al één bestaat.
+- Lijsten: filters toevoegen `?isOwnCompany=true|false` om eigen bedrijf snel te vinden.
+
+Tenders/Bids (praktisch uit te werken):
+- Nieuwe collections (te bouwen): `tenders`, `bids`.
+- Tender minimal schema (per tenant):
+  - `tenantId`, `clientCompanyId`, `title`, `description`, `deadline`, `cpvCodes[]`, `status`, timestamps.
+- Bid minimal schema (per tender):
+  - `tenantId`, `tenderId`, `stage` (4 fases), `ownerUserId`, `attachments[]`, `status`, timestamps.
+- Endpoints (te bouwen):
+  - `POST/GET/PUT/DELETE /api/tenders` (tenant‑scoped, RBAC: min. ADMIN voor mutaties)
+  - `POST/GET/PUT/DELETE /api/tenders/[id]/bids` (idem)
+- Enterprise vs Self gebruik:
+  - Enterprise: `clientCompanyId` verwijst naar klantbedrijf (`isOwnCompany=false`).
+  - Self: `clientCompanyId` wijst naar eigen bedrijf (`isOwnCompany=true`).
+- RBAC:
+  - Mutaties alleen voor `ADMIN/OWNER` binnen tenant; `MEMBER` met toegewezen bid mag bid‑stappen uitvoeren.
+
 ## 📁 Project Structuur
 
 Overzicht van de relevante mappen/onderdelen in deze repo:
@@ -219,6 +247,9 @@ YYYY-MM-DD HH:mm TZ
 - Auth: fallback user‑aanmaak in `getAuthContext` verwijderd; user‑sync uitsluitend via NextAuth `callbacks.signIn`.
 - Auth: sessie verrijkt met `tenantId`, `companyId`, `companyRole`, `platformRole` in `session` callback.
 - Docs: hernoemd `KOPIEREADME.md` → `CURSOR_README.md` en `READMECURSOR.md` → `OUDERVERSIE_RMC.md`.
+
+2025-08-18 10:05 UTC
+- Docs: sectie toegevoegd voor Enterprise (klantbedrijven) vs Self (eigen bedrijf) met praktische uitwerking en aanbevelingen (uniek eigen bedrijf per tenant, endpoints voor tenders/bids).
 
 2025-08-15 14:00 UTC
 - Avatar upload endpoint (`POST /api/users/me/avatar`) met Vercel Blob; profielpagina ondersteunt upload.
