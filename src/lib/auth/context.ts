@@ -35,37 +35,8 @@ export async function getAuthContext(req: NextRequest): Promise<AuthContext | nu
     const { getUserRepository } = await import('@/lib/db/repositories/userRepository');
     const userRepo = await getUserRepository();
     const dbUser = await userRepo.findByEmail(session.user.email);
-    
-    if (!dbUser || !dbUser._id) {
-      // User not synced yet - create user
-      const { user: newUser } = await userRepo.findOrCreate({
-        auth0Id: session.user.id || `auth0|${Date.now()}`, // NextAuth uses different ID format
-        email: session.user.email,
-        name: session.user.name || session.user.email,
-        avatar: session.user.image || undefined,
-        emailVerified: true, // NextAuth only allows verified emails
-      });
-      
-      // If new Appalti user, add to Appalti company
-      if (session.user.email.endsWith('@appalti.nl')) {
-        const { getCompanyRepository } = await import('@/lib/db/repositories/companyRepository');
-        const companyRepo = await getCompanyRepository();
-        const appaltiCompany = await companyRepo.getAppaltiCompany();
-        
-        if (appaltiCompany && appaltiCompany._id && newUser._id) {
-          const membershipRepo = await getMembershipRepository();
-          await membershipRepo.create({
-            userId: newUser._id.toString(),
-            companyId: appaltiCompany._id.toString(),
-            tenantId: appaltiCompany.tenantId,
-            companyRole: CompanyRole.MEMBER,
-            invitedBy: appaltiCompany.createdBy.toString(),
-          });
-        }
-      }
-      
-      return getAuthContext(req); // Retry with created user
-    }
+    // Geen fallback-creatie hier: user sync gebeurt in NextAuth callbacks.signIn
+    if (!dbUser || !dbUser._id) return null;
     
     // Get active membership
     const membershipRepo = await getMembershipRepository();
