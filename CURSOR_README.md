@@ -220,6 +220,19 @@ Doel: Enterprise‑review per fase (approve/reject + feedback), met gates naar v
   - Invite accept UI: `src/app/invite/page.tsx` – accepteert invite tokens; forceert login indien nodig en zet tenant‑cookies
   - Verplaatst: Teamleden‑kaart op `dashboard/clients/[id]/page.tsx` verwijderd; teambeheer staat alleen onder “Bedrijfsgegevens bewerken”.
 
+### Client Companies – eigen bedrijf voor client‑gebruikers (UX/API)
+
+- Doel: client‑gebruikers (niet‑`@appalti.nl`) zien in de navigatie “Client Companies” als toegang tot hun eigen bedrijfsomgeving, zonder beheer van meerdere klanten.
+- Gedrag:
+  - API: `GET /api/clients` maakt automatisch één `ClientCompany` aan wanneer de lijst leeg is voor niet‑Appalti gebruikers, op basis van de actieve tenant/company. Hiermee ziet de gebruiker altijd precies zijn/haar eigen bedrijf terug in de lijst.
+  - UI: op `dashboard/clients/page.tsx` is de knop “+ Nieuwe Client” en de empty‑state CTA verborgen voor niet‑Appalti gebruikers.
+  - UI: `dashboard/clients/new/page.tsx` is geblokkeerd voor niet‑Appalti gebruikers.
+- Implementatie:
+  - `src/app/api/clients/route.ts`: auto‑provision van één eigen `ClientCompany` voor niet‑Appalti (indien lijst leeg).
+  - `src/app/dashboard/clients/page.tsx`: verberg create‑knoppen/CTA voor niet‑Appalti.
+  - `src/app/dashboard/clients/new/page.tsx`: eenvoudige blokkade voor niet‑Appalti.
+  - (Navigatie blijft gelijk; “Client Companies” fungeert als entrypoint naar de eigen omgeving.)
+
 ## 📁 Project Structuur
 
 Overzicht van de relevante mappen/onderdelen in deze repo:
@@ -370,3 +383,6 @@ YYYY-MM-DD HH:mm TZ
 
 2025-08-18 11:20 UTC
 - Teamleden: client‑tenant provisioning (`linkedCompanyId`), endpoints `/api/clients/[id]/provision-company`, `/api/clients/[id]/members`, `/api/clients/[id]/invite`, UI‑sectie onder “Bedrijfsgegevens bewerken”. Teamleden‑kaart op detailpagina verwijderd. Invite accept pagina `/invite` toegevoegd en build‑fixed (Suspense + dynamic).
+
+2025-08-18 15:35 UTC
+- UX/API: niet‑Appalti gebruikers zien op `Client Companies` automatisch hun eigen bedrijf (auto‑provision via `GET /api/clients` wanneer leeg). Create‑knop/empty‑CTA verborgen; `/dashboard/clients/new` geblokkeerd voor niet‑Appalti.
