@@ -17,6 +17,13 @@ export class ClientCompanyRepository {
 
   async create(input: CreateClientCompanyInput): Promise<ClientCompany> {
     const now = new Date();
+    // Enforce at most one isOwnCompany per tenant
+    if (input.isOwnCompany) {
+      const existingOwn = await this.collection.findOne({ tenantId: input.tenantId, isOwnCompany: true });
+      if (existingOwn) {
+        throw new Error('An own company already exists for this tenant');
+      }
+    }
     const clientCompany: ClientCompany = {
       ...input,
       status: 'active',
@@ -86,6 +93,13 @@ export class ClientCompanyRepository {
     updates: Partial<ClientCompany>,
     updatedBy: string
   ): Promise<ClientCompany | null> {
+    // Prevent making multiple own companies by toggling updates
+    if (updates.isOwnCompany === true) {
+      const existingOwn = await this.collection.findOne({ tenantId, isOwnCompany: true, _id: { $ne: new ObjectId(id) } });
+      if (existingOwn) {
+        throw new Error('An own company already exists for this tenant');
+      }
+    }
     const result = await this.collection.findOneAndUpdate(
       { 
         _id: new ObjectId(id), 

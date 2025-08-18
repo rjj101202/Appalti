@@ -187,6 +187,28 @@ export class CompanyRepository {
   }
 
   /**
+   * Update modes (enterprise/self) in company settings
+   */
+  async updateModes(
+    tenantId: string,
+    modes: { enterprise?: boolean; self?: boolean }
+  ): Promise<boolean> {
+    const result = await this.collection.updateOne(
+      { tenantId },
+      {
+        $set: {
+          'settings.modes': {
+            ...(modes.enterprise === undefined ? undefined : { enterprise: modes.enterprise }),
+            ...(modes.self === undefined ? undefined : { self: modes.self }),
+          },
+          updatedAt: new Date()
+        }
+      }
+    );
+    return result.modifiedCount > 0;
+  }
+
+  /**
    * Check if company name is available
    */
   async isNameAvailable(name: string, excludeId?: string): Promise<boolean> {

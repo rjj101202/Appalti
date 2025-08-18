@@ -5,6 +5,10 @@
 ## 🎯 Missie
 Een multi-tenant SaaS‑platform voor AI‑gestuurde aanbestedingsbeheer. Het platform bedient Appalti intern en externe klanten, met strikte tenant‑isolatie, rolgebaseerde toegang en integraties met KVK, AI‑providers en toekomstige betalingen.
 
+### Twee B2B varianten (opsplitsing platform)
+- **Enterprise**: Appalti‑consultants schrijven tenders voor klantbedrijven. Medewerkers van de klant reviewen per fase (approve/reject + feedback) in het platform. Volgende fase gaat pas door na akkoord.
+- **Self**: Bedrijven schrijven tenders voor zichzelf binnen hun eigen tenant (geen enterprise‑reviewgates, eventueel interne review later). We focussen initieel op Enterprise; Self blijft technisch beschikbaar via toggles.
+
 ## 🏗️ Architectuur Overzicht
 
 - **Framework**: Next.js 15.4.5 (App Router + Turbopack)
@@ -109,6 +113,14 @@ Tenders/Bids (praktisch uit te werken):
   - Self: `clientCompanyId` wijst naar eigen bedrijf (`isOwnCompany=true`).
 - RBAC:
   - Mutaties alleen voor `ADMIN/OWNER` binnen tenant; `MEMBER` met toegewezen bid mag bid‑stappen uitvoeren.
+
+### Implementatie‑wijzigingen in deze repo (links en regels)
+- `src/lib/db/models/Company.ts`: settings uitgebreid met `modes.enterprise` en `modes.self` (r. 10-22 toegevoegd)
+- `src/lib/db/repositories/companyRepository.ts`: `updateModes(tenantId, modes)` helper toegevoegd om toggles te zetten (na r. 186)
+- `src/lib/db/models/ClientCompany.ts`: veld `isOwnCompany?: boolean` (bestond al) gebruikt voor Self vs Enterprise
+- `src/lib/db/repositories/clientCompanyRepository.ts`:
+  - In `create(...)`: check toegevoegd om maximaal één `isOwnCompany=true` per tenant toe te staan
+  - In `update(...)`: guard toegevoegd tegen togglen naar meerdere own companies binnen dezelfde tenant
 
 ## 📁 Project Structuur
 
@@ -250,6 +262,11 @@ YYYY-MM-DD HH:mm TZ
 
 2025-08-18 10:05 UTC
 - Docs: sectie toegevoegd voor Enterprise (klantbedrijven) vs Self (eigen bedrijf) met praktische uitwerking en aanbevelingen (uniek eigen bedrijf per tenant, endpoints voor tenders/bids).
+
+2025-08-18 10:20 UTC
+- Data: `Company.settings.modes` toegevoegd (enterprise/self toggles).
+- Repo: `CompanyRepository.updateModes(...)` helper toegevoegd voor toggles.
+- Repo: `ClientCompanyRepository` enforce “max 1 eigen bedrijf per tenant” bij create/update.
 
 2025-08-15 14:00 UTC
 - Avatar upload endpoint (`POST /api/users/me/avatar`) met Vercel Blob; profielpagina ondersteunt upload.

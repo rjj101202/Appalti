@@ -18,6 +18,10 @@ export interface Company {
       postalCode?: string;
       country?: string;
     };
+    modes?: {
+      enterprise?: boolean;        // Enterprise flow (Appalti schrijft, klant reviewt)
+      self?: boolean;              // Self flow (bedrijf schrijft zelf)
+    }
   };
   subscription?: {
     plan: 'trial' | 'basic' | 'professional' | 'enterprise';
