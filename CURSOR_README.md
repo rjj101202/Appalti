@@ -369,4 +369,4 @@ YYYY-MM-DD HH:mm TZ
 - Docs: sectie “Gebruikersregistratie & sync (Auth0 → NextAuth → MongoDB)” toegevoegd met verificatie‑stappen en Auth0 checklist.
 
 2025-08-18 11:20 UTC
-- Teamleden: endpoint `GET /api/companies/[id]/members` en UI‑kaart toegevoegd; invite accept pagina `/invite` toegevoegd.
+- Teamleden: client‑tenant provisioning (`linkedCompanyId`), endpoints `/api/clients/[id]/provision-company`, `/api/clients/[id]/members`, `/api/clients/[id]/invite`, UI‑sectie onder “Bedrijfsgegevens bewerken”. Teamleden‑kaart op detailpagina verwijderd. Invite accept pagina `/invite` toegevoegd en build‑fixed (Suspense + dynamic).
