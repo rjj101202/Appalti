@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 
 export default function TeamPage() {
@@ -103,7 +104,11 @@ export default function TeamPage() {
               <tbody>
                 {members.map((m) => (
                   <tr key={m.membershipId}>
-                    <td>{m.name || '-'}</td>
+                    <td>
+                      <Link href={`/dashboard/team/${m.userId}`} style={{ color: '#9333ea', textDecoration: 'none' }}>
+                        {m.name || '-'}
+                      </Link>
+                    </td>
                     <td>{m.email || '-'}</td>
                     <td>
                       {canManage ? (

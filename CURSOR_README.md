@@ -418,3 +418,9 @@ YYYY-MM-DD HH:mm TZ
   - API: `GET /api/companies/[id]/members` (bestond) verrijkt + `PUT` toegevoegd voor rolwijziging/deactiveren met safeguard voor laatste OWNER.
   - UI: `dashboard/team/page.tsx` teamlijst met rol‑dropdown (viewer/member/admin/owner) en deactiveer‑knop (alleen admin/owner).
   - Docs: uitgebreide uitleg Enterprise vs Self teams en teambeheerregels toegevoegd.
+
+2025-08-18 16:10 UTC
+- Enterprise Team – iteratie 2:
+  - UI: `dashboard/team/[userId]/page.tsx` detailpagina met profiel en “Werkzaamheden” sectie (placeholder).
+  - API: `GET /api/users/[id]/work` scaffold (voor nu lege lijsten; later koppeling met bids/tenders assignment).
+  - UX: vanuit teamlijst kun je doorklikken naar de detailpagina.
