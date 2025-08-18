@@ -218,6 +218,7 @@ Doel: Enterprise‑review per fase (approve/reject + feedback), met gates naar v
     - UI: `src/app/dashboard/clients/[id]/edit/page.tsx` – Teamleden‑sectie onderaan (provision + lijst + uitnodigen)
   - `src/app/api/companies/[id]/members/route.ts` blijft leden van actieve company tonen (platformcontext)
   - Invite accept UI: `src/app/invite/page.tsx` – accepteert invite tokens; forceert login indien nodig en zet tenant‑cookies
+  - Verplaatst: Teamleden‑kaart op `dashboard/clients/[id]/page.tsx` verwijderd; teambeheer staat alleen onder “Bedrijfsgegevens bewerken”.
 
 ## 📁 Project Structuur
 
@@ -347,7 +348,7 @@ YYYY-MM-DD HH:mm TZ
 
 2025-08-18 09:35 UTC
 - Auth: fallback user‑aanmaak in `getAuthContext` verwijderd; user‑sync uitsluitend via NextAuth `callbacks.signIn`.
-- Auth: sessie verrijkt met `tenantId`, `companyId`, `companyRole`, `platformRole` in `session` callback.
+- Auth: sessie verrijft met `tenantId`, `companyId`, `companyRole`, `platformRole` in `session` callback.
 - Docs: hernoemd `KOPIEREADME.md` → `CURSOR_README.md` en `READMECURSOR.md` → `OUDERVERSIE_RMC.md`.
 
 2025-08-18 10:05 UTC
