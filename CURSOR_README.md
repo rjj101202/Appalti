@@ -199,16 +199,19 @@ Doel: Enterprise‑review per fase (approve/reject + feedback), met gates naar v
 - `src/lib/db/repositories/clientCompanyRepository.ts`:
   - In `create(...)`: check toegevoegd om maximaal één `isOwnCompany=true` per tenant toe te staan
   - In `update(...)`: guard toegevoegd tegen togglen naar meerdere own companies binnen dezelfde tenant
- - Nieuwe funderingsbestanden voor Tenders & Bids (scaffolding):
-   - `src/lib/db/models/Tender.ts` (nieuw): basis tender model en input types
-   - `src/lib/db/models/Bid.ts` (nieuw): bid model met 4 fasen (storyline, 65%, 80%, final)
-   - `src/lib/db/repositories/tenderRepository.ts` (nieuw): create/find/update/delete/paginate
-   - `src/lib/db/repositories/bidRepository.ts` (nieuw): create, stage status update
-   - Endpoints:
-     - `src/app/api/tenders/route.ts` (GET, POST)
-     - `src/app/api/tenders/[id]/route.ts` (GET, PUT, DELETE)
-     - `src/app/api/bids/route.ts` (POST)
-     - `src/app/api/bids/[id]/stages/[stage]/submit/route.ts` (POST)
+- Nieuwe funderingsbestanden voor Tenders & Bids (scaffolding):
+  - `src/lib/db/models/Tender.ts` (nieuw): basis tender model en input types
+  - `src/lib/db/models/Bid.ts` (nieuw): bid model met 4 fasen (storyline, 65%, 80%, final)
+  - `src/lib/db/repositories/tenderRepository.ts` (nieuw): create/find/update/delete/paginate
+  - `src/lib/db/repositories/bidRepository.ts` (nieuw): create, stage status update
+  - Endpoints:
+    - `src/app/api/tenders/route.ts` (GET, POST)
+    - `src/app/api/tenders/[id]/route.ts` (GET, PUT, DELETE)
+    - `src/app/api/bids/route.ts` (POST)
+    - `src/app/api/bids/[id]/stages/[stage]/submit/route.ts` (POST)
+- Teamleden (scaffold):
+  - `src/app/api/companies/[id]/members/route.ts` (nieuw): lijst memberships + user info (tenant‑scoped; MEMBER+)
+  - UI: `src/app/dashboard/clients/[id]/page.tsx` – kaart “Teamleden” met “Bekijk Teamleden” en link voor uitnodigen
 
 ## 📁 Project Structuur
 
@@ -227,13 +230,6 @@ Overzicht van de relevante mappen/onderdelen in deze repo:
 │   │   ├── auth/               # Signin/Error pages
 │   │   ├── dashboard/          # Protected dashboard pages
 │   │   └── page.tsx            # Landing page
-│   ├── components/             # React componenten (IKP, layouts, etc.)
-│   ├── lib/                    # Core libraries
-│   │   ├── db/                 # Database layer (models + repositories)
-│   │   ├── auth/               # Auth utilities (context + middleware helpers)
-│   │   ├── mongodb.ts          # MongoDB connection
-│   │   └── kvk-api.ts          # KVK API client & aggregator
-│   └── types/                  # TypeScript definities (ikp.ts, models.ts)
 ├── middleware.ts               # Auth middleware (Next.js)
 └── CURSOR_README.md            # Dit document
 ```
@@ -364,30 +360,3 @@ YYYY-MM-DD HH:mm TZ
 
 2025-08-18 11:05 UTC
 - Docs: sectie “Gebruikersregistratie & sync (Auth0 → NextAuth → MongoDB)” toegevoegd met verificatie‑stappen en Auth0 checklist.
-
-2025-08-15 14:00 UTC
-- Avatar upload endpoint (`POST /api/users/me/avatar`) met Vercel Blob; profielpagina ondersteunt upload.
-
-2025-08-15 13:40 UTC
-- Profielpagina `/dashboard/profile` met bewerken van naam/avatar en team‑uitnodigen.
-
-2025-08-15 13:20 UTC
-- Membership invite accept idempotent + rate limiting + audit logging.
-
-2025-08-15 13:05 UTC
-- Upstash rate limiting geconfigureerd; Sentry init; audit logs op client acties.
-
-2025-08-15 12:35 UTC
-- Tenant switcher serverroute + cookies; clients paginatie op `_id` cursor.
-
-2025-08-15 12:10 UTC
-- Zod‑validatie op `/api/clients`; KVK cache/TTL; ADMIN‑checks voor mutaties.
-
-2025-08-15 11:45 UTC
-- Autorisatie aangescherpt op clients mutaties; `ClientCompany` model uitgebreid; KVK verrijking bij create; UI verbeteringen.
-
-2025-08-15 11:05 UTC
-- KVK integratie geüpdatet; aggregator toegevoegd; mock‑toggle verbeterd.
-
-2025-08-14 14:40/14:30/14:15/14:05 UTC
-- Env uitbreidingen, logging/debugging, Vercel env‑lijst en health endpoint.
