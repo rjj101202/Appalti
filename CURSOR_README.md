@@ -69,6 +69,32 @@ Broncode: `src/lib/auth.ts`, `middleware.ts`, `src/lib/auth/context.ts`, `src/ap
 
 Belangrijke wijziging: fallback user‑aanmaak in `getAuthContext` is verwijderd; user‑sync gebeurt nu uitsluitend in `callbacks.signIn`. De `session` callback verrijft de sessie met `tenantId`, `companyId`, `companyRole` en `platformRole`.
 
+## 👤 Gebruikersregistratie & sync (Auth0 → NextAuth → MongoDB)
+
+Flow in het kort
+- User registreert/logt in via Auth0 Universal Login (Database Connection: Username‑Password‑Authentication).
+- Bij eerste succesvolle login draait NextAuth `callbacks.signIn` in `src/lib/auth.ts` en synchroniseert de user naar MongoDB:
+  - Zoekt/maakt user in `users` op basis van Auth0 `sub` en e‑mail (idempotent).
+  - Voor `@appalti.nl` e‑mails: zoekt Appalti‑company en maakt, indien nodig, een membership in `memberships` met `userId`, `companyId`, `tenantId`, `companyRole` (en optioneel `platformRole`).
+- Tijdens requests bepaalt `src/lib/auth/context.ts` de actieve tenant (`tenantId`/`companyId`) op basis van memberships en eventuele cookies `activeCompanyId`/`activeTenantId` (gezet door `POST /api/auth/switch-tenant`).
+
+Verifiëren
+- MongoDB:
+  - `users.find({ email: 'user@bedrijf.nl' })` → neem `_id`
+  - `memberships.find({ userId: ObjectId('<id>'), isActive: true })` → zie `tenantId`, `companyId`, `companyRole`
+  - `companies.find({ _id: ObjectId('<companyId>') })` → bevestig `tenantId` (en voor Appalti: `isAppaltiInternal: true`).
+- API (ingelogd):
+  - `GET /api/auth/registration` → memberships[] met `tenantId`, `companyId`, `role`
+  - `GET /api/auth/me` → sessie; bevat ook `tenantId`/`companyId` (session‑enrichment).
+
+Auth0 signup 400 – snelle checklist
+- Applications → jouw App → Connections → “Username‑Password‑Authentication” AAN
+- Authentication → Database → Username‑Password‑Authentication → Settings → “Disable sign ups” UIT
+- Organizations: “Require Organization” UIT (of voeg `organization` mee in de auth‑aanvraag)
+- Monitoring → Logs → “Failed Signup” → lees `error_description` (user exists, policy, connection disabled, etc.)
+
+Gebruik géén Auth0 “Custom Database” (Use my own database). Auth0 beheert identities; MongoDB is voor app‑data en NextAuth‑sessies.
+
 ## 💾 Database & Data‑model
 
 Broncode: `src/lib/mongodb.ts`, `src/lib/db/models/*`, `src/lib/db/repositories/*`
@@ -335,6 +361,9 @@ YYYY-MM-DD HH:mm TZ
 
 2025-08-18 10:55 UTC
 - Docs: “Approvals & Workflow (Enterprise) – Implementation Guide” toegevoegd met concrete stappen (data, endpoints, RBAC, UI, tests) voor toekomstige agents.
+
+2025-08-18 11:05 UTC
+- Docs: sectie “Gebruikersregistratie & sync (Auth0 → NextAuth → MongoDB)” toegevoegd met verificatie‑stappen en Auth0 checklist.
 
 2025-08-15 14:00 UTC
 - Avatar upload endpoint (`POST /api/users/me/avatar`) met Vercel Blob; profielpagina ondersteunt upload.
