@@ -16,6 +16,36 @@ Een multi-tenant SaaS‑platform voor AI‑gestuurde aanbestedingsbeheer. Het pl
 - **Observability**: Sentry (client + server, conditioneel via env)
 - **Rate limiting**: Upstash Redis (optioneel; automatisch uit als env ontbreekt)
 
+### Hiërarchie Overview (Platform)
+```
+Platform (Appalti AI)
+├── Company (Bedrijf) - bv. "Appalti", "Klant ABC", "Partner XYZ"
+│   ├── Users (Medewerkers)
+│   │   ├── Owner (Eigenaar/Admin)
+│   │   ├── Members (Teamleden)
+│   │   └── Viewers (Read-only gebruikers)
+│   └── Resources
+│       ├── Client Companies
+│       ├── Tenders
+│       └── Bids
+```
+
+### Workflow Voorbeeld
+```
+Bedrijf: "Bouwbedrijf De Vries"
+├── Jan (OWNER) - kan alles
+├── Marie (ADMIN) - beheert team
+├── Pieter (MEMBER) - werkt aan tenders
+└── Lisa (VIEWER) - bekijkt voortgang
+
+Workflow:
+1. Marie voegt nieuwe tender toe
+2. Wijst deze toe aan Pieter
+3. Pieter werkt aan bid (4 stappen)
+4. Jan reviewt en approveert
+5. Lisa kan alles volgen
+```
+
 ### Belangrijke externe integraties
 - **KVK API**: Zoeken en verrijken van bedrijfsdata (v1/v2 endpoints, aggregator beschikbaar)
 - **@vercel/blob**: Bestandsopslag voor o.a. avatar uploads (edge runtime)
@@ -61,6 +91,34 @@ Broncode: `src/lib/mongodb.ts`, `src/lib/db/models/*`, `src/lib/db/repositories/
 ### Repositories (beschikbaar)
 - `UserRepository`, `CompanyRepository`, `MembershipRepository`, `ClientCompanyRepository` (in tegenstelling tot oudere documentatie zijn ze alle vier aanwezig).
 - Indices en guards per repo zorgen voor tenant‑scoping en performance (paginatie op `_id` cursor voor clients).
+
+## 📁 Project Structuur
+
+Overzicht van de relevante mappen/onderdelen in deze repo:
+```
+/workspace/
+├── src/
+│   ├── app/                    # Next.js App Router
+│   │   ├── api/                # API Routes
+│   │   │   ├── auth/           # NextAuth handlers + registration + switch-tenant
+│   │   │   ├── clients/        # Client company endpoints (CRUD, IKP)
+│   │   │   ├── kvk/            # KVK API integratie (search/aggregator)
+│   │   │   ├── memberships/    # Invites & accept
+│   │   │   ├── users/          # Profiel & avatar upload
+│   │   │   └── health, debug   # Healthcheck en dev-debug
+│   │   ├── auth/               # Signin/Error pages
+│   │   ├── dashboard/          # Protected dashboard pages
+│   │   └── page.tsx            # Landing page
+│   ├── components/             # React componenten (IKP, layouts, etc.)
+│   ├── lib/                    # Core libraries
+│   │   ├── db/                 # Database layer (models + repositories)
+│   │   ├── auth/               # Auth utilities (context + middleware helpers)
+│   │   ├── mongodb.ts          # MongoDB connection
+│   │   └── kvk-api.ts          # KVK API client & aggregator
+│   └── types/                  # TypeScript definities (ikp.ts, models.ts)
+├── middleware.ts               # Auth middleware (Next.js)
+└── KOPIEREADME.md              # Dit document
+```
 
 ## 👤 Rollen & RBAC
 
