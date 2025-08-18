@@ -1,10 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 
-export default function InviteAcceptPage() {
+// Avoid prerender issues: this page depends on client-side params and session
+export const dynamic = 'force-dynamic';
+
+function InviteAcceptContent() {
   const search = useSearchParams();
   const router = useRouter();
   const [status, setStatus] = useState<'idle'|'working'|'error'|'done'>('idle');
@@ -26,7 +29,6 @@ export default function InviteAcceptPage() {
           body: JSON.stringify({ inviteToken: token })
         });
         if (res.status === 401) {
-          // Niet ingelogd: ga naar Auth0 login en kom terug
           const url = typeof window !== 'undefined' ? window.location.href : '/invite?token=' + token;
           await signIn('auth0', { callbackUrl: url });
           return;
@@ -37,7 +39,6 @@ export default function InviteAcceptPage() {
           setMessage(data?.error || 'Uitnodiging accepteren mislukt');
           return;
         }
-        // Probeer actieve tenant/company te zetten als er precies 1 membership is
         try {
           const meRes = await fetch('/api/auth/registration');
           const me = await meRes.json();
@@ -75,16 +76,20 @@ export default function InviteAcceptPage() {
         {status === 'error' && (
           <>
             <p className="text-red-600">{message}</p>
-            <button
-              className="btn btn-primary"
-              onClick={() => router.replace('/')}
-            >
-              Terug naar home
-            </button>
+            <button className="btn btn-primary" onClick={() => router.replace('/')}>Terug naar home</button>
           </>
         )}
       </div>
     </div>
   );
 }
+
+export default function InviteAcceptPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <InviteAcceptContent />
+    </Suspense>
+  );
+}
+
 
