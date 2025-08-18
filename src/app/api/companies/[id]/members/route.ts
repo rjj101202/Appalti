@@ -9,12 +9,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   try {
     const auth = await requireAuth(request);
     if (!auth.tenantId) return NextResponse.json({ error: 'No active tenant' }, { status: 400 });
-    // Require at least MEMBER to view, ADMIN to manage; here we only list, so MEMBER suffices
-    await requireCompanyRole(request, params.id, CompanyRole.MEMBER).catch(() => { throw new Error('Forbidden'); });
+    // We tonen leden van de ACTIEVE tenant/company, niet van een clientCompany-id in de URL.
+    const targetCompanyId = auth.companyId || '';
+    await requireCompanyRole(request, targetCompanyId, CompanyRole.MEMBER).catch(() => { throw new Error('Forbidden'); });
 
     const membershipRepo = await getMembershipRepository();
     const userRepo = await getUserRepository();
-    const members = await membershipRepo.findByCompany(params.id, true);
+    const members = await membershipRepo.findByCompany(targetCompanyId, true);
 
     const enriched = await Promise.all(members.map(async m => {
       const u = await userRepo.findById(m.userId.toString());
