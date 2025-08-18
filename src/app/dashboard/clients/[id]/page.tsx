@@ -155,6 +155,37 @@ export default function ClientDetailPage() {
         {/* Action Cards */}
         <h2 style={{ marginBottom: '1rem' }}>Acties</h2>
         <div className="action-grid">
+          {/* Teamleden Card */}
+          <div className="card">
+            <h3 style={{ marginBottom: '0.5rem' }}>Teamleden</h3>
+            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
+              Bekijk teamleden van dit bedrijf en nodig nieuwe gebruikers uit.
+            </p>
+            <Link 
+              href={`#members`} 
+              className="btn btn-secondary"
+              onClick={async (e) => {
+                e.preventDefault();
+                try {
+                  const res = await fetch(`/api/companies/${params.id}/members`);
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error || 'Laden mislukt');
+                  alert((data.data || []).map((m: any) => `${m.name || m.email} – ${m.companyRole}`).join('\n') || 'Geen leden gevonden');
+                } catch (err: any) {
+                  alert(err.message || 'Kon teamleden niet laden');
+                }
+              }}
+            >
+              Bekijk Teamleden
+            </Link>
+            <Link 
+              href={`/dashboard/clients/${params.id}/invite`}
+              className="btn btn-primary" 
+              style={{ marginLeft: '0.5rem' }}
+            >
+              Nodig gebruiker uit
+            </Link>
+          </div>
           {/* IKP Card */}
           <div className="card">
             <h3 style={{ marginBottom: '0.5rem' }}>Ideaal Klant Profiel (IKP)</h3>
