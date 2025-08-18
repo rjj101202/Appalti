@@ -125,6 +125,15 @@ Aanbevelingen/constraints:
 - UI: bij aanmaken “Bedrijf toevoegen” een toggle “Dit is ons eigen bedrijf”. Verberg/disable deze toggle zodra er al één bestaat.
 - Lijsten: filters toevoegen `?isOwnCompany=true|false` om eigen bedrijf snel te vinden.
 
+### Teams in Enterprise vs Self
+- Enterprise bestaat uit twee soorten partijen:
+  - Appalti‑tenant/team: de interne gebruikers die aanbestedingen/bids uitvoeren en beheren voor klanten (company = Appalti).
+  - Client‑tenant/team: gebruikers van het klantbedrijf waarvoor gewerkt wordt (company = eigen bedrijf van de klant). Zij zien enkel hun eigen omgeving.
+- Self: één tenant met alleen het eigen team; geen enterprise‑reviewgates.
+- Invites:
+  - Appalti nodigt eigen teamleden uit via `POST /api/memberships/invite` (company = Appalti).
+  - Voor klantgebruikers via `POST /api/clients/[id]/invite` (maakt zo nodig `linkedCompanyId` aan; client‑users zien alleen hun eigen bedrijf, geen beheer van andere clients).
+
 Tenders/Bids (praktisch uit te werken):
 - Nieuwe collections (te bouwen): `tenders`, `bids`.
 - Tender minimal schema (per tenant):
@@ -260,6 +269,20 @@ Overzicht van de relevante mappen/onderdelen in deze repo:
 - Platform roles (voor Appalti‑medewerkers): `viewer`, `support`, `admin`, `super_admin`.
 - API‑routes gebruiken `requireAuth` en, waar mutatie plaatsvindt, `requireCompanyRole(..., ADMIN)` of hoger.
 
+### Teambeheer (Enterprise) – ontwerp en regels
+- Overzicht & detail:
+  - Lijst teamleden van de actieve company (Enterprise = Appalti) via `GET /api/companies/[id]/members` (al aanwezig; gebruikt actieve company uit sessie/cookie).
+  - Detailpagina per lid toont profielinfo en werkzaamheden (later: gekoppelde tenders/bids).
+- Rolbeheer (te bouwen):
+  - Endpoint `PUT /api/companies/[id]/members/[membershipId]` om `companyRole` te wijzigen (minimaal `ADMIN`; `OWNER` vereist om iemand `OWNER` te maken; nooit laatste `OWNER` kunnen degraderen).
+  - Endpoint `DELETE /api/companies/[id]/members/[membershipId]` of `PATCH` om te deactiveren (minimaal `ADMIN`).
+  - UI: rolkeuze toont alle rollen: `viewer`, `member`, `admin`, `owner` (nu zichtbaar: owner/member; uitbreiden in UI).
+- Werkzaamheden (scaffold):
+  - Endpoint `GET /api/users/[id]/work` (te bouwen) levert gekoppelde `tenders`/`bids`; tot die tijd lege lijst/placeholder.
+- Beperkingen:
+  - Platformrollen bestaan alleen voor Appalti‑medewerkers; niet instelbaar via client‑team UI.
+  - Multi‑tenant checks via `tenantId` en `requireCompanyRole`.
+
 ## 🌐 API‑overzicht (selectie)
 
 - Auth & session
@@ -276,6 +299,9 @@ Overzicht van de relevante mappen/onderdelen in deze repo:
 - Memberships
   - `POST /api/memberships/invite` – invite genereren (rate‑limited)
   - `POST /api/memberships/accept` – invite accepteren (idempotent)
+  - `GET /api/companies/[id]/members` – teamlijst van actieve company (bestaat)
+  - (Planned) `PUT /api/companies/[id]/members/[membershipId]` – rol wijzigen/deactiveren
+  - (Planned) `DELETE /api/companies/[id]/members/[membershipId]` – deactiveren/verwijderen
 
 - KVK
   - `GET /api/kvk/search?kvkNumber=...&full=true` – aggregator profiel
