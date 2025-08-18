@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClientCompanyRepository } from '@/lib/db/repositories/clientCompanyRepository';
+import { getCompanyRepository } from '@/lib/db/repositories/companyRepository';
 import { requireAuth, requireCompanyRole } from '@/lib/auth/context';
 import { kvkAPI } from '@/lib/kvk-api';
 import { CompanyRole } from '@/lib/db/models/Membership';
@@ -53,7 +54,30 @@ export async function GET(request: NextRequest) {
 		const includeArchived = searchParams.get('includeArchived') === 'true';
 		
 		const repository = await getClientCompanyRepository();
-		const { items, nextCursor } = await repository.findPaginated(auth.tenantId, { limit, cursor, includeArchived });
+		let { items, nextCursor } = await repository.findPaginated(auth.tenantId, { limit, cursor, includeArchived });
+
+		// Voor client-gebruikers (niet-Appalti) willen we altijd één eigen bedrijf tonen.
+		// Als er nog geen ClientCompany bestaat binnen deze tenant, maak er dan automatisch één aan
+		// op basis van de Company gegevens voor de actieve tenant.
+		if (!auth.isAppaltiUser && items.length === 0) {
+			try {
+				const companyRepo = await getCompanyRepository();
+				const company = await companyRepo.findByTenantId(auth.tenantId);
+				if (company) {
+					const created = await repository.create({
+						tenantId: auth.tenantId,
+						name: company.name,
+						kvkNumber: company.kvkNumber,
+						isOwnCompany: true,
+						createdBy: auth.userId
+					});
+					items = [created];
+					nextCursor = undefined;
+				}
+			} catch (e) {
+				console.warn('Auto-create own ClientCompany failed:', e);
+			}
+		}
 		
 		return NextResponse.json({
 			success: true,

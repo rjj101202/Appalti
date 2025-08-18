@@ -4,9 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import CompanyAutocomplete from '@/components/kvk/CompanyAutocomplete';
+import { useSession } from 'next-auth/react';
 
 export default function NewClientCompany() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [isSearching, setIsSearching] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [searchError, setSearchError] = useState('');
@@ -118,6 +120,12 @@ export default function NewClientCompany() {
   return (
     <DashboardLayout>
       <div className="page-container">
+        {/* Verberg/redirect voor niet-Appalti gebruikers */}
+        {!session?.user?.isAppaltiUser && (
+          <div className="error-message" style={{ marginBottom: '1rem' }}>
+            Deze pagina is niet beschikbaar.
+          </div>
+        )}
         <div className="header-section">
           <h1>Nieuwe Client Company</h1>
           <p>Voeg een nieuw bedrijf toe aan uw portfolio</p>

@@ -10,12 +10,12 @@ interface DashboardLayoutProps {
 }
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard' },
-  { name: 'Client Companies', href: '/dashboard/clients' },
-  { name: 'Tenders', href: '/dashboard/tenders' },
-  { name: 'Bids', href: '/dashboard/bids' },
-  { name: 'Team', href: '/dashboard/team' },
-  { name: 'Instellingen', href: '/dashboard/settings' },
+  { name: 'Dashboard', href: '/dashboard', key: 'dashboard' },
+  { name: 'Client Companies', href: '/dashboard/clients', key: 'clients' },
+  { name: 'Tenders', href: '/dashboard/tenders', key: 'tenders' },
+  { name: 'Bids', href: '/dashboard/bids', key: 'bids' },
+  { name: 'Team', href: '/dashboard/team', key: 'team' },
+  { name: 'Instellingen', href: '/dashboard/settings', key: 'settings' },
 ];
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
@@ -61,18 +61,26 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
         {/* Navigation */}
         <nav className="sidebar-nav">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`sidebar-link ${isActive ? 'active' : ''}`}
-              >
-                {item.name}
-              </Link>
-            );
-          })}
+          {navigation
+            .filter((item) => {
+              // Verberg 'Client Companies' voor niet-Appalti gebruikers als er geen beheertaken zijn
+              if (item.key === 'clients' && !(session?.user as any)?.isAppaltiUser) {
+                return true; // tonen blijft gewenst als entrypoint naar eigen bedrijf
+              }
+              return true;
+            })
+            .map((item) => {
+              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`sidebar-link ${isActive ? 'active' : ''}`}
+                >
+                  {item.name}
+                </Link>
+              );
+            })}
         </nav>
 
         {/* Bottom section */}
