@@ -106,6 +106,24 @@ export class MembershipRepository {
   }
 
   /**
+   * Find membership by ID
+   */
+  async findById(id: string): Promise<Membership | null> {
+    return await this.collection.findOne({ _id: new ObjectId(id) });
+  }
+
+  /**
+   * Count active owners for a company
+   */
+  async countActiveOwners(companyId: string): Promise<number> {
+    return await this.collection.countDocuments({
+      companyId: new ObjectId(companyId),
+      isActive: true,
+      companyRole: CompanyRole.OWNER,
+    });
+  }
+
+  /**
    * Find memberships by tenant (voor multi-tenancy queries)
    */
   async findByTenant(

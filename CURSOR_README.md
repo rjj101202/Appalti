@@ -412,3 +412,9 @@ YYYY-MM-DD HH:mm TZ
 
 2025-08-18 15:35 UTC
 - UX/API: niet‑Appalti gebruikers zien op `Client Companies` automatisch hun eigen bedrijf (auto‑provision via `GET /api/clients` wanneer leeg). Create‑knop/empty‑CTA verborgen; `/dashboard/clients/new` geblokkeerd voor niet‑Appalti.
+
+2025-08-18 15:55 UTC
+- Enterprise Team: eerste versie teamoverzicht toegevoegd:
+  - API: `GET /api/companies/[id]/members` (bestond) verrijkt + `PUT` toegevoegd voor rolwijziging/deactiveren met safeguard voor laatste OWNER.
+  - UI: `dashboard/team/page.tsx` teamlijst met rol‑dropdown (viewer/member/admin/owner) en deactiveer‑knop (alleen admin/owner).
+  - Docs: uitgebreide uitleg Enterprise vs Self teams en teambeheerregels toegevoegd.

@@ -1,0 +1,140 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import DashboardLayout from '@/components/layouts/DashboardLayout';
+import { useSession } from 'next-auth/react';
+
+export default function TeamPage() {
+  const { data: session } = useSession();
+  const [members, setMembers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  const canManage = session?.companyRole === 'admin' || session?.companyRole === 'owner' || (session as any)?.user?.isAppaltiUser;
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/companies/active/members');
+        if (res.status === 404) {
+          // fallback naar route die actieve company gebruikt, met dummy id
+          const res2 = await fetch('/api/companies/_/members');
+          const data2 = await res2.json();
+          if (res2.ok && data2.success) setMembers(data2.data);
+          else setError(data2.error || 'Laden mislukt');
+        } else {
+          const data = await res.json();
+          if (res.ok && data.success) setMembers(data.data);
+          else setError(data.error || 'Laden mislukt');
+        }
+      } catch (e: any) {
+        setError(e?.message || 'Laden mislukt');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const updateRole = async (membershipId: string, role: string) => {
+    setSavingId(membershipId);
+    try {
+      const res = await fetch('/api/companies/_/members', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ membershipId, companyRole: role })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Bijwerken mislukt');
+      setMembers(ms => ms.map(m => m.membershipId === membershipId ? { ...m, companyRole: role } : m));
+    } catch (e: any) {
+      alert(e?.message || 'Bijwerken mislukt');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const deactivate = async (membershipId: string) => {
+    if (!confirm('Weet je zeker dat je dit lid wilt deactiveren?')) return;
+    setSavingId(membershipId);
+    try {
+      const res = await fetch('/api/companies/_/members', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ membershipId, isActive: false })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Deactiveren mislukt');
+      setMembers(ms => ms.map(m => m.membershipId === membershipId ? { ...m, isActive: false } : m));
+    } catch (e: any) {
+      alert(e?.message || 'Deactiveren mislukt');
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="page-container">
+        <div className="header-section">
+          <h1>Team</h1>
+          <p>Beheer teamleden binnen de actieve company.</p>
+        </div>
+
+        {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '3rem' }}>
+            <div className="spinner-small" style={{ margin: '0 auto' }}></div>
+            <p style={{ marginTop: '1rem', color: '#6b7280' }}>Laden...</p>
+          </div>
+        ) : (
+          <div className="data-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Naam</th>
+                  <th>E‑mail</th>
+                  <th>Rol</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {members.map((m) => (
+                  <tr key={m.membershipId}>
+                    <td>{m.name || '-'}</td>
+                    <td>{m.email || '-'}</td>
+                    <td>
+                      {canManage ? (
+                        <select
+                          value={m.companyRole}
+                          onChange={(e) => updateRole(m.membershipId, e.target.value)}
+                          disabled={savingId === m.membershipId}
+                        >
+                          <option value="viewer">viewer</option>
+                          <option value="member">member</option>
+                          <option value="admin">admin</option>
+                          <option value="owner">owner</option>
+                        </select>
+                      ) : (
+                        m.companyRole
+                      )}
+                    </td>
+                    <td>{m.isActive ? 'Actief' : 'Inactief'}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      {canManage && m.isActive && (
+                        <button className="btn btn-secondary" onClick={() => deactivate(m.membershipId)} disabled={savingId === m.membershipId}>Deactiveer</button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+}
+

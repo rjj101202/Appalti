@@ -40,3 +40,46 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
+// PUT /api/companies/[id]/members/[membershipId] - update member role or deactivate (admin+)
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const auth = await requireAuth(request);
+    if (!auth.tenantId) return NextResponse.json({ error: 'No active tenant' }, { status: 400 });
+    const targetCompanyId = auth.companyId || '';
+    await requireCompanyRole(request, targetCompanyId, CompanyRole.ADMIN).catch(() => { throw new Error('Forbidden'); });
+
+    const { membershipId, companyRole, isActive } = await request.json();
+    if (!membershipId) return NextResponse.json({ error: 'membershipId is required' }, { status: 400 });
+
+    const membershipRepo = await getMembershipRepository();
+    const existing = await membershipRepo.findById(membershipId);
+    if (!existing || existing.companyId.toString() !== targetCompanyId) {
+      return NextResponse.json({ error: 'Membership not found' }, { status: 404 });
+    }
+
+    // Prevent removing last OWNER
+    if ((companyRole && existing.companyRole === CompanyRole.OWNER && companyRole !== CompanyRole.OWNER) || (isActive === false && existing.companyRole === CompanyRole.OWNER)) {
+      const owners = await membershipRepo.countActiveOwners(targetCompanyId);
+      if (owners <= 1) {
+        return NextResponse.json({ error: 'Cannot remove or downgrade the last owner' }, { status: 400 });
+      }
+    }
+
+    const updates: any = {};
+    if (companyRole) updates.companyRole = companyRole;
+    if (typeof isActive === 'boolean') updates.isActive = isActive;
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: 'No updates provided' }, { status: 400 });
+    }
+
+    const updated = await membershipRepo.update(membershipId, updates);
+    if (!updated) return NextResponse.json({ error: 'Update failed' }, { status: 500 });
+    return NextResponse.json({ success: true });
+  } catch (e: any) {
+    if (e.message === 'Forbidden') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    console.error('Members update error:', e);
+    return NextResponse.json({ error: 'Failed to update member' }, { status: 500 });
+  }
+}
+
