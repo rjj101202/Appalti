@@ -114,6 +114,58 @@ Tenders/Bids (praktisch uit te werken):
 - RBAC:
   - Mutaties alleen voor `ADMIN/OWNER` binnen tenant; `MEMBER` met toegewezen bid mag bid‑stappen uitvoeren.
 
+## ✅ Approvals & Workflow (Enterprise) – Implementation Guide (voor agents)
+
+Doel: Enterprise‑review per fase (approve/reject + feedback), met gates naar volgende fase. Self heeft geen enterprise‑reviewgates.
+
+1) Data & Repos
+- Feedback (nieuw):
+  - Model: `feedbackThreads` met `tenantId`, `context: { type: 'bid_stage', bidId, stage }`, `createdBy`, timestamps.
+  - Comments: sub‑collectie `feedbackComments` of array binnen thread: `authorUserId`, `body`, `attachments[]`, timestamps.
+  - Repo bestanden: `src/lib/db/models/Feedback.ts` en `src/lib/db/repositories/feedbackRepository.ts` (aanmaken).
+- Bids/Tenders (reeds gescaffold): voeg linking van `feedbackThreadId` in `Bid.stages[]` bij eerste comment.
+
+2) Endpoints
+- Approvals (nieuw):
+  - `POST /api/bids/:id/stages/:stage/approve` → checks (tenant, platform/tenant rollen), update stage: `approved`, zet `approvedAt/by`, verplaats `currentStage` naar volgende.
+  - `POST /api/bids/:id/stages/:stage/reject` → status `rejected`, vereist feedback‐note.
+  - `POST /api/bids/:id/stages/:stage/feedback` → aanmaken/append naar thread (eis: enterprise=true of expliciet toegestaan in self).
+- Submit (aanpassen):
+  - `src/app/api/bids/[id]/stages/[stage]/submit/route.ts`
+    - Als `Company.settings.modes.enterprise=true`: zet `pending_review` in plaats van `submitted` en blokkeer fase‑wissel tot approval.
+    - Als `self=true && enterprise=false`: sta direct `approved` toe voor `ADMIN/OWNER` (of behoud `submitted` maar auto‑approve binnen tenant).
+
+3) RBAC & Guards
+- Approve/Reject mag door:
+  - Enterprise: client company leden met rol ≥ MEMBER (of expliciete assignment), platformrollen hebben override.
+  - Self: alleen tenant `ADMIN/OWNER`.
+- Enforce tenantId op alle queries; platformrollen via bestaande helpers.
+
+4) UI (scaffold)
+- Appalti dashboard: lijst alle tenders/bids; fasekaart met status; forceren alleen voor platform admin (debug/ops).
+- Client dashboard: per bid fasekaart met knoppen “Approve”, “Request changes”, feedback thread zichtbaar.
+- Self mode: verberg approve/reject; toon “Mark as complete/Next step” (ADMIN/OWNER).
+
+5) Audit & Notificaties
+- Voeg `writeAudit` calls toe op submit/approve/reject/feedback met context (tenantId, bidId, stage).
+- Later: e‑mail/in‑app notificatie hooks op deze events.
+
+6) Tests (minimaal)
+- E2E: submit → pending_review → approve → next stage (enterprise) en self direct progress.
+- Repo tests: tenant‑isolatie; enkel één `isOwnCompany=true` per tenant (bestaat al in repo‑guards).
+
+7) Waar te wijzigen (korte checklist)
+- Submit gate:
+  - `src/app/api/bids/[id]/stages/[stage]/submit/route.ts` (status per mode)
+- Approvals:
+  - `src/app/api/bids/[id]/stages/[stage]/approve/route.ts` (nieuw)
+  - `src/app/api/bids/[id]/stages/[stage]/reject/route.ts` (nieuw)
+  - `src/app/api/bids/[id]/stages/[stage]/feedback/route.ts` (nieuw)
+- Feedback repo/model:
+  - `src/lib/db/models/Feedback.ts`, `src/lib/db/repositories/feedbackRepository.ts` (nieuw)
+- Modes‑toggle gebruik:
+  - `src/lib/db/repositories/companyRepository.ts` (`updateModes` bestaat) en checks in bovengenoemde routes.
+
 ### Implementatie‑wijzigingen in deze repo (links en regels)
 - `src/lib/db/models/Company.ts`: settings uitgebreid met `modes.enterprise` en `modes.self` (r. 10-22 toegevoegd)
 - `src/lib/db/repositories/companyRepository.ts`: `updateModes(tenantId, modes)` helper toegevoegd om toggles te zetten (na r. 186)
@@ -280,6 +332,9 @@ YYYY-MM-DD HH:mm TZ
 
 2025-08-18 10:40 UTC
 - Scaffolding: Tender/Bid modellen, repositories en basis API endpoints toegevoegd (tenant‑scoped, RBAC op mutaties, enterprise‑gating volgt).
+
+2025-08-18 10:55 UTC
+- Docs: “Approvals & Workflow (Enterprise) – Implementation Guide” toegevoegd met concrete stappen (data, endpoints, RBAC, UI, tests) voor toekomstige agents.
 
 2025-08-15 14:00 UTC
 - Avatar upload endpoint (`POST /api/users/me/avatar`) met Vercel Blob; profielpagina ondersteunt upload.
