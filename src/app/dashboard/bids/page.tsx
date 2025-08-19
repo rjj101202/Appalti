@@ -21,7 +21,7 @@ export default function BidsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({ q: '', cpv: '', deadlineBefore: '', newSince: '' });
-  const [detail, setDetail] = useState<{ id: string; loading: boolean; data?: any; error?: string } | null>(null);
+  const [total, setTotal] = useState<number | undefined>(undefined);
 
   const load = async (p = 0, append = false) => {
     setLoading(true);
@@ -41,6 +41,7 @@ export default function BidsPage() {
       setItems(prev => append ? [...prev, ...array] : array);
       setPage(data.page);
       setNextPage(data.nextPage);
+      setTotal(data.total || undefined);
     } catch (e: any) {
       setError(e?.message || 'Laden mislukt');
     } finally {
@@ -55,16 +56,8 @@ export default function BidsPage() {
 
   const applyFilters = () => load(0, false);
 
-  const openDetail = async (id: string) => {
-    setDetail({ id, loading: true });
-    try {
-      const res = await fetch(`/api/bids/sources/tenderned/${encodeURIComponent(id)}`);
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'Laden mislukt');
-      setDetail({ id, loading: false, data });
-    } catch (e: any) {
-      setDetail({ id, loading: false, error: e?.message || 'Laden mislukt' });
-    }
+  const openDetail = (id: string) => {
+    window.location.href = `/dashboard/bids/${encodeURIComponent(id)}`;
   };
 
   return (
@@ -88,13 +81,18 @@ export default function BidsPage() {
 
         {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
 
+        {/* Totals */}
+        <div style={{ marginBottom: '0.5rem', color: '#6b7280' }}>
+          Resultaten: {items.length} / 20 {typeof total === 'number' ? `(totaal ≈ ${total})` : ''} — pagina {page + 1}{nextPage ? '' : ' (laatste)'}
+        </div>
+
         {/* List */}
         <div className="data-table">
           <table>
             <thead>
               <tr>
-                <th>Titel</th>
                 <th>Opdrachtgever</th>
+                <th>Vraag/Titel</th>
                 <th>Branche/CPV</th>
                 <th>Publicatie</th>
                 <th>Deadline</th>
@@ -104,8 +102,8 @@ export default function BidsPage() {
             <tbody>
               {items.map((b) => (
                 <tr key={b.id}>
-                  <td>{b.title}</td>
-                  <td>{b.buyer || '-'}</td>
+                  <td>{(b as any).buyer || '-'}</td>
+                  <td>{(b as any).title || '-'}</td>
                   <td>{(b.cpvCodes || []).join(', ') || b.sector || '-'}</td>
                   <td>{b.publicationDate ? new Date(b.publicationDate).toLocaleDateString('nl-NL') : '-'}</td>
                   <td>{b.submissionDeadline ? new Date(b.submissionDeadline).toLocaleDateString('nl-NL') : '-'}</td>
@@ -128,31 +126,6 @@ export default function BidsPage() {
             <span style={{ color: '#6b7280' }}>Geen extra resultaten</span>
           )}
         </div>
-
-        {/* Detail modal */}
-        {detail && (
-          <div className="modal-backdrop" onClick={() => setDetail(null)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h3>Publicatie {detail.id}</h3>
-                <button className="btn btn-secondary" onClick={() => setDetail(null)}>✕</button>
-              </div>
-              <div className="modal-body">
-                {detail.loading && <p>Laden...</p>}
-                {detail.error && <p className="error-message">{detail.error}</p>}
-                {detail.data && (
-                  <div>
-                    <p><strong>Titel:</strong> {detail.data.summary?.title || '-'}</p>
-                    <p><strong>Korte omschrijving:</strong> {detail.data.summary?.shortDescription || '-'}</p>
-                    <div style={{ marginTop: '1rem' }}>
-                      <a className="btn btn-secondary" href={`/api/bids/sources/tenderned/${encodeURIComponent(detail.id)}`} target="_blank" rel="noreferrer">Download XML</a>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </DashboardLayout>
   );

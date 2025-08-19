@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/context';
-import { XMLParser } from 'fast-xml-parser';
+import { parseEformsSummary } from '@/lib/tenderned-parse';
 
 function getEnv(name: string) {
   const v = process.env[name];
@@ -35,32 +35,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return new NextResponse(text, { status: 200, headers: { 'Content-Type': 'application/xml' } });
     }
 
-    // Parseer XML naar compacte samenvatting (neutraal op namespaces)
-    const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_', textNodeName: '#text' });
-    let summary: any = {};
-    try {
-      const xml = parser.parse(text);
-      // helper: depth-first search for tag names containing TITLE / SHORT_DESCR / DESCRIPTION (case-insensitive, namespace-agnostic)
-      const findFirst = (node: any, matchers: ((k: string) => boolean)[]): string | undefined => {
-        if (!node || typeof node !== 'object') return undefined;
-        for (const [k, v] of Object.entries(node)) {
-          if (typeof v === 'string') {
-            if (matchers.some(fn => fn(k))) return v;
-          } else if (v && typeof v === 'object') {
-            // Handle nodes with attributes where text is under '#text'
-            const text = (v as any)['#text'];
-            if (typeof text === 'string' && matchers.some(fn => fn(k))) return text;
-            const maybe = findFirst(v, matchers);
-            if (maybe) return maybe;
-          }
-        }
-        return undefined;
-      };
-      const has = (needle: string) => (k: string) => k.toLowerCase().endsWith(needle) || k.toLowerCase().includes(':'+needle);
-      const title = findFirst(xml, [has('name'), has('title')]);
-      const shortDescription = findFirst(xml, [has('short_descr'), has('shortdescription'), has('description')]);
-      summary = { title, shortDescription };
-    } catch {}
+    const summary = parseEformsSummary(text);
 
     return NextResponse.json({ success: true, summary, rawXmlAvailable: true });
   } catch (e: any) {

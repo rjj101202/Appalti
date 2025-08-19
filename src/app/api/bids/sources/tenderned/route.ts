@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/context';
 import { fetchTenderNed } from '@/lib/tenderned';
+import { parseEformsSummary } from '@/lib/tenderned-parse';
 
 // GET /api/bids/sources/tenderned?page=&pageSize=&q=&cpv=&deadlineBefore=&newSince=
 export async function GET(request: NextRequest) {
@@ -25,9 +26,24 @@ export async function GET(request: NextRequest) {
       deadlineBefore: undefined,
       newSince: undefined,
     });
-    // Voeg echo van filters toe voor UI
-    (data as any).filters = { page, size: pageSize, publicatieType, publicatieDatumVanaf, publicatieDatumTot, cpvCodes };
-    return NextResponse.json({ success: true, ...data });
+    // Enrichment: fetch lightweight details for first N items (best-effort, no error fail)
+    const head = data.items.slice(0, 20);
+    const enriched = await Promise.all(head.map(async (it: any) => {
+      try {
+        const base = process.env.NEXTAUTH_URL || '';
+        const url = new URL(`/api/bids/sources/tenderned/${it.id}?raw=1`, base || 'http://localhost');
+        const res = await fetch(url.toString(), { cache: 'no-store' });
+        if (!res.ok) return it;
+        const xml = await res.text();
+        const summary = parseEformsSummary(xml);
+        return { ...it, ...summary };
+      } catch {
+        return it;
+      }
+    }));
+    const items = enriched.concat(data.items.slice(20));
+    const result = { success: true, items, page: data.page, nextPage: data.nextPage, filters: { page, size: pageSize, publicatieType, publicatieDatumVanaf, publicatieDatumTot, cpvCodes } };
+    return NextResponse.json(result);
   } catch (e: any) {
     console.error('TenderNed API error:', e);
     return NextResponse.json({ error: e?.message || 'Failed to fetch TenderNed bids' }, { status: 500 });
