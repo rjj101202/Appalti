@@ -317,7 +317,7 @@ Overzicht van de relevante mappen/onderdelen in deze repo:
   - `TENDERNED_API_URL`
   - `TENDERNED_USERNAME`
   - `TENDERNED_PASSWORD`
-- Helper: `src/lib/tenderned.ts` – leest env uit `process.env` (werkt op Vercel) en haalt pagina’s op (default 20 per pagina). Normaliseert velden.
+- Helper: `src/lib/tenderned.ts` – leest env uit `process.env` (werkt op Vercel) en haalt pagina’s op (default 20 per pagina). Normaliseert velden. Als `TENDERNED_API_URL` eindigt op `/v2`, wordt standaard het resource‑pad `/publicaties` toegevoegd. Je kunt dit overschrijven met `TENDERNED_API_PATH`.
 - Endpoint: `GET /api/bids/sources/tenderned?page=&pageSize=&q=&cpv=&deadlineBefore=&newSince=` → `{ items, page, nextPage }`.
 - UI: `dashboard/bids/page.tsx` met filters (zoekterm, CPV, deadline, nieuw sinds) en “Meer laden” pagination (20 per keer). Sidebar “Tenders” verwijderd; alleen “Bids”.
 - Roadmap: caching/TTL laag in Mongo, interne bids (`source='internal'`) en deduplicatie via `normalizedKey` (buyer + genormaliseerde titel + CPV) om terugkerende aanbestedingen te herkennen.

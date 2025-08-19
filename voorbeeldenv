@@ -30,5 +30,7 @@ OPENAI_API_KEY='[NOG NIET GEGEVEN]'
 
 # Tenderned API - heb je al
 TENDERNED_API_URL='https://www.tenderned.nl/papi/tenderned-rs-tns/v2'
+# Optioneel: als je een ander pad wilt dan /publicaties
+# TENDERNED_API_PATH='/publicaties'
 TENDERNED_USERNAME='TNXML08196'
 TENDERNED_PASSWORD='kqNJzcHXe'
