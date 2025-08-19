@@ -83,7 +83,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </nav>
 
         {/* Bottom section */}
-        <div style={{ borderTop: '1px solid #e5e7eb', padding: '1rem' }}>
+        <div style={{ borderTop: '1px solid #e5e7eb', padding: '1rem', marginTop: 'auto', background: '#fff' }}>
           <Link href="/dashboard/profile" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
               <div style={{
