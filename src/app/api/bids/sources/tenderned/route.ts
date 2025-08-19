@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const publicatieDatumTot = searchParams.get('to') || searchParams.get('publicatieDatumTot') || undefined;
 
     const data = await fetchTenderNed(request as any, {
-      page: page + 1, // interne helper gebruikt 1-based; TNS is 0-based → UI gebruikt 0-based
+      page,
       pageSize,
       q,
       cpv: cpvCodes.join(','),

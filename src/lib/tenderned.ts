@@ -35,8 +35,8 @@ export async function fetchTenderNed(request: Request, opts: FetchTenderNedOptio
   const username = getEnv('TENDERNED_USERNAME')!;
   const password = getEnv('TENDERNED_PASSWORD')!;
 
-  const page = Math.max(1, Number(opts.page || 1));
-  const pageSize = Math.min(50, Math.max(1, Number(opts.pageSize || 20)));
+  const page = Math.max(0, Number(opts.page ?? 0));
+  const pageSize = Math.min(50, Math.max(1, Number(opts.pageSize || (opts as any).size || 20)));
 
   // Build URL: allow override path via env; otherwise add sensible default if base ends with /v2
   let effectiveBase = baseUrl;
@@ -54,7 +54,7 @@ export async function fetchTenderNed(request: Request, opts: FetchTenderNedOptio
 
   const url = new URL(effectiveBase);
   url.searchParams.set('page', String(page));
-  url.searchParams.set('pageSize', String(pageSize));
+  url.searchParams.set('size', String(pageSize));
   if (opts.q) url.searchParams.set('q', opts.q);
   if (opts.cpv) url.searchParams.set('cpv', opts.cpv);
   if (opts.deadlineBefore) url.searchParams.set('deadlineBefore', opts.deadlineBefore);

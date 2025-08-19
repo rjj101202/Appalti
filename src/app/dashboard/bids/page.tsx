@@ -16,20 +16,20 @@ type BidItem = {
 
 export default function BidsPage() {
   const [items, setItems] = useState<BidItem[]>([]);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
   const [nextPage, setNextPage] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({ q: '', cpv: '', deadlineBefore: '', newSince: '' });
   const [detail, setDetail] = useState<{ id: string; loading: boolean; data?: any; error?: string } | null>(null);
 
-  const load = async (p = 1, append = false) => {
+  const load = async (p = 0, append = false) => {
     setLoading(true);
     setError('');
     try {
       const params = new URLSearchParams();
       params.set('page', String(p));
-      params.set('pageSize', '20');
+      params.set('size', '20');
       if (filters.q) params.set('q', filters.q);
       if (filters.cpv) params.set('cpv', filters.cpv);
       if (filters.deadlineBefore) params.set('deadlineBefore', filters.deadlineBefore);
@@ -49,11 +49,11 @@ export default function BidsPage() {
   };
 
   useEffect(() => {
-    load(1, false);
+    load(0, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const applyFilters = () => load(1, false);
+  const applyFilters = () => load(0, false);
 
   const openDetail = async (id: string) => {
     setDetail({ id, loading: true });
