@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       }
     }));
     const items = enriched.concat(data.items.slice(20));
-    const result = { success: true, items, page: data.page, nextPage: data.nextPage, filters: { page, size: pageSize, publicatieType, publicatieDatumVanaf, publicatieDatumTot, cpvCodes } };
+    const result = { success: true, items, page: data.page, nextPage: data.nextPage, total: data.totalElements, totalPages: data.totalPages, filters: { page, size: pageSize, publicatieType, publicatieDatumVanaf, publicatieDatumTot, cpvCodes } };
     return NextResponse.json(result);
   } catch (e: any) {
     console.error('TenderNed API error:', e);

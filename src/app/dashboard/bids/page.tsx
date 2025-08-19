@@ -82,8 +82,14 @@ export default function BidsPage() {
         {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
 
         {/* Totals */}
-        <div style={{ marginBottom: '0.5rem', color: '#6b7280' }}>
-          Resultaten: {items.length} / 20 {typeof total === 'number' ? `(totaal ≈ ${total})` : ''} — pagina {page + 1}{nextPage ? '' : ' (laatste)'}
+        <div style={{ marginBottom: '0.5rem', color: '#6b7280', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>
+            Resultaten: {items.length} / 20 {typeof total === 'number' ? `(totaal ≈ ${total})` : ''} — pagina {page + 1}{nextPage ? '' : ' (laatste)'}
+          </span>
+          <span style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn btn-secondary" disabled={page <= 0 || loading} onClick={() => load(Math.max(0, page - 1), false)}>← Vorige</button>
+            <button className="btn btn-secondary" disabled={!nextPage || loading} onClick={() => load(nextPage!, false)}>Volgende →</button>
+          </span>
         </div>
 
         {/* List */}
@@ -116,16 +122,8 @@ export default function BidsPage() {
           </table>
         </div>
 
-        {/* Pagination */}
-        <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-          {nextPage ? (
-            <button className="btn btn-primary" onClick={() => load(nextPage!, true)} disabled={loading}>
-              {loading ? 'Laden...' : 'Meer laden'}
-            </button>
-          ) : (
-            <span style={{ color: '#6b7280' }}>Geen extra resultaten</span>
-          )}
-        </div>
+        {/* Bottom controls */}
+        <div style={{ marginTop: '1rem', textAlign: 'center', color: '#6b7280' }}>Gesorteerd op publicatie (nieuw → oud)</div>
       </div>
     </DashboardLayout>
   );

@@ -117,6 +117,8 @@ export async function fetchTenderNed(request: Request, opts: FetchTenderNedOptio
   }));
 
   const nextPage = items.length === pageSize ? page + 1 : undefined;
-  return { items, page, nextPage };
+  const totalElements = (raw && (raw.totalElements || raw.page?.totalElements || raw.total)) || undefined;
+  const totalPages = (raw && (raw.totalPages || raw.page?.totalPages)) || undefined;
+  return { items, page, nextPage, totalElements, totalPages };
 }
 
