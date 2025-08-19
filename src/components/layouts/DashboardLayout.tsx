@@ -12,7 +12,6 @@ interface DashboardLayoutProps {
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', key: 'dashboard' },
   { name: 'Client Companies', href: '/dashboard/clients', key: 'clients' },
-  { name: 'Tenders', href: '/dashboard/tenders', key: 'tenders' },
   { name: 'Bids', href: '/dashboard/bids', key: 'bids' },
   { name: 'Team', href: '/dashboard/team', key: 'team' },
   { name: 'Instellingen', href: '/dashboard/settings', key: 'settings' },

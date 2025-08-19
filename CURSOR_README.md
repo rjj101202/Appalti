@@ -311,6 +311,17 @@ Overzicht van de relevante mappen/onderdelen in deze repo:
   - `GET /api/health` – DB ping + sessie‑info (let op: zie middleware matcher)
   - `GET /api/debug` – alleen in development, env‑diagnostiek
 
+## 📥 Bids (TenderNed integratie)
+
+- Env (in Vercel Project Settings en `.env.local` voorbeeld `voorbeeldenv`):
+  - `TENDERNED_API_URL`
+  - `TENDERNED_USERNAME`
+  - `TENDERNED_PASSWORD`
+- Helper: `src/lib/tenderned.ts` – leest env uit `process.env` (werkt op Vercel) en haalt pagina’s op (default 20 per pagina). Normaliseert velden.
+- Endpoint: `GET /api/bids/sources/tenderned?page=&pageSize=&q=&cpv=&deadlineBefore=&newSince=` → `{ items, page, nextPage }`.
+- UI: `dashboard/bids/page.tsx` met filters (zoekterm, CPV, deadline, nieuw sinds) en “Meer laden” pagination (20 per keer). Sidebar “Tenders” verwijderd; alleen “Bids”.
+- Roadmap: caching/TTL laag in Mongo, interne bids (`source='internal'`) en deduplicatie via `normalizedKey` (buyer + genormaliseerde titel + CPV) om terugkerende aanbestedingen te herkennen.
+
 ## 🔧 Ontwikkeling & Deploy
 
 ### Lokaal
@@ -424,3 +435,6 @@ YYYY-MM-DD HH:mm TZ
   - UI: `dashboard/team/[userId]/page.tsx` detailpagina met profiel en “Werkzaamheden” sectie (placeholder).
   - API: `GET /api/users/[id]/work` scaffold (voor nu lege lijsten; later koppeling met bids/tenders assignment).
   - UX: vanuit teamlijst kun je doorklikken naar de detailpagina.
+
+2025-08-18 16:35 UTC
+- Bids (TenderNed): helper + endpoint + UI met filters en “Meer laden”; “Tenders” verwijderd uit sidebar. Env‑vars moeten in Vercel staan.
