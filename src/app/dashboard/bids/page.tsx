@@ -1,7 +1,7 @@
-'use client';
-
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
+
+'use client';
 
 type BidItem = {
   id: string;
@@ -21,6 +21,7 @@ export default function BidsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({ q: '', cpv: '', deadlineBefore: '', newSince: '' });
+  const [detail, setDetail] = useState<{ id: string; loading: boolean; data?: any; error?: string } | null>(null);
 
   const load = async (p = 1, append = false) => {
     setLoading(true);
@@ -53,6 +54,18 @@ export default function BidsPage() {
   }, []);
 
   const applyFilters = () => load(1, false);
+
+  const openDetail = async (id: string) => {
+    setDetail({ id, loading: true });
+    try {
+      const res = await fetch(`/api/bids/sources/tenderned/${encodeURIComponent(id)}`);
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Laden mislukt');
+      setDetail({ id, loading: false, data });
+    } catch (e: any) {
+      setDetail({ id, loading: false, error: e?.message || 'Laden mislukt' });
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -97,10 +110,7 @@ export default function BidsPage() {
                   <td>{b.publicationDate ? new Date(b.publicationDate).toLocaleDateString('nl-NL') : '-'}</td>
                   <td>{b.submissionDeadline ? new Date(b.submissionDeadline).toLocaleDateString('nl-NL') : '-'}</td>
                   <td>
-                    {b.sourceUrl ? (
-                      <a href={typeof b.sourceUrl === 'string' ? b.sourceUrl : (b as any).sourceUrl?.href} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ marginRight: '0.5rem' }}>Bekijk</a>
-                    ) : null}
-                    <a href={`/api/bids/sources/tenderned/${encodeURIComponent(b.id)}`} target="_blank" rel="noreferrer" className="btn btn-secondary">XML</a>
+                    <button className="btn btn-secondary" onClick={() => openDetail(b.id)}>Details</button>
                   </td>
                 </tr>
               ))}
@@ -118,8 +128,32 @@ export default function BidsPage() {
             <span style={{ color: '#6b7280' }}>Geen extra resultaten</span>
           )}
         </div>
+
+        {/* Detail modal */}
+        {detail && (
+          <div className="modal-backdrop" onClick={() => setDetail(null)}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Publicatie {detail.id}</h3>
+                <button className="btn btn-secondary" onClick={() => setDetail(null)}>✕</button>
+              </div>
+              <div className="modal-body">
+                {detail.loading && <p>Laden...</p>}
+                {detail.error && <p className="error-message">{detail.error}</p>}
+                {detail.data && (
+                  <div>
+                    <p><strong>Titel:</strong> {detail.data.summary?.title || '-'}</p>
+                    <p><strong>Korte omschrijving:</strong> {detail.data.summary?.shortDescription || '-'}</p>
+                    <div style={{ marginTop: '1rem' }}>
+                      <a className="btn btn-secondary" href={`/api/bids/sources/tenderned/${encodeURIComponent(detail.id)}`} target="_blank" rel="noreferrer">Download XML</a>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
 }
-
