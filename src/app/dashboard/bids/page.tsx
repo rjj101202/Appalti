@@ -114,7 +114,12 @@ export default function BidsPage() {
               {items.map((b) => (
                 <tr key={b.id}>
                   <td>{(b as any).buyer || '-'}</td>
-                  <td>{(b as any).title || '-'}</td>
+                  <td>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span>{(b as any).title || '-'}</span>
+                      {(b as any).shortDescription && <span style={{ color: '#6b7280', fontSize: '0.9em' }}>{(b as any).shortDescription}</span>}
+                    </div>
+                  </td>
                   <td>{(b.cpvCodes || []).join(', ') || b.sector || '-'}</td>
                   <td>{b.publicationDate ? new Date(b.publicationDate).toLocaleDateString('nl-NL') : '-'}</td>
                   <td>{b.submissionDeadline ? new Date(b.submissionDeadline).toLocaleDateString('nl-NL') : '-'}</td>

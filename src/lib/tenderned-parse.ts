@@ -53,6 +53,30 @@ export function parseEformsSummary(xmlText: string): {
   endpointId?: string;
   deadlineDate?: string;
   deadlineTime?: string;
+  // extra meta/contracting
+  ublVersionId?: string;
+  customizationId?: string;
+  noticeId?: string;
+  versionId?: string;
+  regulatoryDomain?: string;
+  noticeSubTypeCode?: string;
+  buyerLegalType?: string;
+  buyerContractingType?: string;
+  authorityActivityType?: string;
+  internalProjectId?: string;
+  projectNote?: string;
+  submissionMethodCode?: string;
+  languageId?: string;
+  // touch point (appeal/contact point)
+  touchPointName?: string;
+  touchPointWebsite?: string;
+  touchPointTelephone?: string;
+  touchPointEmail?: string;
+  touchPointAddressStreet?: string;
+  touchPointAddressPostalCode?: string;
+  touchPointCity?: string;
+  // docs
+  documentLinks?: string[];
 } {
   try {
     const xml = parser.parse(xmlText);
@@ -92,6 +116,43 @@ export function parseEformsSummary(xmlText: string): {
     const deadlineDate = findFirst(h => lastSegment(h.key).toLowerCase() === 'enddate');
     const deadlineTime = findFirst(h => lastSegment(h.key).toLowerCase() === 'endtime');
 
+    // Meta
+    const ublVersionId = findFirst(h => lastSegment(h.key).toLowerCase() === 'ublversionid');
+    const customizationId = findFirst(h => lastSegment(h.key).toLowerCase() === 'customizationid');
+    const noticeId = findFirst(h => lastSegment(h.key).toLowerCase() === 'id' && pathIncludes(h.path, ['PriorInformationNotice']));
+    const versionId = findFirst(h => lastSegment(h.key).toLowerCase() === 'versionid');
+    const regulatoryDomain = findFirst(h => lastSegment(h.key).toLowerCase() === 'regulatorydomain');
+    const noticeSubTypeCode = findFirst(h => lastSegment(h.key).toLowerCase() === 'subtypecode');
+
+    // Contracting party types / activities
+    const buyerLegalType = findFirst(h => lastSegment(h.key).toLowerCase() === 'partytypecode' && hits.some(x => x === h) ? undefined : undefined);
+    const partyTypeCodes = hits.filter(h => lastSegment(h.key).toLowerCase() === 'partytypecode').map(h => h.text);
+    // heuristics
+    const _buyerLegalType = partyTypeCodes.find(v => /buyer-legal-type/i.test(v)) || undefined;
+    const _buyerContractingType = partyTypeCodes.find(v => /buyer-contracting-type/i.test(v)) || undefined;
+    const authorityActivityType = findFirst(h => lastSegment(h.key).toLowerCase() === 'activitytypecode');
+
+    // Project identifiers/notes
+    const internalProjectId = findFirst(h => lastSegment(h.key).toLowerCase() === 'id' && pathIncludes(h.path, ['ProcurementProject']) && /internalid/i.test(h.text) === false ? h.text : undefined) || findFirst(h => pathIncludes(h.path, ['ProcurementProject']) && lastSegment(h.key).toLowerCase() === 'id');
+    const projectNote = findFirst(h => lastSegment(h.key).toLowerCase() === 'note');
+    const submissionMethodCode = findFirst(h => lastSegment(h.key).toLowerCase() === 'submissionmethodcode');
+    const languageId = findFirst(h => pathIncludes(h.path, ['Language']) && lastSegment(h.key).toLowerCase() === 'id');
+
+    // TouchPoint (appeal or info point) – pick first touchpoint block fields
+    const touchPointWebsite = findFirst(h => lastSegment(h.key).toLowerCase() === 'websiteuri' && pathIncludes(h.path, ['TouchPoint']));
+    const touchPointName = findFirst(h => lastSegment(h.key).toLowerCase() === 'name' && pathIncludes(h.path, ['TouchPoint']));
+    const touchPointTelephone = findFirst(h => lastSegment(h.key).toLowerCase() === 'telephone' && pathIncludes(h.path, ['TouchPoint']));
+    const touchPointEmail = findFirst(h => lastSegment(h.key).toLowerCase() === 'electronicmail' && pathIncludes(h.path, ['TouchPoint']));
+    const touchPointAddressStreet = findFirst(h => lastSegment(h.key).toLowerCase() === 'streetname' && pathIncludes(h.path, ['TouchPoint']));
+    const touchPointAddressPostalCode = findFirst(h => lastSegment(h.key).toLowerCase() === 'postalzone' && pathIncludes(h.path, ['TouchPoint']));
+    const touchPointCity = findFirst(h => lastSegment(h.key).toLowerCase() === 'cityname' && pathIncludes(h.path, ['TouchPoint']));
+
+    // Document links
+    const documentLinks = hits
+      .filter(h => lastSegment(h.key).toLowerCase() === 'uri' && pathIncludes(h.path, ['CallForTendersDocumentReference']))
+      .map(h => h.text)
+      .filter(Boolean);
+
     const uniqueNuts = Array.from(new Set(nutsCodes));
 
     return {
@@ -119,6 +180,27 @@ export function parseEformsSummary(xmlText: string): {
       endpointId,
       deadlineDate,
       deadlineTime,
+      ublVersionId,
+      customizationId,
+      noticeId,
+      versionId,
+      regulatoryDomain,
+      noticeSubTypeCode,
+      buyerLegalType: _buyerLegalType,
+      buyerContractingType: _buyerContractingType,
+      authorityActivityType,
+      internalProjectId,
+      projectNote,
+      submissionMethodCode,
+      languageId,
+      touchPointName,
+      touchPointWebsite,
+      touchPointTelephone,
+      touchPointEmail,
+      touchPointAddressStreet,
+      touchPointAddressPostalCode,
+      touchPointCity,
+      documentLinks,
     };
   } catch {
     return {} as any;
