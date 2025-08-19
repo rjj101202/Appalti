@@ -445,6 +445,9 @@ YYYY-MM-DD HH:mm TZ
 - TenderNed lijstweergave verrijkt: parser gecorrigeerd om element‑tekst te lezen i.p.v. attributen; extra velden geëxtraheerd (stad, NUTS, URI). Lijst toont nu opdrachtgever, titel, CPV/sector, publicatie, deadline, locatie en een rechtstreekse TenderNed‑link. Detailpagina toont ook locatie/NUTS en link.
 - API verbeteringen: `GET /api/bids/sources/tenderned` accepteert nu zowel `cpvCodes[]=...` als `cpv=code1,code2`; mapping van `newSince`/`deadlineBefore` naar TNS parameters. `tenderned.ts` voegt CPV's als herhaalde `cpvCodes` toe.
 
+2025-08-19 20:50 UTC
+- Bids/TenderNed: verrijking in lijst via directe XML‑fetch; detailpagina toont nu velden i.p.v. download‑knop. Kleine fix voor 401 bij pagineren.
+
 2025-08-19 20:40 UTC
 - Bids/TenderNed: verrijking in lijst gebeurt nu via directe XML‑fetch (`fetchTenderNedXml`) i.p.v. interne subrequests naar ons detail‑endpoint → voorkomt 401/Unauthorized bij pagineren en verlaagt DB‑load. Verrijking beperkt tot eerste 10 per pagina.
 - Parser uitgebreid naar rijk summary‑object (buyer/contact/adres/NUTS/CPV/portal/notice/procurement/deadlines). Detailpagina toont nu alle relevante info; “Download XML” knop verwijderd (debug raw blijft via `?raw=1`).
