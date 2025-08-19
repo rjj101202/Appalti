@@ -115,16 +115,16 @@ export default function BidsPage() {
                 <tr key={b.id}>
                   <td>{(b as any).buyer || '-'}</td>
                   <td>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 640 }}>{(b as any).title || '-'}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 'min(45vw, 520px)' }}>
+                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(b as any).title || '-'}</span>
                     </div>
                   </td>
-                  <td>{(b.cpvCodes || []).join(', ') || b.sector || '-'}</td>
-                  <td>{b.publicationDate ? new Date(b.publicationDate).toLocaleDateString('nl-NL') : '-'}</td>
-                  <td>{b.submissionDeadline ? new Date(b.submissionDeadline).toLocaleDateString('nl-NL') : '-'}</td>
-                  <td>{(b as any).city || '-'}</td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <td style={{ whiteSpace: 'nowrap' }}>{(b.cpvCodes || []).join(', ') || b.sector || '-'}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{b.publicationDate ? new Date(b.publicationDate).toLocaleDateString('nl-NL') : '-'}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{b.submissionDeadline ? new Date(b.submissionDeadline).toLocaleDateString('nl-NL') : '-'}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{(b as any).city || '-'}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
                       <button className="btn btn-secondary" onClick={() => openDetail(b.id)}>Details</button>
                       {b.sourceUrl && (
                         <a className="btn btn-secondary" href={b.sourceUrl} target="_blank" rel="noreferrer">TenderNed</a>
