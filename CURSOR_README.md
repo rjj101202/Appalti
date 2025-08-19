@@ -317,11 +317,11 @@ Overzicht van de relevante mappen/onderdelen in deze repo:
   - `TENDERNED_API_URL`
   - `TENDERNED_USERNAME`
   - `TENDERNED_PASSWORD`
-- Helper: `src/lib/tenderned.ts` – leest env uit `process.env` (werkt op Vercel) en haalt pagina’s op (default 20 per pagina). Normaliseert velden. Als `TENDERNED_API_URL` eindigt op `/v2`, wordt standaard het resource‑pad `/publicaties` toegevoegd. Je kunt dit overschrijven met `TENDERNED_API_PATH`.
-- Endpoint: `GET /api/bids/sources/tenderned?page=&size=&publicatieDatumVanaf=&publicatieDatumTot=&cpvCodes=` → `{ items, page, nextPage, total, totalPages }`.
+- Helper: `src/lib/tenderned.ts` – leest env uit `process.env` (werkt op Vercel) en haalt pagina’s op (default 20 per pagina). Normaliseert velden. Als `TENDERNED_API_URL` eindigt op `/v2`, wordt standaard het resource‑pad `/publicaties` toegevoegd. Je kunt dit overschrijven met `TENDERNED_API_PATH`. Ondersteunt zowel `cpvCodes[]=...` herhaald als `cpv=code1,code2` shorthand. `newSince` ↔ `publicatieDatumVanaf`, `deadlineBefore` ↔ `publicatieDatumTot`.
+- Endpoint: `GET /api/bids/sources/tenderned?page=&size=&publicatieDatumVanaf=&publicatieDatumTot=&cpvCodes=&cpv=` → `{ items, page, nextPage, total, totalPages }`.
 - Detail: `GET /api/bids/sources/tenderned/[id]` → server‑fetch XML (Basic Auth) geparsed naar summary; `?raw=1` retourneert ruwe XML.
-- UI: `dashboard/bids/page.tsx` toont opdrachtgever/titel/korte beschrijving direct (TNS), verrijkt de eerste 20 items per pagina met eForms‑summary, echte paginatie (Vorige/Volgende, 0‑based) en totalen; sortering op publicatie (nieuw → oud).
-- Detailpagina: `/dashboard/bids/[id]` met samenvatting en XML‑download.
+- UI: `dashboard/bids/page.tsx` toont opdrachtgever, titel, CPV, publicatie, deadline, locatie (stad), plus knop naar TenderNed‐detail (indien `sourceUrl`). Eerste 20 items per pagina worden verrijkt met eForms‑summary (titel, korte omschrijving, locatie/NUTS) zodat de lijst direct nuttige info toont.
+- Detailpagina: `/dashboard/bids/[id]` toont uitgebreide samenvatting (buyer, titel, korte omschrijving, locatie/NUTS) en een link naar TenderNed; daarnaast een XML‑download.
 - Roadmap: caching/TTL laag in Mongo, interne bids (`source='internal'`) en deduplicatie via `normalizedKey` (buyer + genormaliseerde titel + CPV) om terugkerende aanbestedingen te herkennen.
 
 ## 🔧 Ontwikkeling & Deploy
@@ -440,3 +440,7 @@ YYYY-MM-DD HH:mm TZ
 
 2025-08-18 16:35 UTC
 - Bids (TenderNed): helper + endpoint + UI met filters en “Meer laden”; “Tenders” verwijderd uit sidebar. Env‑vars moeten in Vercel staan.
+
+2025-08-19 20:05 UTC
+- TenderNed lijstweergave verrijkt: parser gecorrigeerd om element‑tekst te lezen i.p.v. attributen; extra velden geëxtraheerd (stad, NUTS, URI). Lijst toont nu opdrachtgever, titel, CPV/sector, publicatie, deadline, locatie en een rechtstreekse TenderNed‑link. Detailpagina toont ook locatie/NUTS en link.
+- API verbeteringen: `GET /api/bids/sources/tenderned` accepteert nu zowel `cpvCodes[]=...` als `cpv=code1,code2`; mapping van `newSince`/`deadlineBefore` naar TNS parameters. `tenderned.ts` voegt CPV's als herhaalde `cpvCodes` toe.

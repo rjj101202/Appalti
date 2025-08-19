@@ -43,6 +43,10 @@ export default function BidDetailPage() {
             <p><strong>Opdrachtgever:</strong> {data.summary?.buyer || '-'}</p>
             <p><strong>Titel/Vraag:</strong> {data.summary?.title || '-'}</p>
             <p><strong>Korte omschrijving:</strong> {data.summary?.shortDescription || '-'}</p>
+            <p><strong>Locatie (stad/NUTS):</strong> {data.summary?.city || '-'}{Array.isArray(data.summary?.nutsCodes) && data.summary?.nutsCodes.length ? ` — ${data.summary.nutsCodes.join(', ')}` : ''}</p>
+            {data.summary?.sourceUrl && (
+              <p><strong>Link:</strong> <a href={data.summary.sourceUrl} target="_blank" rel="noreferrer">TenderNed</a></p>
+            )}
             <div style={{ marginTop: '1rem' }}>
               <a className="btn btn-secondary" href={`/api/bids/sources/tenderned/${encodeURIComponent(id)}?raw=1`} target="_blank" rel="noreferrer">Download XML</a>
             </div>

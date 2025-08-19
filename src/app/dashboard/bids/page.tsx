@@ -12,6 +12,8 @@ type BidItem = {
   publicationDate?: string;
   submissionDeadline?: string;
   sourceUrl?: string;
+  shortDescription?: string;
+  city?: string;
 };
 
 export default function BidsPage() {
@@ -104,6 +106,7 @@ export default function BidsPage() {
                 <th>Branche/CPV</th>
                 <th>Publicatie</th>
                 <th>Deadline</th>
+                <th>Locatie</th>
                 <th></th>
               </tr>
             </thead>
@@ -115,8 +118,14 @@ export default function BidsPage() {
                   <td>{(b.cpvCodes || []).join(', ') || b.sector || '-'}</td>
                   <td>{b.publicationDate ? new Date(b.publicationDate).toLocaleDateString('nl-NL') : '-'}</td>
                   <td>{b.submissionDeadline ? new Date(b.submissionDeadline).toLocaleDateString('nl-NL') : '-'}</td>
+                  <td>{(b as any).city || '-'}</td>
                   <td>
-                    <button className="btn btn-secondary" onClick={() => openDetail(b.id)}>Details</button>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button className="btn btn-secondary" onClick={() => openDetail(b.id)}>Details</button>
+                      {b.sourceUrl && (
+                        <a className="btn btn-secondary" href={b.sourceUrl} target="_blank" rel="noreferrer">TenderNed</a>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

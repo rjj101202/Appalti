@@ -56,9 +56,13 @@ export async function fetchTenderNed(request: Request, opts: FetchTenderNedOptio
   url.searchParams.set('page', String(page));
   url.searchParams.set('size', String(pageSize));
   if (opts.q) url.searchParams.set('q', opts.q);
-  if (opts.cpv) url.searchParams.set('cpv', opts.cpv);
-  if (opts.deadlineBefore) url.searchParams.set('deadlineBefore', opts.deadlineBefore);
-  if (opts.newSince) url.searchParams.set('newSince', opts.newSince);
+  if (opts.cpv) {
+    const codes = String(opts.cpv).split(/[ ,;]+/).filter(Boolean);
+    for (const code of codes) url.searchParams.append('cpvCodes', code);
+  }
+  // Map onze generieke namen naar TenderNed TNS filters
+  if (opts.newSince) url.searchParams.set('publicatieDatumVanaf', opts.newSince);
+  if (opts.deadlineBefore) url.searchParams.set('publicatieDatumTot', opts.deadlineBefore);
 
   const res = await fetch(url.toString(), {
     headers: {
@@ -104,17 +108,25 @@ export async function fetchTenderNed(request: Request, opts: FetchTenderNedOptio
       console.log('[TenderNed] empty list or unexpected payload shape');
     }
   } catch {/* no-op */}
-  const items: TenderNedItem[] = list.map((r: any) => ({
-    id: r.id || r.publicatieId || r.publicationId || r.noticeId || r.reference || String(r._id || ''),
-    title: r.title || r.titel || r.publicatieTitel || r.aankondigingTitel || r.subject || r.description || String(r.id || r.publicatieId || 'Untitled'),
-    buyer: r.buyer?.name || r.organisation || r.contractingAuthority || r.aanbestedendeDienst || r.aanbestedendeDienstNaam || r.organisatieNaam || undefined,
-    cpvCodes: Array.isArray(r.cpvCodes) ? r.cpvCodes : (r.cpv ? [r.cpv] : (r.cpvCode ? [r.cpvCode] : (r.cpvCodes?.code ? [r.cpvCodes.code] : undefined))),
-    sector: r.sector || r.market || r.domein || r.sectorOmschrijving || undefined,
-    publicationDate: r.publicationDate || r.publicatieDatum || r.publishedAt || r.datePublished || r.datumPublicatie || undefined,
-    submissionDeadline: r.submissionDeadline || r.sluitingsDatum || r.sluitingsTermijn || r.deadline || r.tenderDeadline || undefined,
-    sourceUrl: (r.sourceUrl && typeof r.sourceUrl === 'object' ? (r.sourceUrl.href || r.sourceUrl.url) : undefined)
-      || r.url || r.link || r.detailUrl || r.publicatieUrl || undefined,
-  }));
+  const items: TenderNedItem[] = list.map((r: any) => {
+    const link = r.link && typeof r.link === 'object' ? (r.link.href || r.link.url) : r.link;
+    const srcUrl = (r.sourceUrl && typeof r.sourceUrl === 'object' ? (r.sourceUrl.href || r.sourceUrl.url) : r.sourceUrl)
+      || r.url || link || r.detailUrl || r.publicatieUrl || undefined;
+
+    // Titel: probeer diverse sleutelvarianten voordat we op id vallen
+    const title = r.title || r.titel || r.publicatieTitel || r.aankondigingTitel || r.aanbestedingNaam || r.onderwerp || r.subject || r.description || r.naam || (typeof r.link === 'object' ? r.link?.title : undefined) || String(r.id || r.publicatieId || 'Untitled');
+
+    return {
+      id: r.id || r.publicatieId || r.publicationId || r.noticeId || r.reference || String(r._id || ''),
+      title,
+      buyer: r.buyer?.name || r.organisation || r.contractingAuthority || r.aanbestedendeDienst || r.aanbestedendeDienstNaam || r.organisatieNaam || r.opdrachtgeverNaam || undefined,
+      cpvCodes: Array.isArray(r.cpvCodes) ? r.cpvCodes : (r.cpv ? [r.cpv] : (r.cpvCode ? [r.cpvCode] : (r.cpvCodes?.code ? [r.cpvCodes.code] : undefined))),
+      sector: r.sector || r.market || r.domein || r.sectorOmschrijving || undefined,
+      publicationDate: r.publicationDate || r.publicatieDatum || r.publishedAt || r.datePublished || r.datumPublicatie || undefined,
+      submissionDeadline: r.submissionDeadline || r.sluitingsDatum || r.sluitingsTermijn || r.deadline || r.tenderDeadline || undefined,
+      sourceUrl: srcUrl,
+    } as TenderNedItem;
+  });
 
   const nextPage = items.length === pageSize ? page + 1 : undefined;
   const totalElements = (raw && (raw.totalElements || raw.page?.totalElements || raw.total)) || undefined;

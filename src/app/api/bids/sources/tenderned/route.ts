@@ -13,7 +13,9 @@ export async function GET(request: NextRequest) {
     const page = Number(searchParams.get('page') || '0');
     const pageSize = Number(searchParams.get('size') || searchParams.get('pageSize') || '20');
     const q = searchParams.get('q') || undefined; // niet gegarandeerd ondersteund; client-side matchen
-    const cpvCodes = searchParams.getAll('cpvCodes');
+    // Ondersteun zowel 'cpv' (comma/space separated) als meerdere 'cpvCodes'
+    const cpvParam = searchParams.get('cpv') || '';
+    const cpvCodes = searchParams.getAll('cpvCodes').concat(cpvParam.split(/[ ,;]+/).filter(Boolean));
     const publicatieType = searchParams.get('publicatieType') || undefined;
     const publicatieDatumVanaf = searchParams.get('from') || searchParams.get('publicatieDatumVanaf') || undefined;
     const publicatieDatumTot = searchParams.get('to') || searchParams.get('publicatieDatumTot') || undefined;
@@ -23,8 +25,9 @@ export async function GET(request: NextRequest) {
       pageSize,
       q,
       cpv: cpvCodes.join(','),
-      deadlineBefore: undefined,
-      newSince: undefined,
+      // Map onze UI velden door naar TNS in fetchTenderNed
+      deadlineBefore: searchParams.get('publicatieDatumTot') || undefined,
+      newSince: searchParams.get('publicatieDatumVanaf') || undefined,
     });
     // Enrichment: fetch lightweight details for first N items (best-effort, no error fail)
     const head = data.items.slice(0, 20);
