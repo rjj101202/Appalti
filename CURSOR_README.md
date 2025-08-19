@@ -318,10 +318,10 @@ Overzicht van de relevante mappen/onderdelen in deze repo:
   - `TENDERNED_USERNAME`
   - `TENDERNED_PASSWORD`
 - Helper: `src/lib/tenderned.ts` – leest env uit `process.env` (werkt op Vercel) en haalt pagina’s op (default 20 per pagina). Normaliseert velden. Als `TENDERNED_API_URL` eindigt op `/v2`, wordt standaard het resource‑pad `/publicaties` toegevoegd. Je kunt dit overschrijven met `TENDERNED_API_PATH`.
-- Endpoint: `GET /api/bids/sources/tenderned?page=&pageSize=&q=&cpv=&deadlineBefore=&newSince=` → `{ items, page, nextPage }`.
-- Detail: `GET /api/bids/sources/tenderned/[id]` → XML doorgeproxied (Basic Auth via env). Gebruik dit voor uitgebreide details.
-- UI: `dashboard/bids/page.tsx` met filters (zoekterm, CPV, deadline, nieuw sinds) en “Meer laden” pagination (20 per keer). Sidebar “Tenders” verwijderd; alleen “Bids”.
-- Detailweergave: inline modal via knop “Details” (geen navigatie). Data komt uit `GET /api/bids/sources/tenderned/[id]` (server‑side Basic Auth naar XML, geparsed naar compacte summary); knop “Download XML” beschikbaar.
+- Endpoint: `GET /api/bids/sources/tenderned?page=&size=&publicatieDatumVanaf=&publicatieDatumTot=&cpvCodes=` → `{ items, page, nextPage, total, totalPages }`.
+- Detail: `GET /api/bids/sources/tenderned/[id]` → server‑fetch XML (Basic Auth) geparsed naar summary; `?raw=1` retourneert ruwe XML.
+- UI: `dashboard/bids/page.tsx` toont opdrachtgever/titel/korte beschrijving direct (TNS), verrijkt de eerste 20 items per pagina met eForms‑summary, echte paginatie (Vorige/Volgende, 0‑based) en totalen; sortering op publicatie (nieuw → oud).
+- Detailpagina: `/dashboard/bids/[id]` met samenvatting en XML‑download.
 - Roadmap: caching/TTL laag in Mongo, interne bids (`source='internal'`) en deduplicatie via `normalizedKey` (buyer + genormaliseerde titel + CPV) om terugkerende aanbestedingen te herkennen.
 
 ## 🔧 Ontwikkeling & Deploy
