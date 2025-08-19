@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 
 export default function BidDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const search = useSearchParams();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -29,7 +30,11 @@ export default function BidDetailPage() {
   return (
     <DashboardLayout>
       <div className="page-container">
-        <button className="btn btn-secondary" onClick={() => router.back()}>← Terug</button>
+        <button className="btn btn-secondary" onClick={() => {
+          const p = search.get('page');
+          const qs = p ? `?page=${encodeURIComponent(p)}` : '';
+          router.push(`/dashboard/bids${qs}`);
+        }}>← Terug</button>
         <h1 style={{ marginTop: '1rem' }}>Aanbesteding {id}</h1>
         {loading && <p>Laden...</p>}
         {error && <p className="error-message">{error}</p>}

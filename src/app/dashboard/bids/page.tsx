@@ -57,7 +57,9 @@ export default function BidsPage() {
   const applyFilters = () => load(0, false);
 
   const openDetail = (id: string) => {
-    window.location.href = `/dashboard/bids/${encodeURIComponent(id)}`;
+    const params = new URLSearchParams(window.location.search);
+    params.set('page', String(page));
+    window.location.href = `/dashboard/bids/${encodeURIComponent(id)}?${params.toString()}`;
   };
 
   return (

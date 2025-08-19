@@ -30,9 +30,9 @@ export async function GET(request: NextRequest) {
     const head = data.items.slice(0, 20);
     const enriched = await Promise.all(head.map(async (it: any) => {
       try {
-        const base = process.env.NEXTAUTH_URL || '';
-        const url = new URL(`/api/bids/sources/tenderned/${it.id}?raw=1`, base || 'http://localhost');
-        const res = await fetch(url.toString(), { cache: 'no-store' });
+        const origin = new URL(request.url).origin;
+        const url = `${origin}/api/bids/sources/tenderned/${it.id}?raw=1`;
+        const res = await fetch(url, { cache: 'no-store' });
         if (!res.ok) return it;
         const xml = await res.text();
         const summary = parseEformsSummary(xml);
