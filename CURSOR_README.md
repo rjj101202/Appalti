@@ -447,6 +447,8 @@ YYYY-MM-DD HH:mm TZ
 
 2025-08-19 20:50 UTC
 - Bids/TenderNed: verrijking in lijst via directe XML‑fetch; detailpagina toont nu velden i.p.v. download‑knop. Kleine fix voor 401 bij pagineren.
+2025-08-19 21:05 UTC
+- Bids lijst: kolom “Vraag/Titel” toont nu alleen de titel (omschrijving verwijderd) en hanteert ellipsis voor lange titels voor betere overzichtelijkheid.
 
 2025-08-19 20:40 UTC
 - Bids/TenderNed: verrijking in lijst gebeurt nu via directe XML‑fetch (`fetchTenderNedXml`) i.p.v. interne subrequests naar ons detail‑endpoint → voorkomt 401/Unauthorized bij pagineren en verlaagt DB‑load. Verrijking beperkt tot eerste 10 per pagina.

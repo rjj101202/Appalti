@@ -116,8 +116,7 @@ export default function BidsPage() {
                   <td>{(b as any).buyer || '-'}</td>
                   <td>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span>{(b as any).title || '-'}</span>
-                      {(b as any).shortDescription && <span style={{ color: '#6b7280', fontSize: '0.9em' }}>{(b as any).shortDescription}</span>}
+                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 640 }}>{(b as any).title || '-'}</span>
                     </div>
                   </td>
                   <td>{(b.cpvCodes || []).join(', ') || b.sector || '-'}</td>
