@@ -1,7 +1,7 @@
+"use client";
+
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
-
-'use client';
 
 type BidItem = {
   id: string;
