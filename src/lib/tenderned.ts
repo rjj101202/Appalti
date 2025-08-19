@@ -94,15 +94,25 @@ export async function fetchTenderNed(request: Request, opts: FetchTenderNedOptio
   };
 
   const list = extractArray(raw);
+  // Log eenmalig een sample van keys om mapping te verfijnen (geen PII, alleen sleutel‑namen)
+  try {
+    if (list && list.length) {
+      const sample = list[0] || {};
+      const keys = Object.keys(sample).slice(0, 30);
+      console.log('[TenderNed] sample keys:', keys);
+    } else {
+      console.log('[TenderNed] empty list or unexpected payload shape');
+    }
+  } catch {/* no-op */}
   const items: TenderNedItem[] = list.map((r: any) => ({
     id: r.id || r.publicatieId || r.publicationId || r.noticeId || r.reference || String(r._id || ''),
-    title: r.title || r.titel || r.subject || r.description || 'Untitled',
-    buyer: r.buyer?.name || r.organisation || r.contractingAuthority || r.aanbestedendeDienst || undefined,
-    cpvCodes: Array.isArray(r.cpvCodes) ? r.cpvCodes : (r.cpv ? [r.cpv] : (r.cpvCode ? [r.cpvCode] : undefined)),
-    sector: r.sector || r.market || r.domein || undefined,
-    publicationDate: r.publicationDate || r.publicatieDatum || r.publishedAt || r.datePublished || undefined,
-    submissionDeadline: r.submissionDeadline || r.sluitingsDatum || r.deadline || r.tenderDeadline || undefined,
-    sourceUrl: r.url || r.link || r.detailUrl || undefined,
+    title: r.title || r.titel || r.publicatieTitel || r.aankondigingTitel || r.subject || r.description || String(r.id || r.publicatieId || 'Untitled'),
+    buyer: r.buyer?.name || r.organisation || r.contractingAuthority || r.aanbestedendeDienst || r.aanbestedendeDienstNaam || r.organisatieNaam || undefined,
+    cpvCodes: Array.isArray(r.cpvCodes) ? r.cpvCodes : (r.cpv ? [r.cpv] : (r.cpvCode ? [r.cpvCode] : (r.cpvCodes?.code ? [r.cpvCodes.code] : undefined))),
+    sector: r.sector || r.market || r.domein || r.sectorOmschrijving || undefined,
+    publicationDate: r.publicationDate || r.publicatieDatum || r.publishedAt || r.datePublished || r.datumPublicatie || undefined,
+    submissionDeadline: r.submissionDeadline || r.sluitingsDatum || r.sluitingsTermijn || r.deadline || r.tenderDeadline || undefined,
+    sourceUrl: r.url || r.link || r.detailUrl || r.publicatieUrl || undefined,
   }));
 
   const nextPage = items.length === pageSize ? page + 1 : undefined;

@@ -321,6 +321,7 @@ Overzicht van de relevante mappen/onderdelen in deze repo:
 - Endpoint: `GET /api/bids/sources/tenderned?page=&pageSize=&q=&cpv=&deadlineBefore=&newSince=` → `{ items, page, nextPage }`.
 - Detail: `GET /api/bids/sources/tenderned/[id]` → XML doorgeproxied (Basic Auth via env). Gebruik dit voor uitgebreide details.
 - UI: `dashboard/bids/page.tsx` met filters (zoekterm, CPV, deadline, nieuw sinds) en “Meer laden” pagination (20 per keer). Sidebar “Tenders” verwijderd; alleen “Bids”.
+- Detailknop: XML via `GET /api/bids/sources/tenderned/[id]` (Basic Auth). Open data link (indien aanwezig) blijft beschikbaar.
 - Roadmap: caching/TTL laag in Mongo, interne bids (`source='internal'`) en deduplicatie via `normalizedKey` (buyer + genormaliseerde titel + CPV) om terugkerende aanbestedingen te herkennen.
 
 ## 🔧 Ontwikkeling & Deploy
