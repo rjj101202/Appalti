@@ -29,16 +29,34 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const text = await res.text();
     if (!res.ok) return new NextResponse(text || 'Failed to fetch XML', { status: res.status, headers: { 'Content-Type': 'text/plain' } });
 
-    // Parseer XML naar compacte samenvatting
+    // raw passthrough (handig om veldnamen te inspecteren)
+    const { searchParams } = new URL(request.url);
+    if (searchParams.has('raw')) {
+      return new NextResponse(text, { status: 200, headers: { 'Content-Type': 'application/xml' } });
+    }
+
+    // Parseer XML naar compacte samenvatting (neutraal op namespaces)
     const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_', textNodeName: '#text' });
     let summary: any = {};
     try {
       const xml = parser.parse(text);
-      const oc = xml?.OBJECT_CONTRACT || xml?.['efext:OBJECT_CONTRACT'] || xml;
-      summary = {
-        title: oc?.TITLE || oc?.['efext:TITLE'] || undefined,
-        shortDescription: oc?.SHORT_DESCR || oc?.['efext:SHORT_DESCR'] || undefined,
+      // helper: depth-first search for tag names containing TITLE / SHORT_DESCR / DESCRIPTION (case-insensitive, namespace-agnostic)
+      const findFirst = (node: any, matchers: ((k: string) => boolean)[]): string | undefined => {
+        if (!node || typeof node !== 'object') return undefined;
+        for (const [k, v] of Object.entries(node)) {
+          if (typeof v === 'string') {
+            if (matchers.some(fn => fn(k))) return v;
+          } else if (v && typeof v === 'object') {
+            const maybe = findFirst(v, matchers);
+            if (maybe) return maybe;
+          }
+        }
+        return undefined;
       };
+      const has = (needle: string) => (k: string) => k.toLowerCase().endsWith(needle) || k.toLowerCase().includes(':'+needle);
+      const title = findFirst(xml, [has('title')]);
+      const shortDescription = findFirst(xml, [has('short_descr'), has('shortdescription'), has('description')]);
+      summary = { title, shortDescription };
     } catch {}
 
     return NextResponse.json({ success: true, summary, rawXmlAvailable: true });
