@@ -73,15 +73,36 @@ export async function fetchTenderNed(request: Request, opts: FetchTenderNedOptio
     throw new Error(`TenderNed fetch failed (${res.status}): ${text} | url=${url.toString()}`);
   }
   const raw = await res.json();
-  const items: TenderNedItem[] = (raw.items || raw.results || raw || []).map((r: any) => ({
-    id: r.id || r.noticeId || r.reference || String(r._id || ''),
-    title: r.title || r.subject || r.description || 'Untitled',
-    buyer: r.buyer?.name || r.organisation || r.contractingAuthority || undefined,
-    cpvCodes: Array.isArray(r.cpvCodes) ? r.cpvCodes : (r.cpv ? [r.cpv] : undefined),
-    sector: r.sector || r.market || undefined,
-    publicationDate: r.publicationDate || r.publishedAt || r.datePublished || undefined,
-    submissionDeadline: r.submissionDeadline || r.deadline || r.tenderDeadline || undefined,
-    sourceUrl: r.url || r.link || undefined,
+  // Extract array of publications robustly
+  const extractArray = (value: any): any[] => {
+    if (Array.isArray(value)) return value;
+    if (value && typeof value === 'object') {
+      // Common keys
+      for (const key of ['items','results','content','publications','data']) {
+        if (Array.isArray(value[key])) return value[key];
+      }
+      // HAL or nested arrays: take first array value we find
+      for (const v of Object.values(value)) {
+        if (Array.isArray(v)) return v;
+        if (v && typeof v === 'object') {
+          const inner = extractArray(v);
+          if (Array.isArray(inner) && inner.length) return inner;
+        }
+      }
+    }
+    return [];
+  };
+
+  const list = extractArray(raw);
+  const items: TenderNedItem[] = list.map((r: any) => ({
+    id: r.id || r.publicatieId || r.publicationId || r.noticeId || r.reference || String(r._id || ''),
+    title: r.title || r.titel || r.subject || r.description || 'Untitled',
+    buyer: r.buyer?.name || r.organisation || r.contractingAuthority || r.aanbestedendeDienst || undefined,
+    cpvCodes: Array.isArray(r.cpvCodes) ? r.cpvCodes : (r.cpv ? [r.cpv] : (r.cpvCode ? [r.cpvCode] : undefined)),
+    sector: r.sector || r.market || r.domein || undefined,
+    publicationDate: r.publicationDate || r.publicatieDatum || r.publishedAt || r.datePublished || undefined,
+    submissionDeadline: r.submissionDeadline || r.sluitingsDatum || r.deadline || r.tenderDeadline || undefined,
+    sourceUrl: r.url || r.link || r.detailUrl || undefined,
   }));
 
   const nextPage = items.length === pageSize ? page + 1 : undefined;

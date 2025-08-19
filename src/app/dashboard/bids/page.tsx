@@ -36,7 +36,8 @@ export default function BidsPage() {
       const res = await fetch(`/api/bids/sources/tenderned?${params.toString()}`);
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Laden mislukt');
-      setItems(prev => append ? [...prev, ...data.items] : data.items);
+      const array = Array.isArray(data.items) ? data.items : [];
+      setItems(prev => append ? [...prev, ...array] : array);
       setPage(data.page);
       setNextPage(data.nextPage);
     } catch (e: any) {
