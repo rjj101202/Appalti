@@ -47,6 +47,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           if (typeof v === 'string') {
             if (matchers.some(fn => fn(k))) return v;
           } else if (v && typeof v === 'object') {
+            // Handle nodes with attributes where text is under '#text'
+            const text = (v as any)['#text'];
+            if (typeof text === 'string' && matchers.some(fn => fn(k))) return text;
             const maybe = findFirst(v, matchers);
             if (maybe) return maybe;
           }
@@ -54,7 +57,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         return undefined;
       };
       const has = (needle: string) => (k: string) => k.toLowerCase().endsWith(needle) || k.toLowerCase().includes(':'+needle);
-      const title = findFirst(xml, [has('title')]);
+      const title = findFirst(xml, [has('name'), has('title')]);
       const shortDescription = findFirst(xml, [has('short_descr'), has('shortdescription'), has('description')]);
       summary = { title, shortDescription };
     } catch {}
