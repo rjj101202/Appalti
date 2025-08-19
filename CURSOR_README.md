@@ -224,7 +224,7 @@ Doel: Enterprise‑review per fase (approve/reject + feedback), met gates naar v
     - `src/app/api/clients/[id]/provision-company` (POST) – maakt eigen tenant/company voor client en koppelt via `linkedCompanyId`
     - `src/app/api/clients/[id]/members` (GET) – lijst teamleden van de client‑tenant
     - `src/app/api/clients/[id]/invite` (POST) – invite voor client‑tenant (maakt zo nodig eerst de tenant)
-    - UI: `src/app/dashboard/clients/[id]/edit/page.tsx` – Teamleden‑sectie onderaan (provision + lijst + uitnodigen)
+  - UI: `src/app/dashboard/clients/[id]/edit/page.tsx` – Teamleden‑sectie onderaan (provision + lijst + uitnodigen)
   - `src/app/api/companies/[id]/members/route.ts` blijft leden van actieve company tonen (platformcontext)
   - Invite accept UI: `src/app/invite/page.tsx` – accepteert invite tokens; forceert login indien nodig en zet tenant‑cookies
   - Verplaatst: Teamleden‑kaart op `dashboard/clients/[id]/page.tsx` verwijderd; teambeheer staat alleen onder “Bedrijfsgegevens bewerken”.
@@ -235,7 +235,7 @@ Doel: Enterprise‑review per fase (approve/reject + feedback), met gates naar v
 - Gedrag:
   - API: `GET /api/clients` maakt automatisch één `ClientCompany` aan wanneer de lijst leeg is voor niet‑Appalti gebruikers, op basis van de actieve tenant/company. Hiermee ziet de gebruiker altijd precies zijn/haar eigen bedrijf terug in de lijst.
   - UI: op `dashboard/clients/page.tsx` is de knop “+ Nieuwe Client” en de empty‑state CTA verborgen voor niet‑Appalti gebruikers.
-  - UI: `dashboard/clients/new/page.tsx` is geblokkeerd voor niet‑Appalti gebruikers.
+  - UI: `dashboard/clients/new/page.tsx` is geblokkeerd voor niet‑Appalti.
 - Implementatie:
   - `src/app/api/clients/route.ts`: auto‑provision van één eigen `ClientCompany` voor niet‑Appalti (indien lijst leeg).
   - `src/app/dashboard/clients/page.tsx`: verberg create‑knoppen/CTA voor niet‑Appalti.
@@ -317,11 +317,11 @@ Overzicht van de relevante mappen/onderdelen in deze repo:
   - `TENDERNED_API_URL`
   - `TENDERNED_USERNAME`
   - `TENDERNED_PASSWORD`
-- Helper: `src/lib/tenderned.ts` – leest env uit `process.env` (werkt op Vercel) en haalt pagina’s op (default 20 per pagina). Normaliseert velden. Als `TENDERNED_API_URL` eindigt op `/v2`, wordt standaard het resource‑pad `/publicaties` toegevoegd. Je kunt dit overschrijven met `TENDERNED_API_PATH`. Ondersteunt zowel `cpvCodes[]=...` herhaald als `cpv=code1,code2` shorthand. `newSince` ↔ `publicatieDatumVanaf`, `deadlineBefore` ↔ `publicatieDatumTot`.
+- Helper: `src/lib/tenderned.ts` – leest env uit `process.env` (werkt op Vercel) en haalt pagina’s op (default 20 per pagina). Normaliseert velden. Als `TENDERNED_API_URL` eindigt op `/v2`, wordt standaard het resource‑pad `/publicaties` toegevoegd. Je kunt dit overschrijven met `TENDERNED_API_PATH`. Ondersteunt zowel `cpvCodes[]=...` herhaald als `cpv=code1,code2` shorthand. `newSince` ↔ `publicatieDatumVanaf`, `deadlineBefore` ↔ `publicatieDatumTot`. Bevat ook `fetchTenderNedXml(publicationId)` voor het XML‑detail.
 - Endpoint: `GET /api/bids/sources/tenderned?page=&size=&publicatieDatumVanaf=&publicatieDatumTot=&cpvCodes=&cpv=` → `{ items, page, nextPage, total, totalPages }`.
-- Detail: `GET /api/bids/sources/tenderned/[id]` → server‑fetch XML (Basic Auth) geparsed naar summary; `?raw=1` retourneert ruwe XML.
-- UI: `dashboard/bids/page.tsx` toont opdrachtgever, titel, CPV, publicatie, deadline, locatie (stad), plus knop naar TenderNed‐detail (indien `sourceUrl`). Eerste 20 items per pagina worden verrijkt met eForms‑summary (titel, korte omschrijving, locatie/NUTS) zodat de lijst direct nuttige info toont.
-- Detailpagina: `/dashboard/bids/[id]` toont uitgebreide samenvatting (buyer, titel, korte omschrijving, locatie/NUTS) en een link naar TenderNed; daarnaast een XML‑download.
+- Detail: `GET /api/bids/sources/tenderned/[id]` → server‑fetch XML (Basic Auth) geparsed naar uitgebreid summary; `?raw=1` blijft beschikbaar voor debug.
+- UI: `dashboard/bids/page.tsx` toont opdrachtgever, titel, CPV, publicatie, deadline, locatie (stad), plus knop naar TenderNed‐detail (indien `sourceUrl`). Eerste 10 items per pagina worden direct verrijkt met eForms‑summary via directe XML‑fetch (geen interne subrequests) om 401‑meldingen te voorkomen.
+- Detailpagina: `/dashboard/bids/[id]` toont uitgebreide samenvatting: buyer (naam/website/kvk), contact (naam/tel/mail), adres (straat/postcode/stad/land), NUTS‑codes, CPV, procurement type, publicatiedatum/tijd, deadline datum/tijd en portal link. Knop “Download XML” is verwijderd (raw blijft via query beschikbaar voor debug).
 - Roadmap: caching/TTL laag in Mongo, interne bids (`source='internal'`) en deduplicatie via `normalizedKey` (buyer + genormaliseerde titel + CPV) om terugkerende aanbestedingen te herkennen.
 
 ## 🔧 Ontwikkeling & Deploy
@@ -444,3 +444,7 @@ YYYY-MM-DD HH:mm TZ
 2025-08-19 20:05 UTC
 - TenderNed lijstweergave verrijkt: parser gecorrigeerd om element‑tekst te lezen i.p.v. attributen; extra velden geëxtraheerd (stad, NUTS, URI). Lijst toont nu opdrachtgever, titel, CPV/sector, publicatie, deadline, locatie en een rechtstreekse TenderNed‑link. Detailpagina toont ook locatie/NUTS en link.
 - API verbeteringen: `GET /api/bids/sources/tenderned` accepteert nu zowel `cpvCodes[]=...` als `cpv=code1,code2`; mapping van `newSince`/`deadlineBefore` naar TNS parameters. `tenderned.ts` voegt CPV's als herhaalde `cpvCodes` toe.
+
+2025-08-19 20:40 UTC
+- Bids/TenderNed: verrijking in lijst gebeurt nu via directe XML‑fetch (`fetchTenderNedXml`) i.p.v. interne subrequests naar ons detail‑endpoint → voorkomt 401/Unauthorized bij pagineren en verlaagt DB‑load. Verrijking beperkt tot eerste 10 per pagina.
+- Parser uitgebreid naar rijk summary‑object (buyer/contact/adres/NUTS/CPV/portal/notice/procurement/deadlines). Detailpagina toont nu alle relevante info; “Download XML” knop verwijderd (debug raw blijft via `?raw=1`).

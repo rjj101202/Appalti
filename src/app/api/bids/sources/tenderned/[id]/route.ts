@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/context';
 import { parseEformsSummary } from '@/lib/tenderned-parse';
+import { fetchTenderNedXml } from '@/lib/tenderned';
 
 function getEnv(name: string) {
   const v = process.env[name];
@@ -14,20 +15,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const auth = await requireAuth(request);
     if (!auth.tenantId) return NextResponse.json({ error: 'No active tenant' }, { status: 400 });
 
-    const base = getEnv('TENDERNED_API_URL');
-    const username = getEnv('TENDERNED_USERNAME');
-    const password = getEnv('TENDERNED_PASSWORD');
-    const url = `${base.replace(/\/?$/, '')}/publicaties/${encodeURIComponent(params.id)}/public-xml`;
-
-    const res = await fetch(url, {
-      headers: {
-        Authorization: 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64'),
-        Accept: 'application/xml, text/xml, */*'
-      },
-      cache: 'no-store'
-    });
-    const text = await res.text();
-    if (!res.ok) return new NextResponse(text || 'Failed to fetch XML', { status: res.status, headers: { 'Content-Type': 'text/plain' } });
+    const text = await fetchTenderNedXml(params.id);
 
     // raw passthrough (handig om veldnamen te inspecteren)
     const { searchParams } = new URL(request.url);

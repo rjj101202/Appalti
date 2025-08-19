@@ -134,3 +134,25 @@ export async function fetchTenderNed(request: Request, opts: FetchTenderNedOptio
   return { items, page, nextPage, totalElements, totalPages };
 }
 
+/**
+ * Fetch public-xml for a given publication id using Basic Auth creds from env.
+ */
+export async function fetchTenderNedXml(publicationId: string): Promise<string> {
+  const base = getEnv('TENDERNED_API_URL')!;
+  const username = getEnv('TENDERNED_USERNAME')!;
+  const password = getEnv('TENDERNED_PASSWORD')!;
+  const url = `${base.replace(/\/?$/, '')}/publicaties/${encodeURIComponent(publicationId)}/public-xml`;
+  const res = await fetch(url, {
+    headers: {
+      Authorization: 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64'),
+      Accept: 'application/xml, text/xml, */*'
+    },
+    cache: 'no-store'
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`XML fetch failed (${res.status}) for ${publicationId}`);
+  }
+  return text;
+}
+
