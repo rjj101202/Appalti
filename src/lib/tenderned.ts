@@ -112,7 +112,8 @@ export async function fetchTenderNed(request: Request, opts: FetchTenderNedOptio
     sector: r.sector || r.market || r.domein || r.sectorOmschrijving || undefined,
     publicationDate: r.publicationDate || r.publicatieDatum || r.publishedAt || r.datePublished || r.datumPublicatie || undefined,
     submissionDeadline: r.submissionDeadline || r.sluitingsDatum || r.sluitingsTermijn || r.deadline || r.tenderDeadline || undefined,
-    sourceUrl: r.url || r.link || r.detailUrl || r.publicatieUrl || undefined,
+    sourceUrl: (r.sourceUrl && typeof r.sourceUrl === 'object' ? (r.sourceUrl.href || r.sourceUrl.url) : undefined)
+      || r.url || r.link || r.detailUrl || r.publicatieUrl || undefined,
   }));
 
   const nextPage = items.length === pageSize ? page + 1 : undefined;

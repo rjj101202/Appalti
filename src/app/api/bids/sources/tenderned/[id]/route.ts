@@ -21,7 +21,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const res = await fetch(url, {
       headers: {
         Authorization: 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64'),
-        Accept: 'application/xml'
+        Accept: 'application/xml, text/xml, */*'
       },
       cache: 'no-store'
     });

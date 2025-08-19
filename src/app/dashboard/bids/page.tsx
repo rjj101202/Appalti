@@ -98,9 +98,8 @@ export default function BidsPage() {
                   <td>{b.submissionDeadline ? new Date(b.submissionDeadline).toLocaleDateString('nl-NL') : '-'}</td>
                   <td>
                     {b.sourceUrl ? (
-                      <a href={b.sourceUrl} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ marginRight: '0.5rem' }}>Bekijk</a>
+                      <a href={typeof b.sourceUrl === 'string' ? b.sourceUrl : (b as any).sourceUrl?.href} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ marginRight: '0.5rem' }}>Bekijk</a>
                     ) : null}
-                    {/* Altijd XML detail aanbieden via proxy */}
                     <a href={`/api/bids/sources/tenderned/${encodeURIComponent(b.id)}`} target="_blank" rel="noreferrer" className="btn btn-secondary">XML</a>
                   </td>
                 </tr>
