@@ -62,6 +62,7 @@ export default function BidDetailPage() {
                 <h3>Tender</h3>
                 <div className="kv-list">
                   <div><span>CPV</span><span>{Array.isArray(data.summary?.cpvCodes) && data.summary.cpvCodes.length ? data.summary.cpvCodes.join(', ') : '-'}</span></div>
+                  <div><span>Geschat bedrag</span><span>{data.summary?.estimatedContractAmount ? new Intl.NumberFormat('nl-NL', { style: 'currency', currency: (data.summary?.estimatedContractCurrency || 'EUR') as any, maximumFractionDigits: 0 }).format(Number(data.summary.estimatedContractAmount)) : '-'}</span></div>
                   <div><span>Type</span><span>{data.summary?.procurementTypeCode || '-'}</span></div>
                   <div><span>Publicatie</span><span>{data.summary?.publicationIssueDate || '-'} {data.summary?.publicationIssueTime || ''}</span></div>
                   <div><span>Deadline</span><span>{data.summary?.deadlineDate || '-'} {data.summary?.deadlineTime || ''}</span></div>

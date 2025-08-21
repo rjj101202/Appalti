@@ -56,6 +56,8 @@ export function parseEformsSummary(xmlText: string): {
   endpointId?: string;
   deadlineDate?: string;
   deadlineTime?: string;
+  estimatedContractAmount?: string;
+  estimatedContractCurrency?: string;
   // extra meta/contracting
   ublVersionId?: string;
   customizationId?: string;
@@ -118,6 +120,32 @@ export function parseEformsSummary(xmlText: string): {
     const sourceUrl = findFirst(h => lastSegment(h.key).toLowerCase() === 'uri');
     const deadlineDate = findFirst(h => lastSegment(h.key).toLowerCase() === 'enddate');
     const deadlineTime = findFirst(h => lastSegment(h.key).toLowerCase() === 'endtime');
+
+    // Estimated contract amount (RequestedTenderTotal → EstimatedOverallContractAmount @currencyID)
+    const estimatedAmountHit = hits.find(h => lastSegment(h.key).toLowerCase() === 'estimatedoverallcontractamount');
+    const estimatedContractAmount = estimatedAmountHit?.text ? String(estimatedAmountHit.text) : undefined;
+    // Try to retrieve attribute via path walk for currency
+    let estimatedContractCurrency: string | undefined;
+    try {
+      // Walk the original xml object to find attributes for the same path
+      // This is a lightweight heuristic: search any node with key matching and read its '@_currencyID'
+      const parserObj: any = parser.parse(xmlText, { ignoreAttributes: false, attributeNamePrefix: '@_', textNodeName: '#text' });
+      function findCurrency(node: any): string | undefined {
+        if (!node || typeof node !== 'object') return undefined;
+        for (const [k, v] of Object.entries(node)) {
+          if (lastSegment(k).toLowerCase() === 'estimatedoverallcontractamount' && v && typeof v === 'object') {
+            const cur = (v as any)['@_currencyID'];
+            if (typeof cur === 'string' && cur) return cur;
+          }
+          if (v && typeof v === 'object') {
+            const found = findCurrency(v);
+            if (found) return found;
+          }
+        }
+        return undefined;
+      }
+      estimatedContractCurrency = findCurrency(parserObj);
+    } catch {}
 
     // Meta
     const ublVersionId = findFirst(h => lastSegment(h.key).toLowerCase() === 'ublversionid');
@@ -183,6 +211,8 @@ export function parseEformsSummary(xmlText: string): {
       endpointId,
       deadlineDate,
       deadlineTime,
+      estimatedContractAmount,
+      estimatedContractCurrency,
       ublVersionId,
       customizationId,
       noticeId,
