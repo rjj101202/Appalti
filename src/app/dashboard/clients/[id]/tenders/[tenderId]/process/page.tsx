@@ -54,6 +54,7 @@ export default function BidProcessPage() {
           <button className="btn btn-secondary" disabled={disabled} onClick={() => submitStage(stage)}>
             {status === 'draft' ? 'Markeer als gereed' : 'Opnieuw indienen'}
           </button>
+          <button className="btn btn-secondary" onClick={() => router.push(`/dashboard/clients/${clientId}/tenders/${tenderId}/process/${stage}`)}>Bewerken</button>
         </div>
       </div>
     );
