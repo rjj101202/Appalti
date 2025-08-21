@@ -30,19 +30,36 @@ export async function GET(request: NextRequest) {
       newSince: searchParams.get('publicatieDatumVanaf') || undefined,
     });
 
-    // Enrichment: direct XML ophalen (voorkomt 401 uit interne subcalls) en beperkt tot eerste 10 items
-    const head = data.items.slice(0, 10);
-    const enriched: any[] = [];
-    for (const it of head) {
-      try {
-        const xml = await fetchTenderNedXml(String(it.id));
-        const summary = parseEformsSummary(xml);
-        enriched.push({ ...it, ...summary });
-      } catch {
-        enriched.push(it);
+    // Enrichment: direct XML ophalen voor alle items met gelimiteerde concurrency (5)
+    const poolSize = 5;
+    const items: any[] = Array.from({ length: data.items.length });
+    let index = 0;
+    async function worker() {
+      while (index < data.items.length) {
+        const i = index++;
+        const it = data.items[i];
+        try {
+          const xml = await fetchTenderNedXml(String(it.id));
+          const summary = parseEformsSummary(xml);
+          // Sanity: als deadline < publicatie, laat deadline leeg (inconsistentie in bron)
+          let submissionDeadline = it.submissionDeadline;
+          if (summary?.deadlineDate) submissionDeadline = summary.deadlineDate;
+          if (it.publicationDate && submissionDeadline) {
+            try {
+              const pub = new Date(it.publicationDate).getTime();
+              const dl = new Date(submissionDeadline).getTime();
+              if (!Number.isNaN(pub) && !Number.isNaN(dl) && dl < pub) {
+                submissionDeadline = undefined;
+              }
+            } catch {}
+          }
+          items[i] = { ...it, ...summary, submissionDeadline };
+        } catch {
+          items[i] = it;
+        }
       }
     }
-    const items = enriched.concat(data.items.slice(10));
+    await Promise.all(Array.from({ length: Math.min(poolSize, data.items.length) }, worker));
 
     const result = { success: true, items, page: data.page, nextPage: data.nextPage, total: data.totalElements, totalPages: data.totalPages, filters: { page, size: pageSize, publicatieType, publicatieDatumVanaf, publicatieDatumTot, cpvCodes } };
     return NextResponse.json(result);

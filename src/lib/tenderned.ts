@@ -116,15 +116,16 @@ export async function fetchTenderNed(request: Request, opts: FetchTenderNedOptio
     // Titel: probeer diverse sleutelvarianten voordat we op id vallen
     const title = r.title || r.titel || r.publicatieTitel || r.aankondigingTitel || r.aanbestedingNaam || r.onderwerp || r.subject || r.description || r.naam || (typeof r.link === 'object' ? r.link?.title : undefined) || String(r.id || r.publicatieId || 'Untitled');
 
+    const id = r.id || r.publicatieId || r.publicationId || r.noticeId || r.reference || String(r._id || '');
     return {
-      id: r.id || r.publicatieId || r.publicationId || r.noticeId || r.reference || String(r._id || ''),
+      id,
       title,
       buyer: r.buyer?.name || r.organisation || r.contractingAuthority || r.aanbestedendeDienst || r.aanbestedendeDienstNaam || r.organisatieNaam || r.opdrachtgeverNaam || undefined,
       cpvCodes: Array.isArray(r.cpvCodes) ? r.cpvCodes : (r.cpv ? [r.cpv] : (r.cpvCode ? [r.cpvCode] : (r.cpvCodes?.code ? [r.cpvCodes.code] : undefined))),
       sector: r.sector || r.market || r.domein || r.sectorOmschrijving || undefined,
       publicationDate: r.publicationDate || r.publicatieDatum || r.publishedAt || r.datePublished || r.datumPublicatie || undefined,
       submissionDeadline: r.submissionDeadline || r.sluitingsDatum || r.sluitingsTermijn || r.deadline || r.tenderDeadline || undefined,
-      sourceUrl: srcUrl,
+      sourceUrl: srcUrl || (id ? `https://www.tenderned.nl/aankondigingen/overzicht/${encodeURIComponent(id)}` : undefined),
     } as TenderNedItem;
   });
 
