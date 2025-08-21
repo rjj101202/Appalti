@@ -4,6 +4,7 @@ import { requireAuth, requireCompanyRole } from '@/lib/auth/context';
 import { CompanyRole } from '@/lib/db/models/Membership';
 import { getTenderRepository } from '@/lib/db/repositories/tenderRepository';
 import { getBidRepository } from '@/lib/db/repositories/bidRepository';
+import { getDatabase } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 
 const bodySchema = z.object({
@@ -40,14 +41,9 @@ export async function POST(request: NextRequest) {
 
     // Ensure bid process exists
     const bidRepo = await getBidRepository();
-    // naive check: try to find by tenderId (we will add method later) - for now just create always if needed via unique index
-    // There isn't a find method yet; creating duplicates is prevented by app logic elsewhere.
-    // To avoid duplicates, we try to read one by direct query through repo internals would be better, but keeping minimal here.
-    // We'll just create if none exists via a small fetch through the Mongo driver:
-    const dbRepo: any = bidRepo as any;
-    const coll = (dbRepo).collection || (dbRepo).['collection'];
-    let existing = null;
-    try { existing = await coll.findOne({ tenantId: auth.tenantId, tenderId: tender._id }); } catch {}
+    // Best-effort: check of er al een bid proces bestaat
+    const db = await getDatabase();
+    let existing = await db.collection('bids').findOne({ tenantId: auth.tenantId, tenderId: tender._id });
     if (!existing) {
       await bidRepo.create({ tenantId: auth.tenantId, tenderId: String(tender._id), clientCompanyId: parsed.data.clientCompanyId, createdBy: auth.userId });
     }
