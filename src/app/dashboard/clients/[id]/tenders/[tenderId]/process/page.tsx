@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 
-type Stage = 'storyline' | 'version_65' | 'version_80' | 'final';
+type Stage = 'storyline' | 'version_65' | 'version_95' | 'final';
 
 export default function BidProcessPage() {
   const { id: clientId, tenderId } = useParams<{ id: string; tenderId: string }>();
@@ -70,7 +70,7 @@ export default function BidProcessPage() {
           <div className="action-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
             <StageCard stage="storyline" title="Storyline" description="Eerste versie van het aanbestedingsdocument." />
             <StageCard stage="version_65" title="65% versie" description="Inhoud en structuur grotendeels compleet." />
-            <StageCard stage="version_80" title="95% versie" description="Bijna definitief; laatste checks." />
+            <StageCard stage="version_95" title="95% versie" description="Bijna definitief; laatste checks." />
             <StageCard stage="final" title="Finish" description="Definitieve indiening gereedmaken en versturen." />
           </div>
         )}
@@ -85,7 +85,7 @@ function getStageStatus(stage: Stage, bid: any): string {
 }
 
 function stageDisabled(stage: Stage, bid: any): boolean {
-  const order: Stage[] = ['storyline','version_65','version_80','final'];
+  const order: Stage[] = ['storyline','version_65','version_95','final'];
   const idx = order.indexOf(stage);
   if (idx <= 0) return false;
   const prev = order[idx - 1];

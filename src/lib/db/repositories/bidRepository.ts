@@ -15,7 +15,7 @@ export class BidRepository {
     const initialStage: Bid['stages'] = [
       { key: 'storyline', status: 'draft' },
       { key: 'version_65', status: 'draft' },
-      { key: 'version_80', status: 'draft' },
+      { key: 'version_95', status: 'draft' },
       { key: 'final', status: 'draft' },
     ];
     const bid: Bid = {

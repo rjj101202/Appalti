@@ -6,7 +6,7 @@ import { getDatabase } from '@/lib/mongodb';
 
 const paramsSchema = z.object({
   id: z.string().min(1),
-  stage: z.enum(['storyline','version_65','version_80','final'])
+  stage: z.enum(['storyline','version_65','version_95','final'])
 });
 
 export async function POST(request: NextRequest, { params }: { params: { id: string; stage: string } }) {
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // Enforce order: previous stage must be submitted/approved
     const db = await getDatabase();
     const bid = await db.collection('bids').findOne({ _id: new (require('mongodb').ObjectId)(parsed.data.id), tenantId: auth.tenantId });
-    const order = ['storyline','version_65','version_80','final'];
+    const order = ['storyline','version_65','version_95','final'];
     const idx = order.indexOf(parsed.data.stage);
     if (idx > 0) {
       const prev = order[idx - 1];
