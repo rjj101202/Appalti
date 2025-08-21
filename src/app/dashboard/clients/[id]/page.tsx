@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { use } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 
 export default function ClientDetailPage() {
@@ -202,9 +201,9 @@ export default function ClientDetailPage() {
           <div className="card">
             <h3 style={{ marginBottom: '0.5rem' }}>Bid Proces</h3>
             <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
-              Bekijk actieve bids en tender processen voor dit bedrijf.
+              Open het bidproces overzicht met alle gekoppelde tenders.
             </p>
-            <ClientBids clientId={String(params.id)} />
+            <Link href={`/dashboard/clients/${params.id}/bids`} className="btn btn-secondary">Open Bid Proces</Link>
           </div>
         </div>
       </div>
@@ -212,46 +211,4 @@ export default function ClientDetailPage() {
   );
 }
 
-function ClientBids({ clientId }: { clientId: string }) {
-  const [items, setItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`/api/clients/${clientId}/tenders`);
-        const json = await res.json();
-        if (!res.ok || !json.success) throw new Error(json.error || 'Laden mislukt');
-        setItems(json.data || []);
-      } catch (e: any) {
-        setError(e?.message || 'Laden mislukt');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [clientId]);
-
-  if (loading) return <div className="spinner-small" />;
-  if (error) return <div className="error-message">{error}</div>;
-
-  if (!items.length) return <div style={{ color: '#6b7280' }}>Nog geen gekoppelde tenders</div>;
-
-  return (
-    <div style={{ display: 'grid', gap: '0.75rem' }}>
-      {items.map((t) => (
-        <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #e5e7eb', borderRadius: 8, padding: '0.75rem 1rem' }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
-            <div style={{ color: '#6b7280', fontSize: '0.85rem' }}>
-              Deadline: {t.deadline ? new Date(t.deadline).toLocaleDateString('nl-NL') : '-'} · Fase: {t.bid?.currentStage || '-'}
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <Link className="btn btn-secondary" href={`/dashboard/clients/${clientId}/tenders/${t.id}/process`}>Proces</Link>
-            <Link className="btn btn-secondary" href={`/dashboard/bids/${t.externalId || ''}`}>Details</Link>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
+// inline lijst verwijderd; paneel linkt nu naar overzichtspagina
