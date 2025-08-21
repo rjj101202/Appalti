@@ -11,6 +11,9 @@ export default function BidDetailPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [linking, setLinking] = useState(false);
+  const [clients, setClients] = useState<any[]>([]);
+  const [selectedClient, setSelectedClient] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -27,6 +30,41 @@ export default function BidDetailPage() {
     })();
   }, [id]);
 
+  useEffect(() => {
+    // fetch clients for linking select
+    (async () => {
+      try {
+        const res = await fetch(`/api/clients?limit=100`);
+        const json = await res.json();
+        if (res.ok && json.success) setClients(json.items || json.data || []);
+      } catch {}
+    })();
+  }, []);
+
+  const linkTender = async () => {
+    if (!selectedClient) return alert('Kies eerst een client company');
+    try {
+      setLinking(true);
+      const body = {
+        source: 'tenderned',
+        externalId: id,
+        clientCompanyId: selectedClient,
+        title: data?.summary?.title || `Tender ${id}`,
+        cpvCodes: data?.summary?.cpvCodes || [],
+        deadline: data?.summary?.deadlineDate || undefined,
+        description: data?.summary?.shortDescription || data?.summary?.description || undefined,
+      };
+      const res = await fetch('/api/tenders/link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Koppelen mislukt');
+      alert('Tender gekoppeld aan client');
+    } catch (e: any) {
+      alert(e?.message || 'Koppelen mislukt');
+    } finally {
+      setLinking(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="page-container">
@@ -42,6 +80,17 @@ export default function BidDetailPage() {
           <div className="card" style={{ marginTop: '1rem' }}>
             <h2 style={{ marginTop: 0 }}>{data.summary?.title || `Aanbesteding ${id}`}</h2>
             <p style={{ color: '#6b7280' }}>{data.summary?.shortDescription || data.summary?.description || ''}</p>
+
+            {/* Link to client company */}
+            <div style={{ margin: '1rem 0', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <select value={selectedClient} onChange={e => setSelectedClient(e.target.value)} style={{ maxWidth: 360 }}>
+                <option value="">Koppel aan client company...</option>
+                {clients.map((c: any) => (
+                  <option key={c._id || c.id} value={c._id || c.id}>{c.name}</option>
+                ))}
+              </select>
+              <button className="btn btn-secondary" disabled={linking || !selectedClient} onClick={linkTender}>{linking ? 'Koppelen...' : 'Koppelen'}</button>
+            </div>
 
             {/* Grid layout in Appalti stijl */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginTop: '1rem' }}>

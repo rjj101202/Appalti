@@ -8,6 +8,7 @@ export class TenderRepository {
   constructor(db: Db) {
     this.collection = db.collection<Tender>('tenders');
     this.collection.createIndex({ tenantId: 1, clientCompanyId: 1, status: 1, createdAt: -1 });
+    this.collection.createIndex({ tenantId: 1, source: 1, externalId: 1 }, { unique: true, sparse: true });
   }
 
   async create(input: CreateTenderInput): Promise<Tender> {
@@ -26,6 +27,33 @@ export class TenderRepository {
     };
     const res = await this.collection.insertOne(tender);
     return { ...tender, _id: res.insertedId };
+  }
+
+  async upsertByExternalId(tenantId: string, data: Partial<Tender> & { externalId: string; source: string }): Promise<Tender> {
+    const now = new Date();
+    const update = {
+      $setOnInsert: {
+        tenantId,
+        clientCompanyId: data.clientCompanyId || new ObjectId(),
+        createdAt: now,
+      },
+      $set: {
+        source: data.source as any,
+        externalId: data.externalId,
+        title: data.title,
+        description: data.description,
+        cpvCodes: data.cpvCodes || [],
+        deadline: data.deadline,
+        status: (data as any).status || 'draft',
+        updatedAt: now,
+      }
+    } as any;
+    const res = await this.collection.findOneAndUpdate(
+      { tenantId, source: data.source as any, externalId: data.externalId },
+      update,
+      { upsert: true, returnDocument: 'after' }
+    );
+    return res as Tender;
   }
 
   async findById(id: string, tenantId: string): Promise<Tender | null> {

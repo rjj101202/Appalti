@@ -6,6 +6,8 @@ export interface Tender {
   _id?: ObjectId;
   tenantId: string;
   clientCompanyId: ObjectId; // Link naar clientCompanies
+  source?: 'tenderned' | 'internal';
+  externalId?: string; // source specific id (bij TenderNed = publicatieId)
   title: string;
   description?: string;
   cpvCodes?: string[];

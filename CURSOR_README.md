@@ -451,6 +451,8 @@ YYYY-MM-DD HH:mm TZ
 - Bids lijst: kolom “Vraag/Titel” toont nu alleen de titel (omschrijving verwijderd) en hanteert ellipsis voor lange titels voor betere overzichtelijkheid.
 2025-08-19 21:25 UTC
 - TenderNed: altijd een werkende link naar TenderNed via fallback `https://www.tenderned.nl/aankondigingen/overzicht/{id}`. Lijstverrijking op alle 20 items met concurrency‑limiet (5). Datumnormalisatie: deadline wordt gewist wanneer deze vóór publicatie valt.
+2025-08-19 21:55 UTC
+- Tender koppelen & Bid proces: `POST /api/tenders/link` (upsert op `{tenantId, source, externalId}`) koppelt een TenderNed‑aanbesteding aan een client company en maakt zo nodig een bid‑proces aan. `GET /api/clients/[id]/tenders` levert gelinkte tenders + huidige fase. Client detail toont nu het paneel “Bid proces” met knoppen “Proces” (nieuwe procespagina met 4 stappen Storyline→65%→95%→Finish) en “Details”. Volgorde wordt afgedwongen in submit‑route.
 
 2025-08-19 20:40 UTC
 - Bids/TenderNed: verrijking in lijst gebeurt nu via directe XML‑fetch (`fetchTenderNedXml`) i.p.v. interne subrequests naar ons detail‑endpoint → voorkomt 401/Unauthorized bij pagineren en verlaagt DB‑load. Verrijking beperkt tot eerste 10 per pagina.
