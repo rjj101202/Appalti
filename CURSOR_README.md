@@ -460,8 +460,10 @@ commit: bid-stage-editor-and-ai-draft
   - `GET /api/bids/[id]/stages/[stage]` → `{ content, attachments[], status }`
   - `PUT /api/bids/[id]/stages/[stage]` → content updaten
   - `POST /api/bids/[id]/stages/[stage]/ai/draft` → gebruikt `ANTHROPIC_API_KEY` om concepttekst te genereren (Claude 3.5 Sonnet). Prompt gebruikt fase + bestaande content.
+  - `POST /api/bids/[id]/stages/[stage]/upload` → multipart upload via `@vercel/blob`, slaat URL en metadata op in `stages.$.attachments[]`.
 - Data model: `BidStageState` uitgebreid met `content` en `attachments[]`. Stageset aangepast naar `storyline`, `version_65`, `version_95`, `final`.
 - Procesoverzicht: ieder stage-kaartje heeft nu naast “Markeer als gereed” ook “Bewerken”, gelinkt naar de editorpagina. Server‑side volgorde‑check blijft van kracht.
+- Editor toont nu ook “Bronnen”: link naar TenderNed aankondiging (via `externalId`) en documentlinks uit de XML‑samenvatting.
 
 2025-08-19 20:40 UTC
 - Bids/TenderNed: verrijking in lijst gebeurt nu via directe XML‑fetch (`fetchTenderNedXml`) i.p.v. interne subrequests naar ons detail‑endpoint → voorkomt 401/Unauthorized bij pagineren en verlaagt DB‑load. Verrijking beperkt tot eerste 10 per pagina.
