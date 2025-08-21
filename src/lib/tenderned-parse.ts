@@ -14,11 +14,14 @@ function collectTextNodes(node: any, path: string[] = [], out: TextHit[] = []): 
   for (const [k, v] of Object.entries(node)) {
     // Sla attributes zoals "@_listName" over; we willen element‑tekst, geen attributen
     if (k.startsWith('@_')) continue;
-    if (v && typeof v === 'object' && typeof (v as any)['#text'] === 'string') {
-      out.push({ path, key: k, text: (v as any)['#text'] as string });
+    if (v && typeof v === 'object' && (typeof (v as any)['#text'] !== 'undefined')) {
+      const t = (v as any)['#text'];
+      if (typeof t === 'string' || typeof t === 'number') {
+        out.push({ path, key: k, text: String(t) });
+      }
     }
     if (v && typeof v === 'object') collectTextNodes(v, [...path, k], out);
-    if (typeof v === 'string') out.push({ path, key: k, text: v });
+    if (typeof v === 'string' || typeof v === 'number') out.push({ path, key: k, text: String(v) });
   }
   return out;
 }
@@ -103,7 +106,7 @@ export function parseEformsSummary(xmlText: string): {
       .filter(Boolean);
     const cpvCodes = hits
       .filter(h => lastSegment(h.key).toLowerCase() === 'itemclassificationcode')
-      .map(h => h.text)
+      .map(h => String(h.text))
       .filter(Boolean);
 
     const procurementTypeCode = findFirst(h => lastSegment(h.key).toLowerCase() === 'procurementtypecode');
