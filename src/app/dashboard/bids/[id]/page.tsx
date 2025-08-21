@@ -105,6 +105,17 @@ export default function BidDetailPage() {
                   </ul>
                 </section>
               )}
+
+              {/* Debug sectie: links naar beide bronnen */}
+              <section style={{ gridColumn: '1 / -1' }}>
+                <h3>Bronnen</h3>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <a className="btn btn-secondary" href={`/api/bids/sources/tenderned/${encodeURIComponent(id)}?raw=1`} target="_blank" rel="noreferrer">Bekijk XML (raw)</a>
+                  {data.publicLink && (
+                    <a className="btn btn-secondary" href={data.publicLink} target="_blank" rel="noreferrer">TenderNed pagina</a>
+                  )}
+                </div>
+              </section>
             </div>
           </div>
         )}
