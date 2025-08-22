@@ -468,3 +468,69 @@ commit: bid-stage-editor-and-ai-draft
 2025-08-19 20:40 UTC
 - Bids/TenderNed: verrijking in lijst gebeurt nu via directe XML‑fetch (`fetchTenderNedXml`) i.p.v. interne subrequests naar ons detail‑endpoint → voorkomt 401/Unauthorized bij pagineren en verlaagt DB‑load. Verrijking beperkt tot eerste 10 per pagina.
 - Parser uitgebreid naar rijk summary‑object (buyer/contact/adres/NUTS/CPV/portal/notice/procurement/deadlines). Detailpagina toont nu alle relevante info; “Download XML” knop verwijderd (debug raw blijft via `?raw=1`).
+
+## 📚 Kennisbank (RAG) – Architectuur en implementatie
+
+Doel: AI-ondersteuning in de bid-editors via Retrieval Augmented Generation. Twee bronnen:
+- Verticaal: client-specifieke documenten op SharePoint site `appalti9` → library "Gedeelde documenten" → folder "Klanten Shares".
+- Horizontaal: OneDrive map van gebruiker (UPN), testset in `Documents/Attachments`.
+
+### Datamodellen (MongoDB)
+- Collection `knowledge_documents` (per bestand)
+  - tenantId, companyId?, scope: 'vertical'|'horizontal', title, sourceUrl, driveId?, driveItemId?, userUpn?, path, mimeType, size, checksum, createdAt, updatedAt
+- Collection `knowledge_chunks` (per chunk)
+  - tenantId, documentId, chunkIndex, text, embedding:number[], tokenCount?, pageNumber?, metadata?
+
+Indexes:
+- `knowledge_documents`: { tenantId, scope, companyId, path }, { tenantId, driveItemId, userUpn } (unique,sparse)
+- `knowledge_chunks`: { tenantId, documentId, chunkIndex } (unique)
+- Atlas Vector Search index `vector_index` op `knowledge_chunks.embedding`
+
+### Environments
+- GRAPH_TENANT_ID, GRAPH_CLIENT_ID, GRAPH_CLIENT_SECRET
+- GRAPH_VERTICAL_SITE_URL=`https://appaltibv.sharepoint.com/sites/appalti9`
+- GRAPH_VERTICAL_LIBRARY=`Gedeelde documenten`
+- GRAPH_VERTICAL_FOLDER=`/Klanten Shares`
+- GRAPH_HORIZONTAL_ONEDRIVE_UPN=`rjager@appalti.nl`
+- GRAPH_HORIZONTAL_ONEDRIVE_PATH=`/Documents/Attachments`
+- OPENAI_API_KEY (+ optional OPENAI_EMBEDDING_MODEL, default `text-embedding-3-small`)
+- ANTHROPIC_API_KEY
+
+### Nieuwe libs
+- `src/lib/graph.ts`: app-only Graph client, site/drive resolvers, OneDrive/SharePoint folder traversal, simple text download for text-like files.
+- `src/lib/rag.ts`: checksum, chunking (≈1000 chars, overlap 150), embeddings via OpenAI.
+- Repositories/models: `src/lib/db/models/Knowledge.ts`, `src/lib/db/repositories/knowledgeRepository.ts`.
+
+### Endpoints
+- POST ` /api/knowledge/ingest`
+  - body: { source: 'vertical'|'horizontal', companyId?, limit? }
+  - Resolves files (SharePoint of OneDrive), filtert op tekstachtige extensies, download → chunk → embed → upsert in Mongo.
+  - RBAC: vereist ingelogde user; tenantId uit `requireAuth`.
+- GET ` /api/knowledge/search?q=...&scope=vertical|horizontal&companyId=...&topK=8`
+  - Maakt embedding van query, voert Atlas Vector Search uit, RBAC: verticaal vereist companyId (default uit sessie), horizontaal tenant-breed.
+  - Retourneert chunks + document metadata (titel, url, path, scope).
+- POST ` /api/ai/chat`
+  - body: { message, currentText?, contextSnippets?[] }
+  - Roept Anthropic (Claude 3.5 Sonnet) aan met system prompt in NL, combineert huidige tekst en contextfragmenten.
+
+### UI – Stage editor
+- `dashboard/clients/[id]/tenders/[tenderId]/process/[stage]/page.tsx`
+  - Layout vervangen door 2 kolommen: links editor + bijlagen + TenderNed bronnen; rechts nieuw zijpaneel met tabs:
+    - "Zoek bronnen": queryveld → `/api/knowledge/search` (standaard verticaal, companyId uit route), resultaten met titel/bronlink.
+    - "AI chat": promptveld, optionele context gebaseerd op laatst gevonden resultaten, knoppen "Vraag AI" en "Invoegen in tekst".
+  - Bestaande "Genereer met AI" blijft beschikbaar.
+
+### Bekende beperkingen (MVP)
+- Alleen tekstachtige bestanden worden geïndexeerd (txt/md/html/csv/log/json). PDF/DOCX extractie volgt in vervolgstap.
+- Vector index 'vector_index' moet in Atlas aangemaakt staan (embedding dim afhankelijk van model; default 1536).
+- Delta-sync niet geactiveerd; ingest is full-scan met checksum, herhaalde runs upserten alleen gewijzigde content.
+
+---
+
+## Changelog
+
+- commit: RAG foundation (Graph app-only, knowledge models/repos, ingest + search APIs, AI chat, editor side panel)
+  - Added `src/lib/graph.ts`, `src/lib/rag.ts`, knowledge models/repository.
+  - New endpoints: `POST /api/knowledge/ingest`, `GET /api/knowledge/search`, `POST /api/ai/chat`.
+  - Editor update: right-side AI pane (search + chat) in stage editor page.
+  - Envs documented; defaults added for horizontal (OneDrive UPN/path) en vertical (site/library/folder).

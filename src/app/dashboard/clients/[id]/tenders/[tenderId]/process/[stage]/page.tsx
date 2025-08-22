@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
+import Link from 'next/link';
 
 type Stage = 'storyline' | 'version_65' | 'version_95' | 'final';
 
@@ -16,6 +17,13 @@ export default function StageEditorPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [attachments, setAttachments] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'search'|'chat'>('search');
+  const [query, setQuery] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState<any[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatReply, setChatReply] = useState('');
 
   const bidIdFromQuery = async (): Promise<string | undefined> => {
     try {
@@ -98,6 +106,34 @@ export default function StageEditorPage() {
     finally { setUploading(false); }
   };
 
+  const doSearch = async () => {
+    try {
+      setSearching(true);
+      const params = new URLSearchParams({ q: query, scope: 'vertical', companyId: String(clientId), topK: '8' });
+      const res = await fetch(`/api/knowledge/search?${params.toString()}`);
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Zoeken mislukt');
+      setResults(json.data.results || []);
+    } catch (e: any) { alert(e?.message || 'Zoeken mislukt'); }
+    finally { setSearching(false); }
+  };
+
+  const sendChat = async () => {
+    try {
+      setChatLoading(true);
+      const contextSnippets = results.slice(0,3).map((r: any) => ({ text: r.text, source: r.document?.title || r.document?.url }));
+      const res = await fetch('/api/ai/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: chatInput, currentText: content, contextSnippets }) });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'AI chat mislukt');
+      setChatReply(json.data.reply);
+    } catch (e: any) { alert(e?.message || 'AI chat mislukt'); }
+    finally { setChatLoading(false); }
+  };
+
+  const insertFromReply = () => {
+    setContent(prev => (prev ? prev + '\n\n' : '') + chatReply);
+  };
+
   return (
     <DashboardLayout>
       <div className="page-container">
@@ -107,26 +143,62 @@ export default function StageEditorPage() {
         {error && <p className="error-message">{error}</p>}
         {!loading && !error && (
           <div className="card" style={{ marginTop: '1rem' }}>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-              <button className="btn btn-secondary" onClick={save} disabled={saving}>{saving ? 'Opslaan...' : 'Opslaan'}</button>
-              <button className="btn btn-secondary" onClick={aiDraft} disabled={aiLoading}>{aiLoading ? 'AI genereert...' : 'Genereer met AI'}</button>
-              <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
-                {uploading ? 'Uploaden...' : 'Upload document'}
-                <input type="file" style={{ display: 'none' }} onChange={e => e.target.files && onUpload(e.target.files[0])} />
-              </label>
-            </div>
-            <textarea value={content} onChange={e => setContent(e.target.value)} style={{ width: '100%', minHeight: 400 }} />
-            {attachments && attachments.length > 0 && (
-              <div style={{ marginTop: '1rem' }}>
-                <h3>Bijlagen</h3>
-                <ul>
-                  {attachments.map((a, i) => (
-                    <li key={i}><a href={a.url} target="_blank" rel="noreferrer">{a.name || a.url}</a></li>
-                  ))}
-                </ul>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
+              <div>
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                  <button className="btn btn-secondary" onClick={save} disabled={saving}>{saving ? 'Opslaan...' : 'Opslaan'}</button>
+                  <button className="btn btn-secondary" onClick={aiDraft} disabled={aiLoading}>{aiLoading ? 'AI genereert...' : 'Genereer met AI'}</button>
+                  <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
+                    {uploading ? 'Uploaden...' : 'Upload document'}
+                    <input type="file" style={{ display: 'none' }} onChange={e => e.target.files && onUpload(e.target.files[0])} />
+                  </label>
+                </div>
+                <textarea value={content} onChange={e => setContent(e.target.value)} style={{ width: '100%', minHeight: 400 }} />
+                {attachments && attachments.length > 0 && (
+                  <div style={{ marginTop: '1rem' }}>
+                    <h3>Bijlagen</h3>
+                    <ul>
+                      {attachments.map((a, i) => (
+                        <li key={i}><a href={a.url} target="_blank" rel="noreferrer">{a.name || a.url}</a></li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <TenderSources clientId={clientId} tenderId={tenderId} />
               </div>
-            )}
-            <TenderSources clientId={clientId} tenderId={tenderId} />
+              <div>
+                <div className="card" style={{ padding: '0.75rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <button className={`btn ${activeTab==='search'?'btn-primary':'btn-secondary'}`} onClick={() => setActiveTab('search')}>Zoek bronnen</button>
+                    <button className={`btn ${activeTab==='chat'?'btn-primary':'btn-secondary'}`} onClick={() => setActiveTab('chat')}>AI chat</button>
+                  </div>
+                  {activeTab === 'search' ? (
+                    <div>
+                      <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Zoek in documenten" style={{ width: '100%', marginBottom: '0.5rem' }} />
+                      <button className="btn btn-secondary" onClick={doSearch} disabled={searching}>{searching?'Zoeken...':'Zoek'}</button>
+                      <ul style={{ marginTop: '0.75rem' }}>
+                        {results.map((r:any, i:number)=> (
+                          <li key={i} style={{ marginBottom: '0.5rem' }}>
+                            <div style={{ fontSize: '0.9em' }}>{r.text.slice(0,180)}...</div>
+                            {r.document?.title && <div style={{ color: '#6b7280' }}>{r.document.title}</div>}
+                            {r.document?.url && <div><a href={r.document.url} target="_blank" rel="noreferrer">Bron</a></div>}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <div>
+                      <textarea value={chatInput} onChange={e=>setChatInput(e.target.value)} rows={6} placeholder="Stel een vraag aan de AI" style={{ width: '100%' }} />
+                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                        <button className="btn btn-secondary" onClick={sendChat} disabled={chatLoading}>{chatLoading?'Versturen...':'Vraag AI'}</button>
+                        <button className="btn btn-secondary" onClick={insertFromReply} disabled={!chatReply}>Invoegen in tekst</button>
+                      </div>
+                      {chatReply && <pre style={{ marginTop: '0.75rem', whiteSpace: 'pre-wrap' }}>{chatReply}</pre>}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
