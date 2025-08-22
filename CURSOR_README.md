@@ -486,20 +486,50 @@ Indexes:
 - `knowledge_chunks`: { tenantId, documentId, chunkIndex } (unique)
 - Atlas Vector Search index `vector_index` op `knowledge_chunks.embedding`
 
-### Environments
-- GRAPH_TENANT_ID, GRAPH_CLIENT_ID, GRAPH_CLIENT_SECRET
-- GRAPH_VERTICAL_SITE_URL=`https://appaltibv.sharepoint.com/sites/appalti9`
-- GRAPH_VERTICAL_LIBRARY=`Gedeelde documenten`
-- GRAPH_VERTICAL_FOLDER=`/Klanten Shares`
-- GRAPH_HORIZONTAL_ONEDRIVE_UPN=`rjager@appalti.nl`
-- GRAPH_HORIZONTAL_ONEDRIVE_PATH=`/Documents/Attachments`
-- OPENAI_API_KEY (+ optional OPENAI_EMBEDDING_MODEL, default `text-embedding-3-small`)
-- ANTHROPIC_API_KEY
+### Environments – volledige matrix
+| Key | Purpose | Required | Default/Notes |
+| --- | --- | --- | --- |
+| MONGODB_URI | Database connectie | Yes | Atlas/cluster URI |
+| MONGODB_DB | Database naam | Yes | appalti-prod |
+| NEXTAUTH_URL | Base URL (NextAuth) | Dev/Prod | http://localhost:3000 of Vercel URL |
+| NEXTAUTH_SECRET | NextAuth secret | Yes | |
+| AUTH0_CLIENT_ID/SECRET | Auth0 | Yes | |
+| AUTH0_ISSUER_BASE_URL | Auth0 domain | Yes | |
+| GRAPH_TENANT_ID | Entra tenant | For RAG | |
+| GRAPH_CLIENT_ID/SECRET | Graph app-only | For RAG | Sites.Read.All, Files.Read.All |
+| GRAPH_VERTICAL_SITE_URL | Vertical site | For RAG | https://appaltibv.sharepoint.com/sites/appalti9 |
+| GRAPH_VERTICAL_LIBRARY | Vertical library | For RAG | Gedeelde documenten |
+| GRAPH_VERTICAL_FOLDER | Vertical folder | Optional | /Klanten Shares |
+| GRAPH_HORIZONTAL_ONEDRIVE_UPN | Horizontaal UPN | For RAG | rjager@appalti.nl |
+| GRAPH_HORIZONTAL_ONEDRIVE_PATH | Horizontaal path | Optional | /Documents/Attachments |
+| OPENAI_API_KEY | Embeddings | Yes (RAG) | model: text-embedding-3-small |
+| ANTHROPIC_API_KEY | Genereren/Review | Yes | claude-3-5-sonnet-latest |
+| BLOB_READ_WRITE_TOKEN | Uploads | Yes | via Vercel Blob Connect Project |
+| VERCEL_BLOB_READ_WRITE_TOKEN | Compat alias | Optional | same as above |
 
-### Nieuwe libs
-- `src/lib/graph.ts`: app-only Graph client, site/drive resolvers, OneDrive/SharePoint folder traversal, simple text download for text-like files.
-- `src/lib/rag.ts`: checksum, chunking (≈1000 chars, overlap 150), embeddings via OpenAI.
-- Repositories/models: `src/lib/db/models/Knowledge.ts`, `src/lib/db/repositories/knowledgeRepository.ts`.
+### Runbook (prod)
+1) Env check (bovenstaande matrix) → Redeploy.
+2) Ingestie (eenmalig / herhaalbaar):
+   - Vertical: GET `/api/knowledge/ingest/run-defaults?source=vertical&clientName=Intergarde`
+   - Horizontal: GET `/api/knowledge/ingest/run-defaults?source=horizontal`
+3) Schrijven:
+   - Ga naar editor → “Genereer met AI (RAG)” → concept invoegen → opslaan.
+   - “Review met AI” → verbeterpunten + verbeterde tekst → verwerken → opslaan.
+   - “Upload document” voor extra context (30MB limiet).
+
+### Belangrijke endpoints (samenvatting)
+- GET `/api/knowledge/ingest/run-defaults?source=vertical|horizontal&clientName=...` – snelle ingestie
+- POST `/api/knowledge/ingest` – ingestie met body (source/companyId/limit)
+- GET `/api/knowledge/search?q=...&scope=vertical|horizontal&companyId=...&topK=8` – RAG search
+- POST `/api/bids/[id]/stages/[stage]/ai/generate` – RAG generatie (Anthropic)
+- POST `/api/bids/[id]/stages/[stage]/ai/review` – AI review/verbetering (Anthropic)
+- POST `/api/bids/[id]/stages/[stage]/upload` – file upload (@vercel/blob)
+
+### Troubleshooting
+- AI: `invalid x-api-key` → controleer `ANTHROPIC_API_KEY` (Production/Preview) en redeploy.
+- RAG lijkt niets te vinden → check ingestie endpoints; verifieer dat `OPENAI_API_KEY` is gezet.
+- Upload: melding over Blob token → zet `BLOB_READ_WRITE_TOKEN` (of `VERCEL_BLOB_READ_WRITE_TOKEN`) en redeploy.
+- Vector Search: als search 500 geeft → maak Atlas Vector Index `vector_index` op `knowledge_chunks.embedding` (dim 1536 voor text-embedding-3-small).
 
 ### Endpoints
 - POST ` /api/knowledge/ingest`
