@@ -546,3 +546,17 @@ Indexes:
 3) Klik "Genereer met AI (RAG)" → concept wordt onderaan ingevoegd; sla op.
 4) Pas aan; klik daarna "Review met AI" voor verbeterpunten + verbeterde versie; verwerk en sla op.
 5) Upload aanvullende stukken via "Upload document" (foutmelding wijst op Blob token indien nodig).
+
+### Uploads (Vercel Blob) – Setup
+1) Maak/gebruik een Blob Store in Vercel (Storage → Blob → je store).
+2) Verbind met het project (Connect Project) of maak een token:
+   - Automatisch (aanbevolen): Connect Project zet env vars voor je neer.
+   - Handmatig: Storage → Blob → Access Tokens → Create (scope: Read/Write).
+3) Zet env vars in Vercel (Production + Preview) en redeploy:
+   - `BLOB_READ_WRITE_TOKEN` = <token>
+   - (compat) `VERCEL_BLOB_READ_WRITE_TOKEN` = <zelfde token>
+4) Upload in editor moet nu werken; foutmelding verwijst naar ontbrekend token.
+
+### AI keys – Checklist
+- `ANTHROPIC_API_KEY` (required voor genereren/review)
+- `OPENAI_API_KEY` (required voor embeddings; model default: `text-embedding-3-small`)
