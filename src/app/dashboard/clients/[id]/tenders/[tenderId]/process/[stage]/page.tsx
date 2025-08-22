@@ -21,9 +21,8 @@ export default function StageEditorPage() {
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<any[]>([]);
-  const [chatInput, setChatInput] = useState('');
-  const [chatLoading, setChatLoading] = useState(false);
-  const [chatReply, setChatReply] = useState('');
+  const [genLoading, setGenLoading] = useState(false);
+  const [revLoading, setRevLoading] = useState(false);
 
   const bidIdFromQuery = async (): Promise<string | undefined> => {
     try {
@@ -118,20 +117,30 @@ export default function StageEditorPage() {
     finally { setSearching(false); }
   };
 
-  const sendChat = async () => {
+  const generateWithRag = async () => {
     try {
-      setChatLoading(true);
-      const contextSnippets = results.slice(0,3).map((r: any) => ({ text: r.text, source: r.document?.title || r.document?.url }));
-      const res = await fetch('/api/ai/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: chatInput, currentText: content, contextSnippets }) });
+      setGenLoading(true);
+      const bidId = await bidIdFromQuery();
+      if (!bidId) throw new Error('Bid niet gevonden');
+      const res = await fetch(`/api/bids/${bidId}/stages/${stage}/ai/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
       const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || 'AI chat mislukt');
-      setChatReply(json.data.reply);
-    } catch (e: any) { alert(e?.message || 'AI chat mislukt'); }
-    finally { setChatLoading(false); }
+      if (!res.ok || !json.success) throw new Error(json.error || 'Genereren mislukt');
+      setContent(prev => (prev ? prev + '\n\n' : '') + (json.data.generatedText || ''));
+    } catch (e: any) { alert(e?.message || 'Genereren mislukt'); }
+    finally { setGenLoading(false); }
   };
 
-  const insertFromReply = () => {
-    setContent(prev => (prev ? prev + '\n\n' : '') + chatReply);
+  const reviewWithAi = async () => {
+    try {
+      setRevLoading(true);
+      const bidId = await bidIdFromQuery();
+      if (!bidId) throw new Error('Bid niet gevonden');
+      const res = await fetch(`/api/bids/${bidId}/stages/${stage}/ai/review`, { method: 'POST' });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Review mislukt');
+      setContent(prev => (prev ? prev + '\n\n' : '') + (json.data.review || ''));
+    } catch (e: any) { alert(e?.message || 'Review mislukt'); }
+    finally { setRevLoading(false); }
   };
 
   return (
@@ -170,7 +179,8 @@ export default function StageEditorPage() {
                 <div className="card" style={{ padding: '0.75rem' }}>
                   <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
                     <button className={`btn ${activeTab==='search'?'btn-primary':'btn-secondary'}`} onClick={() => setActiveTab('search')}>Zoek bronnen</button>
-                    <button className={`btn ${activeTab==='chat'?'btn-primary':'btn-secondary'}`} onClick={() => setActiveTab('chat')}>AI chat</button>
+                    <button className="btn btn-secondary" onClick={generateWithRag} disabled={genLoading}>{genLoading?'Genereren...':'Genereer met AI (RAG)'}</button>
+                    <button className="btn btn-secondary" onClick={reviewWithAi} disabled={revLoading}>{revLoading?'Review...':'Review met AI'}</button>
                   </div>
                   {activeTab === 'search' ? (
                     <div>
@@ -186,16 +196,7 @@ export default function StageEditorPage() {
                         ))}
                       </ul>
                     </div>
-                  ) : (
-                    <div>
-                      <textarea value={chatInput} onChange={e=>setChatInput(e.target.value)} rows={6} placeholder="Stel een vraag aan de AI" style={{ width: '100%' }} />
-                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                        <button className="btn btn-secondary" onClick={sendChat} disabled={chatLoading}>{chatLoading?'Versturen...':'Vraag AI'}</button>
-                        <button className="btn btn-secondary" onClick={insertFromReply} disabled={!chatReply}>Invoegen in tekst</button>
-                      </div>
-                      {chatReply && <pre style={{ marginTop: '0.75rem', whiteSpace: 'pre-wrap' }}>{chatReply}</pre>}
-                    </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>

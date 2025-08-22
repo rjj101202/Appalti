@@ -27,8 +27,21 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     if (!(file instanceof File)) {
       return NextResponse.json({ error: 'file is required' }, { status: 400 });
     }
+    if ((file as any).size > 30 * 1024 * 1024) {
+      return NextResponse.json({ error: 'File too large (max 30MB)' }, { status: 400 });
+    }
     const safeName = `bids/${auth.tenantId}/${parsed.data.id}/${parsed.data.stage}/${Date.now()}-${file.name}`.replace(/[^a-zA-Z0-9._/-]/g, '_');
-    const blob = await put(safeName, file, { access: 'public' });
+    let blob: any;
+    try {
+      blob = await put(safeName, file, { access: 'public' });
+    } catch (e: any) {
+      const msg = e?.message || '';
+      if (msg.includes('VERCEL_BLOB_TOKEN')) {
+        return NextResponse.json({ error: 'Blob misconfigured: set VERCEL_BLOB_READ_WRITE_TOKEN in env' }, { status: 500 });
+      }
+      console.error('Blob put error', e);
+      return NextResponse.json({ error: 'Upload storage error' }, { status: 500 });
+    }
     const db = await getDatabase();
     await db.collection('bids').updateOne(
       { _id: new ObjectId(parsed.data.id), tenantId: auth.tenantId, 'stages.key': parsed.data.stage },

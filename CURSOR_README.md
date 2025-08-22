@@ -534,3 +534,15 @@ Indexes:
   - New endpoints: `POST /api/knowledge/ingest`, `GET /api/knowledge/search`, `POST /api/ai/chat`.
   - Editor update: right-side AI pane (search + chat) in stage editor page.
   - Envs documented; defaults added for horizontal (OneDrive UPN/path) en vertical (site/library/folder).
+
+- commit: RAG generate/review flow + simpler UI
+  - New endpoints: `POST /api/bids/[id]/stages/[stage]/ai/generate` (RAG – zoekt verticaal + horizontaal, Anthropic), `POST /api/bids/[id]/stages/[stage]/ai/review` (kritiek + verbeterde tekst).
+  - Stage editor: rechterpaneel vereenvoudigd → knoppen "Genereer met AI (RAG)" en "Review met AI" + tab "Zoek bronnen".
+  - Uploads: betere foutmeldingen; geeft hint als `VERCEL_BLOB_READ_WRITE_TOKEN` ontbreekt; size‑limit 30MB.
+
+### Workthrough (schrijven met RAG)
+1) Start ingest (eenmalig per bron) via de run‑defaults endpoints of handmatig `POST /api/knowledge/ingest`.
+2) Open editor: `Dashboard → Clients → [client] → Bid Proces → [tender] → Process → [stage]`.
+3) Klik "Genereer met AI (RAG)" → concept wordt onderaan ingevoegd; sla op.
+4) Pas aan; klik daarna "Review met AI" voor verbeterpunten + verbeterde versie; verwerk en sla op.
+5) Upload aanvullende stukken via "Upload document" (foutmelding wijst op Blob token indien nodig).
