@@ -20,7 +20,11 @@ export async function GET(request: NextRequest) {
 				id: user._id?.toString(),
 				name: user.name,
 				email: user.email,
-				image: user.avatar || user.image
+				image: user.avatar || user.image,
+				companyRole: auth.companyRole,
+				platformRole: auth.platformRole,
+				tenantId: auth.tenantId,
+				companyId: auth.companyId
 			}
 		});
 	} catch (e) {

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 
 export default function ProfilePage() {
-	const [me, setMe] = useState<{ name?: string; email?: string; image?: string } | null>(null);
+	const [me, setMe] = useState<{ name?: string; email?: string; image?: string; companyRole?: string; platformRole?: string } | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [name, setName] = useState('');
 	const [image, setImage] = useState('');
@@ -96,6 +96,10 @@ export default function ProfilePage() {
 								<button className="btn btn-primary" type="submit">Opslaan</button>
 								{saveMsg && <span style={{ color: '#6b7280' }}>{saveMsg}</span>}
 							</form>
+							<div style={{ marginTop: 12, color: '#6b7280' }}>
+								<p style={{ margin: 0 }}>Mijn rol (company): <strong>{me?.companyRole || 'onbekend'}</strong></p>
+								{me?.platformRole && <p style={{ margin: 0 }}>Platform rol: <strong>{me.platformRole}</strong></p>}
+							</div>
 						</section>
 
 						<section style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 16 }}>
