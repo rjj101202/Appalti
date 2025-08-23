@@ -45,20 +45,44 @@ export class KnowledgeRepository {
     return res.insertedCount;
   }
 
-  async searchByEmbedding(tenantId: string, queryEmbedding: number[], topK: number, filter?: any): Promise<KnowledgeChunk[]> {
-    // Uses MongoDB Atlas Vector Search. Assumes index named 'vector_index' on field 'embedding'.
+  async searchByEmbedding(tenantId: string, queryEmbedding: number[], topK: number, docFilter?: any): Promise<KnowledgeChunk[]> {
+    // Atlas Vector Search requires $vectorSearch as the first stage.
+    const vectorFilter: any = { tenantId };
+
     const pipeline: any[] = [
-      { $match: { tenantId, ...(filter || {}) } },
       {
         $vectorSearch: {
           index: 'vector_index',
           path: 'embedding',
           queryVector: queryEmbedding,
           numCandidates: Math.max(50, topK * 5),
-          limit: topK
+          limit: topK * 2, // fetch a bit more, filter after join
+          filter: vectorFilter
         }
-      }
+      },
+      {
+        $lookup: {
+          from: 'knowledge_documents',
+          localField: 'documentId',
+          foreignField: '_id',
+          as: 'doc'
+        }
+      },
+      { $unwind: '$doc' }
     ];
+
+    const matchDoc: any = {};
+    if (docFilter) {
+      if (docFilter.scope) matchDoc['doc.scope'] = docFilter.scope;
+      if (docFilter.companyId) matchDoc['doc.companyId'] = docFilter.companyId instanceof ObjectId ? docFilter.companyId : new ObjectId(String(docFilter.companyId));
+    }
+    if (Object.keys(matchDoc).length > 0) {
+      pipeline.push({ $match: matchDoc });
+    }
+
+    // Final limit to topK after filtering
+    pipeline.push({ $limit: topK });
+
     const res = await this.chunks.aggregate(pipeline).toArray();
     return res as any;
   }
