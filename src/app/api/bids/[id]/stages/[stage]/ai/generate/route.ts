@@ -5,7 +5,7 @@ import { getDatabase } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import { embedTexts } from '@/lib/rag';
 import { getKnowledgeRepository } from '@/lib/db/repositories/knowledgeRepository';
-import pdfParse from 'pdf-parse';
+// Note: pdf-parse is dynamically imported to avoid bundling test assets during build
 
 export const runtime = 'nodejs';
 
@@ -70,6 +70,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // Extract PDF attachments (leidraad) for this stage as buyer context
     let buyerDocSummary = '';
     try {
+      const pdfParse = (await import('pdf-parse')).default;
       const stageState = (bid.stages || []).find((s: any) => s.key === stage) || {};
       const atts: Array<{ name: string; url: string }> = stageState.attachments || [];
       const pdfAtts = atts.filter(a => /\.pdf$/i.test(a.name));
