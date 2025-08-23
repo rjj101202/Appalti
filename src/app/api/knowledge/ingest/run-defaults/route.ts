@@ -104,6 +104,7 @@ export async function GET(request: NextRequest) {
 
     // Extend allowed: include docx
     const finalList = files.filter(f => /\.(txt|md|markdown|csv|log|json|html?|docx)$/i.test(f.name)).slice(0, limit);
+    const ingested: any[] = [];
 
     for (const f of finalList) {
       let text: string | null = null;
