@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/auth/context';
 import { getClientCompanyRepository } from '@/lib/db/repositories/clientCompanyRepository';
 import { getKnowledgeRepository } from '@/lib/db/repositories/knowledgeRepository';
 import { resolveSiteIdFromUrl, getDriveByName, listFilesInSiteLibraryFolder, listFilesInUserOneDriveFolder, downloadTextContentForItem } from '@/lib/graph';
+import { listFolderChildrenShallow } from '@/lib/graph';
 import { chunkText, computeChecksum, embedTexts } from '@/lib/rag';
 import { ObjectId } from 'mongodb';
 
@@ -62,15 +63,17 @@ export async function GET(request: NextRequest) {
       const { siteId } = await resolveSiteIdFromUrl(siteUrl);
       const drive = await getDriveByName(siteId, driveName);
       if (!drive) throw new Error(`Vertical drive not found: ${driveName}`);
-      const items = await listFilesInSiteLibraryFolder(siteUrl, driveName, folder);
-      // Filter: alleen map van de klant (bv. Klanten Shares/Intergarde/...)
+      // Shallow listing van de topmap (bijv. /Klanten Shares) om throttling/timeouts te beperken
+      const topChildren = await listFolderChildrenShallow(drive.id, folder || '/');
       const needle = (companyNameForFolder || '').toLowerCase();
-      files = items
-        .filter(i => needle ? i.path.toLowerCase().includes(`/${needle}/`) || i.path.toLowerCase().endsWith(`/${needle}`) : true)
-        .map(i => ({ ...i, __driveId: drive.id }));
-      if (needle && files.length === 0) {
-        return NextResponse.json({ error: `Geen bestanden gevonden onder folder met naam die lijkt op "${companyNameForFolder}". Controleer mapnaam in Klanten Shares.` }, { status: 404 });
+      const clientFolder = topChildren.find(c => !c.mimeType && c.name.toLowerCase() === needle) ||
+                           topChildren.find(c => !c.mimeType && c.name.toLowerCase().includes(needle));
+      if (!clientFolder) {
+        return NextResponse.json({ error: `Geen klantmap gevonden die lijkt op "${companyNameForFolder}" onder ${folder || '/'} (library ${driveName}).` }, { status: 404 });
       }
+      // Nu pas recursief binnen de klantmap
+      const items = await listFilesInSiteLibraryFolder(siteUrl, driveName, clientFolder.path);
+      files = items.map(i => ({ ...i, __driveId: drive.id }));
     } else {
       const userUpn = process.env.GRAPH_HORIZONTAL_ONEDRIVE_UPN || auth.email;
       const folder = process.env.GRAPH_HORIZONTAL_ONEDRIVE_PATH || '/Documents/Attachments';

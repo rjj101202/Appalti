@@ -102,6 +102,27 @@ export type DriveItem = {
   path: string; // virtual path within the drive
 };
 
+export async function listFolderChildrenShallow(driveId: string, folderPath: string): Promise<DriveItem[]> {
+  const encodedPath = folderPath
+    .split('/')
+    .filter(Boolean)
+    .map(s => encodeURIComponent(s))
+    .join('/');
+  const prefix = encodedPath ? `/${encodedPath}` : '';
+  const res = await graphFetch<{ value: any[] }>(`/drives/${driveId}/root:${prefix}:/children?$top=999`);
+  const items: DriveItem[] = [];
+  for (const v of res.value || []) {
+    const name = v.name as string;
+    const id = v.id as string;
+    const webUrl = v.webUrl as string;
+    const size = typeof v.size === 'number' ? v.size : undefined;
+    const mimeType = v.file?.mimeType as string | undefined;
+    const path = `${decodeURIComponent(prefix)}/${name}`;
+    items.push({ id, name, webUrl, size, mimeType, path });
+  }
+  return items;
+}
+
 async function listChildren(driveId: string, encodedPath: string): Promise<DriveItem[]> {
   // encodedPath like /Klanten%20Shares or /Klanten%20Shares/Sub
   const res = await graphFetch<{ value: any[] }>(`/drives/${driveId}/root:${encodedPath}:/children?$top=999`);
