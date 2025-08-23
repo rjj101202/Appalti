@@ -16,7 +16,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const db = await getDatabase();
     const res = await db.collection('bids').updateOne(
       { _id: new ObjectId(params.id), tenantId: auth.tenantId, 'stages.key': params.stage },
-      { $set: { 'stages.$.assignedReviewer': { id: new ObjectId(parsed.data.reviewerId), name: parsed.data.name, email: parsed.data.email }, updatedAt: new Date(), updatedBy: new ObjectId(auth.userId) } }
+      { $set: { 'stages.$.assignedReviewer': { id: new ObjectId(parsed.data.reviewerId), name: parsed.data.name, email: parsed.data.email }, 'stages.$.status': 'pending_review', updatedAt: new Date(), updatedBy: new ObjectId(auth.userId) } }
     );
     if (!res.matchedCount) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json({ success: true });
