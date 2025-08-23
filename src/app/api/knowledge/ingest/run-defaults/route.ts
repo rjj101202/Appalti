@@ -12,6 +12,7 @@ export const runtime = 'nodejs';
 const qSchema = z.object({
   source: z.enum(['vertical','horizontal']),
   clientName: z.string().optional(),
+  clientId: z.string().optional(),
   limit: z.coerce.number().min(1).max(200).default(50)
 });
 
@@ -32,14 +33,23 @@ export async function GET(request: NextRequest) {
     const source = parsed.data.source;
     const limit = parsed.data.limit;
     let companyId: string | undefined;
+    let companyNameForFolder: string | undefined;
 
     if (source === 'vertical') {
-      const name = parsed.data.clientName || 'Intergarde';
-      const clientRepo = await getClientCompanyRepository();
-      const all = await clientRepo.findAll(auth.tenantId);
-      const match = all.find(c => (c.name || '').toLowerCase() === name.toLowerCase());
-      if (!match) return NextResponse.json({ error: `ClientCompany not found: ${name}` }, { status: 404 });
-      companyId = match._id!.toString();
+      if (parsed.data.clientId) {
+        companyId = parsed.data.clientId;
+        companyNameForFolder = parsed.data.clientName; // optional hint for folder filter
+      } else {
+        const name = (parsed.data.clientName || '').trim();
+        const clientRepo = await getClientCompanyRepository();
+        const all = await clientRepo.findAll(auth.tenantId);
+        const lower = name.toLowerCase();
+        const match = all.find(c => (c.name || '').toLowerCase() === lower) ||
+                      all.find(c => (c.name || '').toLowerCase().includes(lower));
+        if (!match) return NextResponse.json({ error: `ClientCompany not found: ${parsed.data.clientName || '(missing)'}` }, { status: 404 });
+        companyId = match._id!.toString();
+        companyNameForFolder = match.name;
+      }
     }
 
     const repo = await getKnowledgeRepository();
@@ -53,7 +63,14 @@ export async function GET(request: NextRequest) {
       const drive = await getDriveByName(siteId, driveName);
       if (!drive) throw new Error(`Vertical drive not found: ${driveName}`);
       const items = await listFilesInSiteLibraryFolder(siteUrl, driveName, folder);
-      files = items.map(i => ({ ...i, __driveId: drive.id }));
+      // Filter: alleen map van de klant (bv. Klanten Shares/Intergarde/...)
+      const needle = (companyNameForFolder || '').toLowerCase();
+      files = items
+        .filter(i => needle ? i.path.toLowerCase().includes(`/${needle}/`) || i.path.toLowerCase().endsWith(`/${needle}`) : true)
+        .map(i => ({ ...i, __driveId: drive.id }));
+      if (needle && files.length === 0) {
+        return NextResponse.json({ error: `Geen bestanden gevonden onder folder met naam die lijkt op "${companyNameForFolder}". Controleer mapnaam in Klanten Shares.` }, { status: 404 });
+      }
     } else {
       const userUpn = process.env.GRAPH_HORIZONTAL_ONEDRIVE_UPN || auth.email;
       const folder = process.env.GRAPH_HORIZONTAL_ONEDRIVE_PATH || '/Documents/Attachments';
@@ -86,7 +103,7 @@ export async function GET(request: NextRequest) {
       const embeddings = await embedTexts(chunks);
       const toInsert = chunks.map((t, i) => ({ text: t, embedding: embeddings[i], chunkIndex: i }));
       await repo.replaceChunks(auth.tenantId, doc._id as ObjectId, toInsert as any);
-      ingested.push({ id: doc._id?.toString(), title: doc.title, chunks: chunks.length });
+      ingested.push({ id: doc._id?.toString(), title: doc.title, chunks: chunks.length, path: f.path });
     }
 
     return NextResponse.json({ success: true, data: { scope: source, count: ingested.length, items: ingested } });
