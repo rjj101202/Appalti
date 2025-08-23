@@ -507,12 +507,19 @@ Indexes:
 | BLOB_READ_WRITE_TOKEN | Uploads | Yes | via Vercel Blob Connect Project |
 | VERCEL_BLOB_READ_WRITE_TOKEN | Compat alias | Optional | same as above |
 
+### Ingestie – bestandsformaten
+- Tekst: txt, md/markdown, html/htm, csv, json, log
+- Nieuw: docx (MVP via mammoth – opmaak gaat verloren; alleen platte tekst)
+- (Nog niet): pdf, xlsx, pptx (volgt later)
+
 ### Runbook (prod)
 1) Env check (bovenstaande matrix) → Redeploy.
 2) Ingestie (eenmalig / herhaalbaar):
-   - Vertical: GET `/api/knowledge/ingest/run-defaults?source=vertical&clientName=<naam>`
-   - Alleen submap: voeg `&subfolder=Test_AI_Remy` toe om uitsluitend die submap onder de klantmap te indexeren
-   - Horizontal: GET `/api/knowledge/ingest/run-defaults?source=horizontal`
+   - Vertical: `/api/knowledge/ingest/run-defaults?source=vertical&clientName=<naam>`
+   - Alleen submap: `&subfolder=Test_AI_Remy`
+   - Mapnaam overrulen (als officiële naam ≠ mapnaam): `&folderName=Intergarde`
+   - Snelheid: `&limit=25`
+   - Horizontal: `/api/knowledge/ingest/run-defaults?source=horizontal`
 3) Schrijven:
    - Ga naar editor → “Genereer met AI (RAG)” → concept invoegen → opslaan.
    - “Review met AI” → verbeterpunten + verbeterde tekst → verwerken → opslaan.
