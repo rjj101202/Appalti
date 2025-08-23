@@ -156,7 +156,6 @@ export default function StageEditorPage() {
               <div>
                 <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
                   <button className="btn btn-secondary" onClick={save} disabled={saving}>{saving ? 'Opslaan...' : 'Opslaan'}</button>
-                  <button className="btn btn-secondary" onClick={aiDraft} disabled={aiLoading}>{aiLoading ? 'AI genereert...' : 'Genereer met AI'}</button>
                   <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
                     {uploading ? 'Uploaden...' : 'Upload document'}
                     <input type="file" style={{ display: 'none' }} onChange={e => e.target.files && onUpload(e.target.files[0])} />
