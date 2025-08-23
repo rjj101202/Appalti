@@ -14,7 +14,8 @@ const qSchema = z.object({
   source: z.enum(['vertical','horizontal']),
   clientName: z.string().optional(),
   clientId: z.string().optional(),
-  limit: z.coerce.number().min(1).max(200).default(50)
+  limit: z.coerce.number().min(1).max(200).default(50),
+  subfolder: z.string().optional()
 });
 
 function getEnv(name: string) {
@@ -71,8 +72,9 @@ export async function GET(request: NextRequest) {
       if (!clientFolder) {
         return NextResponse.json({ error: `Geen klantmap gevonden die lijkt op "${companyNameForFolder}" onder ${folder || '/'} (library ${driveName}).` }, { status: 404 });
       }
-      // Nu pas recursief binnen de klantmap
-      const items = await listFilesInSiteLibraryFolder(siteUrl, driveName, clientFolder.path);
+      // Nu pas recursief binnen de klantmap (optioneel met subfolder)
+      const targetPath = parsed.data.subfolder ? `${clientFolder.path}/${parsed.data.subfolder}` : clientFolder.path;
+      const items = await listFilesInSiteLibraryFolder(siteUrl, driveName, targetPath);
       files = items.map(i => ({ ...i, __driveId: drive.id }));
     } else {
       const userUpn = process.env.GRAPH_HORIZONTAL_ONEDRIVE_UPN || auth.email;
