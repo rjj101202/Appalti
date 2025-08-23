@@ -42,19 +42,29 @@ async function getAccessToken(): Promise<string> {
 export async function graphFetch<T = any>(path: string, init?: RequestInit): Promise<T> {
   const token = await getAccessToken();
   const url = path.startsWith('https://') ? path : `https://graph.microsoft.com/v1.0${path}`;
-  const res = await fetch(url, {
-    ...init,
-    headers: {
-      'authorization': `Bearer ${token}`,
-      'accept': 'application/json',
-      ...(init?.headers || {})
+  let attempt = 0;
+  while (true) {
+    attempt++;
+    const res = await fetch(url, {
+      ...init,
+      headers: {
+        'authorization': `Bearer ${token}`,
+        'accept': 'application/json',
+        ...(init?.headers || {})
+      }
+    });
+    if (res.ok) {
+      return res.json();
     }
-  });
-  if (!res.ok) {
+    // Handle throttling
+    if (res.status === 429 && attempt <= 5) {
+      const retryAfter = parseInt(res.headers.get('retry-after') || '5', 10);
+      await new Promise(r => setTimeout(r, (isNaN(retryAfter) ? 5 : retryAfter) * 1000));
+      continue;
+    }
     const t = await res.text();
     throw new Error(`Graph fetch ${url} failed: ${res.status} ${t}`);
   }
-  return res.json();
 }
 
 export async function resolveSiteIdFromUrl(siteUrl: string): Promise<{ siteId: string; hostname: string; sitePath: string }> {
@@ -74,7 +84,13 @@ export async function listSiteDrives(siteId: string): Promise<Array<{ id: string
 
 export async function getDriveByName(siteId: string, driveName: string): Promise<{ id: string; name: string } | null> {
   const drives = await listSiteDrives(siteId);
-  return drives.find(d => d.name.toLowerCase() === driveName.toLowerCase()) || null;
+  // Graph uses non-localized names, typically "Documents" for "Gedeelde documenten"
+  const target = driveName.toLowerCase();
+  return (
+    drives.find(d => d.name.toLowerCase() === target) ||
+    drives.find(d => d.name.toLowerCase() === 'documents') ||
+    null
+  );
 }
 
 export type DriveItem = {
