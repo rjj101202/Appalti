@@ -2,6 +2,20 @@ import { Collection, Db, ObjectId } from 'mongodb';
 import { getDatabase } from '@/lib/mongodb';
 import { KnowledgeChunk, KnowledgeDocument } from '../models/Knowledge';
 
+function cosineSimilarity(a: number[], b: number[]): number {
+  let dot = 0, na = 0, nb = 0;
+  const n = Math.min(a.length, b.length);
+  for (let i = 0; i < n; i++) {
+    const x = a[i];
+    const y = b[i];
+    dot += x * y;
+    na += x * x;
+    nb += y * y;
+  }
+  const denom = Math.sqrt(na) * Math.sqrt(nb) + 1e-8;
+  return dot / denom;
+}
+
 export class KnowledgeRepository {
   private docs: Collection<KnowledgeDocument>;
   private chunks: Collection<KnowledgeChunk>;
@@ -46,45 +60,61 @@ export class KnowledgeRepository {
   }
 
   async searchByEmbedding(tenantId: string, queryEmbedding: number[], topK: number, docFilter?: any): Promise<KnowledgeChunk[]> {
-    // Atlas Vector Search requires $vectorSearch as the first stage.
-    const vectorFilter: any = { tenantId };
+    // Preferred path: Atlas Vector Search
+    try {
+      const vectorFilter: any = { tenantId };
+      const pipeline: any[] = [
+        {
+          $vectorSearch: {
+            index: 'vector_index',
+            path: 'embedding',
+            queryVector: queryEmbedding,
+            numCandidates: Math.max(50, topK * 5),
+            limit: topK * 2,
+            filter: vectorFilter
+          }
+        },
+        {
+          $lookup: {
+            from: 'knowledge_documents',
+            localField: 'documentId',
+            foreignField: '_id',
+            as: 'doc'
+          }
+        },
+        { $unwind: '$doc' }
+      ];
 
-    const pipeline: any[] = [
-      {
-        $vectorSearch: {
-          index: 'vector_index',
-          path: 'embedding',
-          queryVector: queryEmbedding,
-          numCandidates: Math.max(50, topK * 5),
-          limit: topK * 2, // fetch a bit more, filter after join
-          filter: vectorFilter
-        }
-      },
-      {
-        $lookup: {
-          from: 'knowledge_documents',
-          localField: 'documentId',
-          foreignField: '_id',
-          as: 'doc'
-        }
-      },
-      { $unwind: '$doc' }
-    ];
+      const matchDoc: any = {};
+      if (docFilter) {
+        if (docFilter.scope) matchDoc['doc.scope'] = docFilter.scope;
+        if (docFilter.companyId) matchDoc['doc.companyId'] = docFilter.companyId instanceof ObjectId ? docFilter.companyId : new ObjectId(String(docFilter.companyId));
+      }
+      if (Object.keys(matchDoc).length > 0) pipeline.push({ $match: matchDoc });
+      pipeline.push({ $limit: topK });
 
-    const matchDoc: any = {};
-    if (docFilter) {
-      if (docFilter.scope) matchDoc['doc.scope'] = docFilter.scope;
-      if (docFilter.companyId) matchDoc['doc.companyId'] = docFilter.companyId instanceof ObjectId ? docFilter.companyId : new ObjectId(String(docFilter.companyId));
+      const res = await this.chunks.aggregate(pipeline).toArray();
+      return res as any;
+    } catch (e) {
+      console.warn('Vector search unavailable, falling back to in-memory similarity:', (e as any)?.message || e);
+      // Fallback: fetch candidate chunks by filtered documents and rank in Node
+      const docQuery: any = { tenantId };
+      if (docFilter?.scope) docQuery.scope = docFilter.scope;
+      if (docFilter?.companyId) docQuery.companyId = docFilter.companyId instanceof ObjectId ? docFilter.companyId : new ObjectId(String(docFilter.companyId));
+      const docs = await this.docs.find(docQuery).project({ _id: 1 }).toArray();
+      if (!docs.length) return [] as any;
+      const docIds = docs.map(d => d._id);
+      const candidates = await this.chunks
+        .find({ tenantId, documentId: { $in: docIds } })
+        .limit(Math.max(500, topK * 50))
+        .toArray();
+      const scored = candidates
+        .map(c => ({ c, score: cosineSimilarity(queryEmbedding, (c as any).embedding || []) }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, topK)
+        .map(x => x.c);
+      return scored as any;
     }
-    if (Object.keys(matchDoc).length > 0) {
-      pipeline.push({ $match: matchDoc });
-    }
-
-    // Final limit to topK after filtering
-    pipeline.push({ $limit: topK });
-
-    const res = await this.chunks.aggregate(pipeline).toArray();
-    return res as any;
   }
 
   async getDocumentById(id: string, tenantId: string): Promise<KnowledgeDocument | null> {
