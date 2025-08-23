@@ -36,11 +36,10 @@ export class KnowledgeRepository {
     if (doc.driveItemId) filter.driveItemId = doc.driveItemId;
     if (doc.userUpn) filter.userUpn = doc.userUpn;
     if (!doc.driveItemId && !doc.userUpn && doc.path) filter.path = doc.path;
-    const toSet: KnowledgeDocument = {
+    const toSet: Partial<KnowledgeDocument> = {
       ...doc,
       tenantId,
-      updatedAt: now,
-      createdAt: now,
+      updatedAt: now
     } as any;
 
     const res = await this.docs.findOneAndUpdate(

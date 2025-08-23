@@ -578,6 +578,12 @@ Indexes:
   - Stage editor: rechterpaneel vereenvoudigd → knoppen "Genereer met AI (RAG)" en "Review met AI" + tab "Zoek bronnen".
   - Uploads: betere foutmeldingen; geeft hint als `VERCEL_BLOB_READ_WRITE_TOKEN` ontbreekt; size‑limit 30MB.
 
+- commit: Ingest improvements
+  - Added DOCX support (mammoth) for vertical ingest
+  - Shallow listing of top folder, recurse only into matched client folder (less throttling)
+  - New params: `folderName` (override mapnaam), `subfolder` (alleen submap)
+  - Fixed Mongo upsert: `createdAt` only in $setOnInsert (avoid ConflictingUpdateOperators)
+
 ### Workthrough (schrijven met RAG)
 1) Start ingest (eenmalig per bron) via de run‑defaults endpoints of handmatig `POST /api/knowledge/ingest`.
 2) Open editor: `Dashboard → Clients → [client] → Bid Proces → [tender] → Process → [stage]`.
