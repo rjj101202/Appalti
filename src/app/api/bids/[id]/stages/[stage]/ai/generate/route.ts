@@ -5,6 +5,7 @@ import { getDatabase } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import { embedTexts } from '@/lib/rag';
 import { getKnowledgeRepository } from '@/lib/db/repositories/knowledgeRepository';
+import pdfParse from 'pdf-parse';
 
 export const runtime = 'nodejs';
 
@@ -53,45 +54,60 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const topK = parsedBody.data.topK || 8;
 
-    // Focus: alleen VERTICAAL + deze client (Intergarde)
+    // Vertical client context (Intergarde)
     const verticalHits = await repo.searchByEmbedding(auth.tenantId, embedding, topK, { scope: 'vertical', companyId: bid.clientCompanyId });
 
-    // Placeholder (uitgeschakeld): horizontaal wordt later toegevoegd
-    // const horizontalHits = await repo.searchByEmbedding(auth.tenantId, embedding, Math.floor(topK/2), { scope: 'horizontal' });
-
-    const allHits = [...verticalHits].slice(0, topK);
-
     // Load docs metadata for citations
-    const docIds = Array.from(new Set(allHits.map(h => h.documentId.toString()))).map(s => new ObjectId(s));
+    const docIds = Array.from(new Set(verticalHits.map(h => h.documentId.toString()))).map(s => new ObjectId(s));
     const docs = await db.collection('knowledge_documents').find({ _id: { $in: docIds } }).toArray();
     const byId = new Map(docs.map(d => [d._id.toString(), d]));
 
-    const contextSnippets = allHits.map(h => ({
+    const contextSnippets = verticalHits.map(h => ({
       text: h.text,
       source: byId.get(h.documentId.toString())?.title || byId.get(h.documentId.toString())?.sourceUrl || 'bron'
     })).slice(0, 12);
 
+    // Extract PDF attachments (leidraad) for this stage as buyer context
+    let buyerDocSummary = '';
+    try {
+      const stageState = (bid.stages || []).find((s: any) => s.key === stage) || {};
+      const atts: Array<{ name: string; url: string }> = stageState.attachments || [];
+      const pdfAtts = atts.filter(a => /\.pdf$/i.test(a.name));
+      if (pdfAtts.length > 0) {
+        const res = await fetch(pdfAtts[0].url);
+        if (res.ok) {
+          const arrayBuffer = await res.arrayBuffer();
+          const parsed = await pdfParse(Buffer.from(arrayBuffer));
+          buyerDocSummary = (parsed.text || '').replace(/\s+/g, ' ').slice(0, 4000);
+        }
+      }
+    } catch {}
+
+    // TenderNed summary fields (buyer) if available in tender record in future
+    const tenderBuyer = tender?.title?.includes('provincie') ? 'Opdrachtgever: provincie (volgens TenderNed samenvatting)' : '';
+
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) return NextResponse.json({ error: 'ANTHROPIC_API_KEY missing' }, { status: 400 });
 
-    const system = 'Je bent een ervaren Appalti tenderschrijver. Schrijf professioneel, helder en hartelijk. Gebruik context uit bronnen en citeer beknopt waar relevant.';
-    let user = `Genereer een eerste versie (storyline) voor fase "${stage}" voor de aanbesteding "${tender.title}".\n`;
+    const system = 'Je bent een tenderschrijver die voor de inschrijver (Intergarde) schrijft. Schrijf professioneel, helder, overtuigend en onderbouw met context.';
+
+    let user = `Schrijf een eerste versie (storyline/raamwerk) van het inschrijvingsdocument voor de aanbesteding "${tender.title}". Schrijf expliciet vanuit Intergarde (inschrijver) aan de opdrachtgever.\n`;
     if (clientCompany) {
-      user += `Klant: ${clientCompany.name}.`; 
+      user += `Kandidaat-inschrijver: ${clientCompany.name}.`;
       if (clientCompany.website) user += ` Website: ${clientCompany.website}.`;
       if (clientCompany.address?.city) user += ` Plaats: ${clientCompany.address.city}.`;
-      if (clientCompany.sbiDescription) user += ` SBI: ${clientCompany.sbiDescription}.`;
-      if (Array.isArray(clientCompany.handelsnamen) && clientCompany.handelsnamen.length) user += ` Handelsnamen: ${clientCompany.handelsnamen.join(', ')}.`;
-      if (clientCompany.ikpData) user += ` IKP kernpunten: ${JSON.stringify(clientCompany.ikpData).slice(0, 400)}.`;
       user += '\n';
     }
-    if (tender.description) user += `Aanbesteding omschrijving: ${tender.description}\n`;
+    if (tender.description) user += `Tender omschrijving (kort): ${tender.description}\n`;
+    if (tenderBuyer) user += `${tenderBuyer}\n`;
+    if (buyerDocSummary) user += `Belangrijke elementen uit de leidraad (samenvatting, max 4000 tekens): ${buyerDocSummary}\n`;
     if (Array.isArray(tender.cpvCodes) && tender.cpvCodes.length) user += `CPV: ${tender.cpvCodes.join(', ')}\n`;
     if (parsedBody.data.prompt) user += `Extra instructie: ${parsedBody.data.prompt}\n`;
 
-    user += `\nGebruik met name informatie over de klant (Intergarde) uit de verticale bibliotheek (Klanten Shares), zoals bedrijfsprofiel en IKP. Koppel dit aan de vraag uit de aanbesteding en schrijf een consistente storyline met duidelijke koppen en bullets.\n`;
+    // Structure guidance based on best practices
+    user += `\nStructuur en richtlijnen:\n- Korte inleiding (begrip van vraag/opdrachtgever-doelen)\n- Onze begrip van doelstellingen en context\n- Oplossingsrichting (hoe Intergarde invulling geeft)\n- Waardepropositie en onderscheidend vermogen\n- Relevante ervaring en referenties (indien bekend)\n- Projectaanpak en planning\n- Kwaliteit/risico's/mitigatie\n- Governance en communicatie\n- Conclusie: waarom Intergarde gekozen moet worden.\nSchrijf puntsgewijs waar passend, maar voldoende volzinnen. Verwijs beknopt naar bronnen.\n`;
 
-    user += `\nContextfragmenten (max 12):\n`;
+    user += `\nBronfragmenten (max 12):\n`;
     for (const s of contextSnippets) {
       user += `---\n${s.text.slice(0, 1500)}\nBron: ${s.source}\n`;
     }
