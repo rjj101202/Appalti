@@ -8,7 +8,7 @@ import { listFolderChildrenShallow } from '@/lib/graph';
 import { chunkText, computeChecksum, embedTexts } from '@/lib/rag';
 import { ObjectId } from 'mongodb';
 import mammoth from 'mammoth';
-import { getAccessToken as _NA } from '@/lib/graph';
+import { downloadBinaryContentForItem } from '@/lib/graph';
 
 export const runtime = 'nodejs';
 
@@ -108,19 +108,10 @@ export async function GET(request: NextRequest) {
     for (const f of finalList) {
       let text: string | null = null;
       if (/\.docx$/i.test(f.name)) {
-        // Download binary and extract with mammoth
-        const token = await (async () => {
-          const fn = (await import('@/lib/graph')).getAccessToken as any; // reuse token helper
-          return await fn();
-        })();
-        const url = f.__driveId
-          ? `https://graph.microsoft.com/v1.0/drives/${f.__driveId}/items/${f.id}/content`
-          : `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(f.__userUpn!)}/drive/items/${f.id}/content`;
-        const res = await fetch(url, { headers: { authorization: `Bearer ${token}` } });
-        if (res.ok) {
-          const arrayBuffer = await res.arrayBuffer();
-          const result = await mammoth.extractRawText({ buffer: Buffer.from(arrayBuffer) });
-          text = result.value || '';
+        const bin = await downloadBinaryContentForItem({ driveId: f.__driveId, userUpn: f.__userUpn }, f.id);
+        if (bin) {
+          const result = await mammoth.extractRawText({ buffer: Buffer.from(bin) });
+          text = (result.value || '').trim();
         }
       } else {
         text = await downloadTextContentForItem({ driveId: f.__driveId, userUpn: f.__userUpn }, f.id, f.mimeType, f.name);

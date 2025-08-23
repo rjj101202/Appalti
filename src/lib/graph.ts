@@ -212,3 +212,18 @@ export async function downloadTextContentForItem(driveIdOrUser: { driveId?: stri
   }
   return text;
 }
+
+export async function downloadBinaryContentForItem(driveIdOrUser: { driveId?: string; userUpn?: string }, itemId: string): Promise<ArrayBuffer | null> {
+  const token = await getAccessToken();
+  let url: string;
+  if (driveIdOrUser.driveId) {
+    url = `https://graph.microsoft.com/v1.0/drives/${driveIdOrUser.driveId}/items/${itemId}/content`;
+  } else if (driveIdOrUser.userUpn) {
+    url = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(driveIdOrUser.userUpn)}/drive/items/${itemId}/content`;
+  } else {
+    throw new Error('driveId or userUpn required');
+  }
+  const res = await fetch(url, { headers: { authorization: `Bearer ${token}` } });
+  if (!res.ok) return null;
+  return res.arrayBuffer();
+}
