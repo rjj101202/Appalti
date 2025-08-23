@@ -510,7 +510,8 @@ Indexes:
 ### Runbook (prod)
 1) Env check (bovenstaande matrix) → Redeploy.
 2) Ingestie (eenmalig / herhaalbaar):
-   - Vertical: GET `/api/knowledge/ingest/run-defaults?source=vertical&clientName=Intergarde`
+   - Vertical: GET `/api/knowledge/ingest/run-defaults?source=vertical&clientName=<naam>`
+   - Alleen submap: voeg `&subfolder=Test_AI_Remy` toe om uitsluitend die submap onder de klantmap te indexeren
    - Horizontal: GET `/api/knowledge/ingest/run-defaults?source=horizontal`
 3) Schrijven:
    - Ga naar editor → “Genereer met AI (RAG)” → concept invoegen → opslaan.
