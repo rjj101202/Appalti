@@ -1,5 +1,12 @@
 import { ObjectId } from 'mongodb';
 
+export interface ClientCompanyContact {
+	_id?: ObjectId;
+	name: string;
+	email?: string;
+	role?: string;
+}
+
 export interface ClientCompany {
 	_id?: ObjectId;
 	tenantId: string; // For multi-tenancy
@@ -16,6 +23,7 @@ export interface ClientCompany {
 	websites?: string[];
 	email?: string;
 	phone?: string;
+	contacts?: ClientCompanyContact[]; // Team van client
 	
 	// Address (primary)
 	address?: {

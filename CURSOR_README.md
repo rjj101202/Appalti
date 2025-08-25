@@ -469,138 +469,24 @@ commit: bid-stage-editor-and-ai-draft
 - Bids/TenderNed: verrijking in lijst gebeurt nu via directe XML‑fetch (`fetchTenderNedXml`) i.p.v. interne subrequests naar ons detail‑endpoint → voorkomt 401/Unauthorized bij pagineren en verlaagt DB‑load. Verrijking beperkt tot eerste 10 per pagina.
 - Parser uitgebreid naar rijk summary‑object (buyer/contact/adres/NUTS/CPV/portal/notice/procurement/deadlines). Detailpagina toont nu alle relevante info; “Download XML” knop verwijderd (debug raw blijft via `?raw=1`).
 
-## 📚 Kennisbank (RAG) – Architectuur en implementatie
+## Bid review workflow (nieuw)
+- Contacts per client: `ClientCompany.contacts[{_id,name,email,role}]`
+- Endpoints:
+  - `GET/POST /api/client-companies/[id]/contacts` – lijst/aanmaken teamleden Intergarde
+  - `POST /api/bids/[id]/stages/[stage]/assign-reviewer` – wijs reviewer toe en zet status → `pending_review`
+  - `POST /api/bids/[id]/stages/[stage]/review/approve` – markeer fase `approved`
+  - `POST /api/bids/[id]/stages/[stage]/review/reject` – markeer fase `rejected`
+- UI: paneel “Beoordeling door Intergarde” toont opsteller, status, reviewerselectie en acties.
 
-Doel: AI-ondersteuning in de bid-editors via Retrieval Augmented Generation. Twee bronnen:
-- Verticaal: client-specifieke documenten op SharePoint site `appalti9` → library "Gedeelde documenten" → folder "Klanten Shares".
-- Horizontaal: OneDrive map van gebruiker (UPN), testset in `Documents/Attachments`.
+## Rich editor (TipTap)
+- Vervangt textarea in stage‑editor.
+- Functies: bold/italic/underline, headings, lijsten, clear, basis‑opmaak; content opgeslagen als HTML.
+- Paneel “AI‑review (per alinea)” analyseert tekst en geeft per alinea diagnose + verbeterde versie met knoppen “Vervang alinea” en “Voeg toe onderaan”.
+- Endpoint: `POST /api/bids/[id]/stages/[stage]/review/paragraphs` (Anthropic) → `{ suggestions: [{index,diagnose,improved}] }`.
 
-### Datamodellen (MongoDB)
-- Collection `knowledge_documents` (per bestand)
-  - tenantId, companyId?, scope: 'vertical'|'horizontal', title, sourceUrl, driveId?, driveItemId?, userUpn?, path, mimeType, size, checksum, createdAt, updatedAt
-- Collection `knowledge_chunks` (per chunk)
-  - tenantId, documentId, chunkIndex, text, embedding:number[], tokenCount?, pageNumber?, metadata?
-
-Indexes:
-- `knowledge_documents`: { tenantId, scope, companyId, path }, { tenantId, driveItemId, userUpn } (unique,sparse)
-- `knowledge_chunks`: { tenantId, documentId, chunkIndex } (unique)
-- Atlas Vector Search index `vector_index` op `knowledge_chunks.embedding`
-
-### Environments – volledige matrix
-| Key | Purpose | Required | Default/Notes |
-| --- | --- | --- | --- |
-| MONGODB_URI | Database connectie | Yes | Atlas/cluster URI |
-| MONGODB_DB | Database naam | Yes | appalti-prod |
-| NEXTAUTH_URL | Base URL (NextAuth) | Dev/Prod | http://localhost:3000 of Vercel URL |
-| NEXTAUTH_SECRET | NextAuth secret | Yes | |
-| AUTH0_CLIENT_ID/SECRET | Auth0 | Yes | |
-| AUTH0_ISSUER_BASE_URL | Auth0 domain | Yes | |
-| GRAPH_TENANT_ID | Entra tenant | For RAG | |
-| GRAPH_CLIENT_ID/SECRET | Graph app-only | For RAG | Sites.Read.All, Files.Read.All |
-| GRAPH_VERTICAL_SITE_URL | Vertical site | For RAG | https://appaltibv.sharepoint.com/sites/appalti9 |
-| GRAPH_VERTICAL_LIBRARY | Vertical library | For RAG | Gedeelde documenten |
-| GRAPH_VERTICAL_FOLDER | Vertical folder | Optional | /Klanten Shares |
-| GRAPH_HORIZONTAL_ONEDRIVE_UPN | Horizontaal UPN | For RAG | rjager@appalti.nl |
-| GRAPH_HORIZONTAL_ONEDRIVE_PATH | Horizontaal path | Optional | /Documents/Attachments |
-| OPENAI_API_KEY | Embeddings | Yes (RAG) | model: text-embedding-3-small |
-| ANTHROPIC_API_KEY | Genereren/Review | Yes | claude-3-5-sonnet-latest |
-| BLOB_READ_WRITE_TOKEN | Uploads | Yes | via Vercel Blob Connect Project |
-| VERCEL_BLOB_READ_WRITE_TOKEN | Compat alias | Optional | same as above |
-
-### Ingestie – bestandsformaten
-- Tekst: txt, md/markdown, html/htm, csv, json, log
-- Nieuw: docx (MVP via mammoth – opmaak gaat verloren; alleen platte tekst)
-- (Nog niet): pdf, xlsx, pptx (volgt later)
-
-### Runbook (prod)
-1) Env check (bovenstaande matrix) → Redeploy.
-2) Ingestie (eenmalig / herhaalbaar):
-   - Vertical: `/api/knowledge/ingest/run-defaults?source=vertical&clientName=<naam>`
-   - Alleen submap: `&subfolder=Test_AI_Remy`
-   - Mapnaam overrulen (als officiële naam ≠ mapnaam): `&folderName=Intergarde`
-   - Snelheid: `&limit=25`
-   - Horizontal: `/api/knowledge/ingest/run-defaults?source=horizontal`
-3) Schrijven:
-   - Ga naar editor → “Genereer met AI (RAG)” → concept invoegen → opslaan.
-   - “Review met AI” → verbeterpunten + verbeterde tekst → verwerken → opslaan.
-   - “Upload document” voor extra context (30MB limiet).
-
-### Belangrijke endpoints (samenvatting)
-- GET `/api/knowledge/ingest/run-defaults?source=vertical|horizontal&clientName=...` – snelle ingestie
-- POST `/api/knowledge/ingest` – ingestie met body (source/companyId/limit)
-- GET `/api/knowledge/search?q=...&scope=vertical|horizontal&companyId=...&topK=8` – RAG search
-- POST `/api/bids/[id]/stages/[stage]/ai/generate` – RAG generatie (Anthropic)
-- POST `/api/bids/[id]/stages/[stage]/ai/review` – AI review/verbetering (Anthropic)
-- POST `/api/bids/[id]/stages/[stage]/upload` – file upload (@vercel/blob)
-
-### Troubleshooting
-- AI: `invalid x-api-key` → controleer `ANTHROPIC_API_KEY` (Production/Preview) en redeploy.
-- RAG lijkt niets te vinden → check ingestie endpoints; verifieer dat `OPENAI_API_KEY` is gezet.
-- Upload: melding over Blob token → zet `BLOB_READ_WRITE_TOKEN` (of `VERCEL_BLOB_READ_WRITE_TOKEN`) en redeploy.
-- Vector Search: als search 500 geeft → maak Atlas Vector Index `vector_index` op `knowledge_chunks.embedding` (dim 1536 voor text-embedding-3-small).
-
-### Endpoints
-- POST ` /api/knowledge/ingest`
-  - body: { source: 'vertical'|'horizontal', companyId?, limit? }
-  - Resolves files (SharePoint of OneDrive), filtert op tekstachtige extensies, download → chunk → embed → upsert in Mongo.
-  - RBAC: vereist ingelogde user; tenantId uit `requireAuth`.
-- GET ` /api/knowledge/search?q=...&scope=vertical|horizontal&companyId=...&topK=8`
-  - Maakt embedding van query, voert Atlas Vector Search uit, RBAC: verticaal vereist companyId (default uit sessie), horizontaal tenant-breed.
-  - Retourneert chunks + document metadata (titel, url, path, scope).
-- POST ` /api/ai/chat`
-  - body: { message, currentText?, contextSnippets?[] }
-  - Roept Anthropic (Claude 3.5 Sonnet) aan met system prompt in NL, combineert huidige tekst en contextfragmenten.
-
-### UI – Stage editor
-- `dashboard/clients/[id]/tenders/[tenderId]/process/[stage]/page.tsx`
-  - Layout vervangen door 2 kolommen: links editor + bijlagen + TenderNed bronnen; rechts nieuw zijpaneel met tabs:
-    - "Zoek bronnen": queryveld → `/api/knowledge/search` (standaard verticaal, companyId uit route), resultaten met titel/bronlink.
-    - "AI chat": promptveld, optionele context gebaseerd op laatst gevonden resultaten, knoppen "Vraag AI" en "Invoegen in tekst".
-  - Bestaande "Genereer met AI" blijft beschikbaar.
-
-### Bekende beperkingen (MVP)
-- Alleen tekstachtige bestanden worden geïndexeerd (txt/md/html/csv/log/json). PDF/DOCX extractie volgt in vervolgstap.
-- Vector index 'vector_index' moet in Atlas aangemaakt staan (embedding dim afhankelijk van model; default 1536).
-- Delta-sync niet geactiveerd; ingest is full-scan met checksum, herhaalde runs upserten alleen gewijzigde content.
-
----
-
-## Changelog
-
-- commit: RAG foundation (Graph app-only, knowledge models/repos, ingest + search APIs, AI chat, editor side panel)
-  - Added `src/lib/graph.ts`, `src/lib/rag.ts`, knowledge models/repository.
-  - New endpoints: `POST /api/knowledge/ingest`, `GET /api/knowledge/search`, `POST /api/ai/chat`.
-  - Editor update: right-side AI pane (search + chat) in stage editor page.
-  - Envs documented; defaults added for horizontal (OneDrive UPN/path) en vertical (site/library/folder).
-
-- commit: RAG generate/review flow + simpler UI
-  - New endpoints: `POST /api/bids/[id]/stages/[stage]/ai/generate` (RAG – zoekt verticaal + horizontaal, Anthropic), `POST /api/bids/[id]/stages/[stage]/ai/review` (kritiek + verbeterde tekst).
-  - Stage editor: rechterpaneel vereenvoudigd → knoppen "Genereer met AI (RAG)" en "Review met AI" + tab "Zoek bronnen".
-  - Uploads: betere foutmeldingen; geeft hint als `VERCEL_BLOB_READ_WRITE_TOKEN` ontbreekt; size‑limit 30MB.
-
-- commit: Ingest improvements
-  - Added DOCX support (mammoth) for vertical ingest
-  - Shallow listing of top folder, recurse only into matched client folder (less throttling)
-  - New params: `folderName` (override mapnaam), `subfolder` (alleen submap)
-  - Fixed Mongo upsert: `createdAt` only in $setOnInsert (avoid ConflictingUpdateOperators)
-
-### Workthrough (schrijven met RAG)
-1) Start ingest (eenmalig per bron) via de run‑defaults endpoints of handmatig `POST /api/knowledge/ingest`.
-2) Open editor: `Dashboard → Clients → [client] → Bid Proces → [tender] → Process → [stage]`.
-3) Klik "Genereer met AI (RAG)" → concept wordt onderaan ingevoegd; sla op.
-4) Pas aan; klik daarna "Review met AI" voor verbeterpunten + verbeterde versie; verwerk en sla op.
-5) Upload aanvullende stukken via "Upload document" (foutmelding wijst op Blob token indien nodig).
-
-### Uploads (Vercel Blob) – Setup
-1) Maak/gebruik een Blob Store in Vercel (Storage → Blob → je store).
-2) Verbind met het project (Connect Project) of maak een token:
-   - Automatisch (aanbevolen): Connect Project zet env vars voor je neer.
-   - Handmatig: Storage → Blob → Access Tokens → Create (scope: Read/Write).
-3) Zet env vars in Vercel (Production + Preview) en redeploy:
-   - `BLOB_READ_WRITE_TOKEN` = <token>
-   - (compat) `VERCEL_BLOB_READ_WRITE_TOKEN` = <zelfde token>
-4) Upload in editor moet nu werken; foutmelding verwijst naar ontbrekend token.
-
-### AI keys – Checklist
-- `ANTHROPIC_API_KEY` (required voor genereren/review)
-- `OPENAI_API_KEY` (required voor embeddings; model default: `text-embedding-3-small`)
+## Samenvatting recente wijzigingen
+- Vertical‑only RAG en bidder‑perspectief (leidraad‑PDF + Intergarde‑bronnen, docx ingestie, throttling‑verbeteringen).
+- Ingest params: `folderName`, `subfolder`, `limit`. Bestandsformaten: txt/md/html/csv/json/log + docx.
+- pdf-parse dynamische import voor build‑stabiliteit.
+- Reviewer‑workflow + API’s + statusovergangen.
+- Rich text editor + AI‑reviewpaneel met per‑alinea suggesties.

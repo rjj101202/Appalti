@@ -12,6 +12,8 @@ export interface BidStageState {
   feedbackThreadId?: ObjectId;
   content?: string;
   attachments?: { name: string; url: string; size?: number; type?: string }[];
+  authorUserId?: ObjectId;
+  assignedReviewer?: { id: ObjectId; name: string; email?: string };
 }
 
 export interface Bid {
