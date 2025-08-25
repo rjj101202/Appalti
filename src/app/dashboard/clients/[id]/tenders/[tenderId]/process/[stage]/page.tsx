@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import Link from 'next/link';
@@ -19,6 +19,7 @@ export default function StageEditorPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [attachments, setAttachments] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<any[]>([]);
   const [genLoading, setGenLoading] = useState(false);
@@ -27,6 +28,9 @@ export default function StageEditorPage() {
   const [reviewerId, setReviewerId] = useState('');
   const [stageStatus, setStageStatus] = useState<string>('');
   const [assignedReviewer, setAssignedReviewer] = useState<{ id: string; name: string; email?: string }|null>(null);
+  const [tenderExternalId, setTenderExternalId] = useState<string>('');
+  const tenderLink = useMemo(() => tenderExternalId ? `https://www.tenderned.nl/aankondigingen/overzicht/${encodeURIComponent(tenderExternalId)}` : '', [tenderExternalId]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
     extensions: [StarterKit, Underline, TextStyle, Color],
@@ -46,7 +50,17 @@ export default function StageEditorPage() {
   const load = async () => {
     try {
       setLoading(true);
-      const bidId = await bidIdFromQuery();
+      // Haal bid + tender meta op
+      const meta = await (async (): Promise<{ bidId?: string; externalId?: string }> => {
+        try {
+          const res = await fetch(`/api/clients/${clientId}/tenders`);
+          const json = await res.json();
+          if (!res.ok || !json.success) return {};
+          const item = (json.data || []).find((x: any) => x.id === tenderId);
+          return { bidId: item?.bid?.id, externalId: item?.externalId };
+        } catch { return {}; }
+      })();
+      const bidId = meta.bidId;
       if (!bidId) throw new Error('Bid niet gevonden');
       const res = await fetch(`/api/bids/${bidId}/stages/${stage}`);
       const json = await res.json();
@@ -54,6 +68,7 @@ export default function StageEditorPage() {
       const html = String(json.data?.content || '');
       setAttachments(json.data?.attachments || []);
       setStageStatus(json.data?.status || '');
+      setTenderExternalId(meta.externalId || '');
       // assigned reviewer/status ophalen uit server data als beschikbaar
       // (deze endpoint retourneert dit nog niet; we houden UI reactief na toewijzen)
       if (editor) editor.commands.setContent(html || '<p></p>');
@@ -125,24 +140,68 @@ export default function StageEditorPage() {
   const [suggestions, setSuggestions] = useState<any[]>([]);
 
   const applySuggestion = (s: any, mode: 'replace'|'append') => {
-    const html = editor?.getHTML() || '';
-    const plain = toPlain(html);
-    const paragraphs = plain.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
-    if (mode === 'replace') {
-      const idx = s.index;
-      if (paragraphs[idx]) paragraphs[idx] = s.improved;
-    } else {
-      paragraphs.push(s.improved);
+    const currentHtml = editor?.getHTML() || '';
+    function escapeHtml(input: string): string {
+      return input
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
     }
-    const nextHtml = paragraphs.map((p: string) => `<p>${p}</p>`).join('');
-    editor?.commands.setContent(nextHtml);
+    if (mode === 'append') {
+      const next = currentHtml + `<p>${escapeHtml(String(s.improved || ''))}</p>`;
+      editor?.commands.setContent(next);
+      return;
+    }
+    // Replace: behoud overige inhoud en vervang alleen de n-de paragraaf
+    try {
+      const container = document.createElement('div');
+      container.innerHTML = currentHtml;
+      const pNodes = container.querySelectorAll('p');
+      const idx = Number(s.index);
+      if (idx >= 0 && idx < pNodes.length) {
+        const p = pNodes[idx] as HTMLParagraphElement;
+        p.textContent = String(s.improved || '');
+      } else {
+        const p = document.createElement('p');
+        p.textContent = String(s.improved || '');
+        container.appendChild(p);
+      }
+      const next = container.innerHTML;
+      editor?.commands.setContent(next || currentHtml);
+    } catch {
+      // Fallback: voeg toe indien DOM parsing niet lukt
+      const next = currentHtml + `<p>${escapeHtml(String(s.improved || ''))}</p>`;
+      editor?.commands.setContent(next);
+    }
   };
 
   const loadContacts = async () => {
     try {
-      const res = await fetch(`/api/client-companies/${clientId}/contacts`);
-      const json = await res.json();
-      if (res.ok && json.success) setContacts(json.data || []);
+      const [resContacts, resMembers] = await Promise.all([
+        fetch(`/api/client-companies/${clientId}/contacts`),
+        fetch(`/api/clients/${clientId}/members`)
+      ]);
+      let list: { _id: string; name: string; email?: string }[] = [];
+      if (resContacts.ok) {
+        const json = await resContacts.json();
+        if (json.success) list = (json.data || []) as any[];
+      }
+      if (resMembers.ok) {
+        const mj = await resMembers.json();
+        if (mj.success) {
+          const mapped = (mj.data || []).map((m: any) => ({ _id: m.userId, name: m.name || m.email || 'Gebruiker', email: m.email }));
+          list = [...list, ...mapped];
+        }
+      }
+      // Dedupliceer op id/email
+      const dedup = new Map<string, any>();
+      for (const c of list) {
+        const key = c._id || c.email || Math.random().toString(36);
+        if (!dedup.has(key)) dedup.set(key, c);
+      }
+      setContacts(Array.from(dedup.values()));
     } catch {}
   };
   useEffect(() => { loadContacts(); /* eslint-disable-next-line */ }, [clientId]);
@@ -160,6 +219,24 @@ export default function StageEditorPage() {
       setStageStatus('pending_review');
       alert('Reviewer toegewezen');
     } catch (e: any) { alert(e?.message || 'Toewijzen mislukt'); }
+  };
+
+  const handleUpload = async (file: File) => {
+    try {
+      setUploading(true);
+      const bidId = await bidIdFromQuery();
+      if (!bidId) throw new Error('Bid niet gevonden');
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`/api/bids/${bidId}/stages/${stage}/upload`, { method: 'POST', body: fd });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Upload mislukt');
+      setAttachments(prev => [...prev, { name: file.name, url: json.url, size: (file as any).size, type: (file as any).type }]);
+    } catch (e: any) {
+      alert(e?.message || 'Upload mislukt');
+    } finally {
+      setUploading(false);
+    }
   };
 
   if (loading) {
@@ -199,14 +276,28 @@ export default function StageEditorPage() {
                 {editor && <EditorContent editor={editor} />}
               </div>
             </div>
-            {attachments && attachments.length > 0 && (
+            {/* Bronnen (TenderNed) */}
+            {tenderLink && (
               <div style={{ marginTop: '1rem' }}>
-                <h3>Bijlagen</h3>
+                <h3>Bronnen</h3>
                 <ul>
-                  {attachments.map((a, i) => (<li key={i}><a href={a.url} target="_blank" rel="noreferrer">{a.name || a.url}</a></li>))}
+                  <li><a href={tenderLink} target="_blank" rel="noreferrer">Aankondiging op TenderNed</a></li>
                 </ul>
               </div>
             )}
+            {/* Bijlagen + Upload */}
+            <div style={{ marginTop: '1rem' }}>
+              <h3>Bijlagen</h3>
+              <div style={{ marginBottom: 8 }}>
+                <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()} disabled={uploading}>{uploading ? 'Uploaden...' : 'Upload bijlage'}</button>
+                <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.currentTarget.value=''; }} />
+              </div>
+              {attachments && attachments.length > 0 && (
+                <ul>
+                  {attachments.map((a, i) => (<li key={i}><a href={a.url} target="_blank" rel="noreferrer">{a.name || a.url}</a></li>))}
+                </ul>
+              )}
+            </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {/* Zoek bronnen */}
