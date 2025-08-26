@@ -1,0 +1,61 @@
+%% Appalti – A4 Overzicht (kopieer in mermaid.live)
+flowchart TB
+  %% Simpele stijl
+  classDef box fill:#ffffff,stroke:#5B5BD6,stroke-width:2px,color:#111;
+
+  subgraph Webapp
+    MW[Auth Middleware]
+    UI[Dashboard & Editors]
+    API[API Routes]
+    RAG[RAG Embeddings Retrieve]
+    UP[Uploads via Vercel Blob]
+    REPO[DB Repositories]
+  end
+
+  U[Browser] --> MW --> UI --> API
+
+  %% Auth
+  AUTH0[Auth0 - Login dienst]:::box
+  NA[NextAuth - Sessies]:::box
+  MW -.geen sessie.-> AUTH0
+  AUTH0 <--> NA
+
+  %% Database & files
+  MDB[MongoDB Atlas - Database]:::box
+  BLOB[Vercel Blob - Bestanden]:::box
+  API --> REPO --> MDB
+  API --> UP --> BLOB
+
+  %% Externe APIs
+  TND[TenderNed API - Aankondigingen]:::box
+  KVK[KVK API - Bedrijfsprofielen]:::box
+  API --> TND
+  API --> KVK
+
+  %% RAG pipeline – gecorrigeerd
+  OAI[OpenAI - Embeddings]:::box
+  CLA[Anthropic Claude - AI schrijver]:::box
+  subgraph Knowledge[Knowledge - Geindexeerde documenten]
+    KD[knowledge_documents]
+    KC[knowledge_chunks - embedding]
+  end
+
+  subgraph Ingest[Ingest - bron naar index]
+    GRAPH[Microsoft Graph - SharePoint en OneDrive]:::box
+    ING[/api/knowledge/ingest/]:::box
+  end
+  GRAPH --> ING --> KD
+  ING --> KC
+
+  %% Zoeken en Genereren
+  UI -->|Genereer of Review| RAG
+  RAG --> OAI
+  RAG -->|vector search of fallback| KC
+  KC --> KD
+  RAG --> CLA
+
+  %% Reviewer/Status
+  ASSIGN[/api/bids/:id/stages/:stage/assign-reviewer/]:::box
+  UI --> ASSIGN --> MDB
+
+  class U,MW,UI,API,RAG,UP,REPO,ASSIGN,AUTH0,NA,MDB,BLOB,TND,KVK,OAI,CLA,KD,KC,GRAPH,ING box;
