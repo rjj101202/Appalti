@@ -78,7 +78,7 @@ flowchart TB
   subgraph EDIT[Editor – RAG]
     GEN[/api/bids/:id/stages/:stage/ai/generate/]
     REV[/api/bids/:id/stages/:stage/ai/review/]
-    VEC[$vectorSearch | fallback cosine]
+    VEC[$vectorSearch / fallback cosine]
   end
   P --> GEN --> RAG
   RAG --> OAI
