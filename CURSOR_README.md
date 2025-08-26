@@ -484,9 +484,15 @@ commit: bid-stage-editor-and-ai-draft
 - Paneel “AI‑review (per alinea)” analyseert tekst en geeft per alinea diagnose + verbeterde versie met knoppen “Vervang alinea” en “Voeg toe onderaan”.
 - Endpoint: `POST /api/bids/[id]/stages/[stage]/review/paragraphs` (Anthropic) → `{ suggestions: [{index,diagnose,improved}] }`.
 
+### Troubleshooting (RAG zoekkwaliteit)
+- Als Atlas Vector Search index ontbreekt of onbereikbaar is, logt de app: "Vector search unavailable, falling back to in-memory similarity". De zoekfunctie werkt dan nog (minder snel/nauwkeurig). Voor productie: Maak index `vector_index` op `knowledge_chunks.embedding` (dimensie 1536 voor `text-embedding-3-small`).
+
 ## Samenvatting recente wijzigingen
 - Vertical‑only RAG en bidder‑perspectief (leidraad‑PDF + Intergarde‑bronnen, docx ingestie, throttling‑verbeteringen).
 - Ingest params: `folderName`, `subfolder`, `limit`. Bestandsformaten: txt/md/html/csv/json/log + docx.
 - pdf-parse dynamische import voor build‑stabiliteit.
 - Reviewer‑workflow + API’s + statusovergangen.
 - Rich text editor + AI‑reviewpaneel met per‑alinea suggesties.
+
+2025-08-25 14:15 UTC
+- RAG Search: vector index ontbrak; fallback naar in-memory similarity geactiveerd (werkt met warning). Aanbevolen: Atlas Vector Index `vector_index` op `knowledge_chunks.embedding` (dim 1536).
