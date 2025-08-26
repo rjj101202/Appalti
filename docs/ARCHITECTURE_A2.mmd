@@ -1,0 +1,114 @@
+%% Appalti – A2 Mega Diagram (kopieer in mermaid.live)
+flowchart TB
+  %% Legenda
+  subgraph Legend[Legenda]
+    L1[Webapp = Next.js App]
+    L2[Login dienst = Auth0]
+    L3[Sessies = NextAuth]
+    L4[Database = MongoDB Atlas]
+    L5[Bestanden = Vercel Blob]
+    L6[Snelheidsrem = Upstash Redis]
+    L7[Storingsmonitor = Sentry]
+    L8[Aankondigingen = TenderNed API]
+    L9[Bedrijfsprofielen = KVK API]
+    L10[AI schrijver = Anthropic]
+    L11[Embeddings = OpenAI]
+    L12[Docs bron = Microsoft Graph]
+  end
+
+  %% System Context
+  subgraph User[Gebruiker]
+    U[Browser]
+  end
+  subgraph App[Webapp]
+    MW[Auth Middleware]
+    P[Dashboard & Editors]
+    API[API Routes]
+    RAG[RAG/Zoeken]
+    REPO[DB Repositories]
+    UP[@vercel/blob Uploads]
+    INTEG[TenderNed & KVK Clients]
+    NA[NextAuth]
+  end
+
+  U --> MW --> P --> API
+  API --> REPO --> MDB[(Database)]
+  API --> RAG --> MDB
+  RAG --> OAI[(Embeddings)]
+  RAG --> CLA[(AI schrijver)]
+  API --> UP --> BLOB[(Bestanden)]
+  API --> INTEG --> TND[(Aankondigingen)]
+  INTEG --> KVK[(Bedrijfsprofielen)]
+  API --> RL[(Snelheidsrem)]
+  App --> SENTRY[(Storingsmonitor)]
+  App --> AUTH0[(Login dienst)]
+  AUTH0 <---> NA
+
+  %% Login/Registratie
+  subgraph LOGIN[Login/Registratie]
+    MW -.geen sessie.-> SIGNIN[/auth/signin/]
+    SIGNIN --> AUTH0
+    AUTH0 --> NA
+    NA --> MDB
+    NA --> P
+  end
+
+  %% Tenant Context
+  subgraph TENANT[Tenant Context]
+    SES[(Session + memberships)]
+    COOKIES[activeCompanyId / activeTenantId]
+    ROLE1[Platformrollen]
+    ROLE2[Clientrollen]
+  end
+  P -->|/api/auth/me| SES
+  SES --> COOKIES
+  COOKIES --> ROLE1
+  COOKIES --> ROLE2
+
+  %% TenderNed & Link
+  subgraph TNFLOW[Tender koppelen]
+    BIDSRC[/api/bids/sources/tenderned/]
+    LINK[/api/tenders/link/]
+  end
+  P --> BIDSRC --> TND
+  BIDSRC --> P
+  P --> LINK --> MDB
+
+  %% Editor – RAG
+  subgraph EDIT[Editor – RAG]
+    GEN[/api/bids/:id/stages/:stage/ai/generate/]
+    REV[/api/bids/:id/stages/:stage/ai/review/]
+    VEC[$vectorSearch | fallback cosine]
+  end
+  P --> GEN --> RAG
+  RAG --> OAI
+  RAG --> VEC --> MDB
+  RAG --> CLA
+  P --> REV --> CLA
+
+  %% Uploads
+  subgraph UPLOADS[Uploads]
+    UAPI[/api/bids/:id/stages/:stage/upload/]
+  end
+  P --> UAPI --> BLOB
+  UAPI --> MDB
+
+  %% KVK
+  subgraph KVKF[KVK Profielen]
+    KAPI[/api/kvk/search/]
+  end
+  P --> KAPI --> KVK
+
+  %% Reviewer
+  subgraph REVIEW[Reviewer toewijzen]
+    ASSIGN[/api/bids/:id/stages/:stage/assign-reviewer/]
+  end
+  P --> ASSIGN --> MDB
+
+  %% Knowledge bronnen
+  subgraph KB[Knowledge bronnen]
+    V[Vertical: SharePoint]
+    H[Horizontaal: OneDrive]
+  end
+  KB --> MDB
+  RAG --> KB
