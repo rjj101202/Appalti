@@ -20,19 +20,19 @@
 ## 1) Big Picture – alles samen
 ```mermaid
 flowchart LR
-    subgraph User[Gebruiker]
+    subgraph User["Gebruiker"]
       U[Browser]
     end
 
-    subgraph App[Next.js App (Webapp)]
+    subgraph App["Next.js App (Webapp)"]
       MW[Auth Middleware]
-      P[Dashboard & Editors]
-      AR[API Routes]
-      RAG[RAG/Zoeken]
-      REPO[DB Repositories]
-      UP[@vercel/blob Uploads]
-      INTEG[TenderNed & KVK Clients]
-      AUTHN[NextAuth Sessies]
+      P["Dashboard & Editors"]
+      AR["API Routes"]
+      RAG["RAG/Zoeken"]
+      REPO["DB Repositories"]
+      UP["@vercel/blob Uploads"]
+      INTEG["TenderNed & KVK Clients"]
+      AUTHN["NextAuth Sessies"]
     end
 
     U --> MW --> P
@@ -84,21 +84,21 @@ flowchart LR
     U[User] --> APP[Webapp]
     APP -->|/api/auth/me| SES[(Session + memberships)]
     SES -->|activeCompanyId/activeTenantId cookies| TENANT{Context}
-    TENANT -->|Appalti medewerker| MODE1[Platformrollen (admin/support)]
-    TENANT -->|Client gebruiker| MODE2[Client‑tenant rollen (viewer/member/admin/owner)]
+    TENANT -->|Appalti medewerker| MODE1["Platformrollen (admin/support)"]
+    TENANT -->|Client gebruiker| MODE2["Client‑tenant rollen (viewer/member/admin/owner)"]
 ```
 
 ## 4) Client Companies & Team (Enterprise)
 ```mermaid
 flowchart TB
-    subgraph ClientTenant[Client Tenant]
-      CC[ClientCompany (eigen bedrijf)]
-      MEMBERS[Members (team)]
+    subgraph ClientTenant["Client Tenant"]
+      CC["ClientCompany (eigen bedrijf)"]
+      MEMBERS["Members (team)"]
     end
-    subgraph AppaltiTenant[Appalti Tenant]
+    subgraph AppaltiTenant["Appalti Tenant"]
       APPM[Appalti team]
     end
-    API[API /api/clients/*] --> CC
+    API["API /api/clients/*"] --> CC
     API --> MEMBERS
     API -->|invite/provision| ClientTenant
 ```
@@ -191,10 +191,10 @@ flowchart LR
     COMP[companies] --> MEMBERS[memberships]
     USERS[users] --> MEMBERS
     CLIENTS[clientCompanies] --> TENDERS[tenders]
-    TENDERS --> BIDS[bids (stages, content, attachments, reviewer)]
+    TENDERS --> BIDS["bids (stages, content, attachments, reviewer)"]
     subgraph Knowledge
       KD[knowledge_documents]
-      KC[knowledge_chunks (embedding)]
+      KC["knowledge_chunks (embedding)"]
     end
     KD --> KC
 ```
@@ -210,9 +210,10 @@ flowchart LR
       H1[OneDrive gebruiker]
       H2[Historische aanbestedingen]
     end
-    RAGQ[RAG Zoeken] --> V2
+    RAGQ["RAG Zoeken"] --> V2
     RAGQ --> H2
-    note right of RAGQ: Zelfde pipeline, extra scope=horizontal
+    NOTE["Zelfde pipeline, extra scope=horizontal"]
+    RAGQ -.-> NOTE
 ```
 
 ---
