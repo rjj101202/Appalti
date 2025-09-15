@@ -37,18 +37,18 @@ flowchart LR
 
     U --> MW --> P
     P --> AR
-    AR --> REPO --> MDB[(MongoDB Atlas\n(Database))]
+    AR --> REPO --> MDB[(MongoDB Atlas\nDatabase)]
     AR --> RAG
     RAG --> MDB
-    RAG --> OPENAI[(OpenAI\n(Embeddings))]
-    RAG --> CLAUDE[(Anthropic\n(AI schrijver))]
-    AR --> UP --> BLOB[(Vercel Blob\n(Bestanden))]
+    RAG --> OPENAI[(OpenAI\nEmbeddings)]
+    RAG --> CLAUDE[(Anthropic\nAI schrijver)]
+    AR --> UP --> BLOB[(Vercel Blob\nBestanden)]
     AR --> INTEG
-    INTEG --> TND[(TenderNed API\n(Aankondigingen))]
-    INTEG --> KVK[(KVK API\n(Bedrijfsprofielen))]
-    AR --> RL[(Upstash Redis\n(Snelheidsrem))]
-    App --> SENTRY[(Sentry\n(Storingsmonitor))]
-    App --> AUTH0[(Auth0\n(Login dienst))]
+    INTEG --> TND[(TenderNed API\nAankondigingen)]
+    INTEG --> KVK[(KVK API\nBedrijfsprofielen)]
+    AR --> RL[(Upstash Redis\nSnelheidsrem)]
+    App --> SENTRY[(Sentry\nStoringsmonitor)]
+    App --> AUTH0[(Auth0\nLogin dienst)]
     AUTH0 <---> AUTHN
 ```
 
