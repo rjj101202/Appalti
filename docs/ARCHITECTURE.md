@@ -5,17 +5,17 @@
 ## 1) System Context (Overzicht)
 ```mermaid
 flowchart LR
-    U[Gebruiker Browser] --> APP[Next.js App (Vercel)]
-    APP <--> AUTH0[(Auth0 / NextAuth)]
+    U[Gebruiker Browser] --> APP["Next.js App (Vercel)"]
+    APP <--> AUTH0["Auth0 / NextAuth"]
     APP <--> MDB[(MongoDB Atlas)]
-    APP --> BLOB[(Vercel Blob Storage)]
-    APP --> REDIS[(Upstash Redis – rate limiting)]
+    APP --> BLOB["Vercel Blob Storage"]
+    APP --> REDIS["Upstash Redis – rate limiting"]
     APP --> SENTRY[(Sentry)]
-    APP --> TENDERNED[(TenderNed API)]
-    APP --> KVK[(KVK API)]
-    APP --> ANTHROPIC[(Anthropic API)]
-    APP --> OPENAI[(OpenAI – Embeddings)]
-    APP --> GRAPH[(Microsoft Graph – SharePoint/OneDrive)]
+    APP --> TENDERNED["TenderNed API"]
+    APP --> KVK["KVK API"]
+    APP --> ANTHROPIC["Anthropic API"]
+    APP --> OPENAI["OpenAI – Embeddings"]
+    APP --> GRAPH["Microsoft Graph – SharePoint/OneDrive"]
 ```
 
 ## 2) Container View (Binnen de Next.js app)
