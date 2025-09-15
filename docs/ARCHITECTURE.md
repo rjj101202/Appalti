@@ -5,7 +5,7 @@
 ## 1) System Context (Overzicht)
 ```mermaid
 flowchart LR
-    U[Gebruiker (Browser)] --> APP[Next.js App (Vercel)]
+    U[Gebruiker Browser] --> APP[Next.js App (Vercel)]
     APP <--> AUTH0[(Auth0 / NextAuth)]
     APP <--> MDB[(MongoDB Atlas)]
     APP --> BLOB[(Vercel Blob Storage)]
@@ -21,17 +21,17 @@ flowchart LR
 ## 2) Container View (Binnen de Next.js app)
 ```mermaid
 flowchart TB
-    subgraph Next.js App
+    subgraph "Next.js App"
         PAGES[App Router Pages]
         API[API Routes /api/...]
         MW[Auth Middleware]
-        NA[NextAuth (Auth0 Provider)]
+        NA["NextAuth (Auth0 Provider)"]
         REPOS[DB Repositories]
         RAG[RAG & Knowledge Search]
-        UP[Uploads (@vercel/blob)]
+        UP["Uploads (@vercel/blob)"]
         TND[TenderNed client]
         KVKC[KVK aggregator]
-        RL[Rate limit (Upstash)]
+        RL["Rate limit (Upstash)"]
         SENTRYC[Sentry SDK]
     end
 
