@@ -344,7 +344,7 @@ Checklist env (non‑secret placeholders):
 ## 🔎 Security & Compliance
 
 - Geen secrets in documentatie of code – beheer via Vercel/GitHub secrets. Roteer de reeds gecommitteerde credentials uit `README_DEPLOYMENT.md` en `READMECURSOR.md` per direct.
-- Middleware‑matcher: overweeg `/api/health` (en evt. `/api/debug` in dev) expliciet uit te zonderen van auth‑redirects.
+- Middleware‑matcher: `/api/health` (en `/api/debug` in dev) zijn expliciet uitgezonderd van auth‑redirects.
 - Logging: vermijd gevoelige data in logs. Sentry voor errors, structureer serverlogs.
 
 ## 📈 Observability & Limiting
@@ -397,6 +397,10 @@ Plaats nieuwe entries hier, meest recent bovenaan. Formaat:
 YYYY-MM-DD HH:mm TZ
 - Korte beschrijving van de wijziging(en)
 ```
+
+2025-10-13 09:00 UTC
+- Middleware: `/api/health` en `/api/debug` uitgesloten van auth; logging in prod gesilent.
+- Auth cleanup: legacy `@auth0/nextjs-auth0` dependency en `src/lib/auth/middleware.ts` verwijderd; standaardisatie op NextAuth v5.
 
 2025-08-18 09:35 UTC
 - Auth: fallback user‑aanmaak in `getAuthContext` verwijderd; user‑sync uitsluitend via NextAuth `callbacks.signIn`.
