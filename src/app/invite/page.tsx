@@ -105,9 +105,9 @@ function InviteAcceptContent() {
               <button className="btn btn-secondary" onClick={async () => { await signIn('auth0', { callbackUrl: typeof window !== 'undefined' ? window.location.href : '/invite' }); }}>
                 Wissel van account
               </button>
-              <button className="btn btn-primary" onClick={async () => { await signIn('auth0', { callbackUrl: typeof window !== 'undefined' ? window.location.href : '/invite' }); }}>
-                Account aanmaken/inloggen
-              </button>
+              <a className="btn btn-primary" href={`/auth/signup?token=${encodeURIComponent(search.get('token') || '')}&email=${encodeURIComponent(invitedEmail || '')}`}>
+                Registreer met dit e‑mailadres
+              </a>
             </div>
           </>
         )}
