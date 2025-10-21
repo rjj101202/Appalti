@@ -6,6 +6,7 @@ import { getClientCompanyRepository } from '@/lib/db/repositories/clientCompanyR
 import { getCompanyRepository } from '@/lib/db/repositories/companyRepository';
 import { getMembershipRepository } from '@/lib/db/repositories/membershipRepository';
 import { writeAudit } from '@/lib/audit';
+import { sendEmailViaGraph, buildInviteEmailHtml } from '@/lib/email';
 
 const bodySchema = z.object({
   email: z.string().email(),
@@ -66,7 +67,16 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       metadata: { email: parsed.data.email, role: parsed.data.role }
     });
 
-    // In latere stap koppelen aan mailprovider; nu geven we token terug
+    // Send invitation email to client user
+    try {
+      const inviteUrl = new URL('/invite', request.nextUrl.origin);
+      inviteUrl.searchParams.set('token', invite.inviteToken);
+      const html = buildInviteEmailHtml(inviteUrl.toString(), { companyName: company.name, inviteeEmail: parsed.data.email.toLowerCase() });
+      await sendEmailViaGraph({ to: parsed.data.email.toLowerCase(), subject: `Uitnodiging voor ${company.name}`, html });
+    } catch (e) {
+      console.warn('Client invite email failed:', e);
+    }
+
     return NextResponse.json({ success: true, inviteToken: invite.inviteToken });
   } catch (e: any) {
     if (e.message === 'Forbidden') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

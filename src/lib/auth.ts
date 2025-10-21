@@ -79,19 +79,39 @@ export const {
         
         // Prefer Auth0 subject if available
         const auth0Sub = account?.providerAccountId || '';
+        const emailVerifiedFromProvider = (profile as any)?.email_verified === true;
         
         // Ensure custom user exists and is synced
-        const { user: dbUser } = await userRepo.findOrCreate({
+        const { user: dbUser, isNew } = await userRepo.findOrCreate({
           auth0Id: auth0Sub || `auth0|${user.email}`,
           email: user.email,
           name: user.name || user.email,
           avatar: user.image || undefined,
-          emailVerified: true,
+          emailVerified: emailVerifiedFromProvider,
           metadata: {
             source: 'auth0',
             originalAuth0Data: { sub: auth0Sub }
           }
         });
+
+        // Update existing user's verification status/name/avatar on subsequent logins
+        if (!isNew) {
+          try {
+            await userRepo.updateByAuth0Id(auth0Sub || `auth0|${user.email}`, {
+              emailVerified: emailVerifiedFromProvider,
+              name: user.name || undefined,
+              avatar: user.image || undefined,
+            });
+          } catch (e) {
+            if (NEXTAUTH_DEBUG) console.warn('[NextAuth] User update post-login failed:', e);
+          }
+        }
+
+        // Optionally block unverified emails in production
+        if (process.env.REQUIRE_VERIFIED_EMAIL === '1' && !emailVerifiedFromProvider) {
+          console.warn('[NextAuth] Email not verified, denying sign-in for', user.email);
+          return '/auth/error?error=Verification';
+        }
         
         // Auto-add Appalti users to Appalti company (if present)
         if (user.email.endsWith('@appalti.nl')) {

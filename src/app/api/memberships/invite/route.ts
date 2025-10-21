@@ -5,6 +5,7 @@ import { getMembershipRepository } from '@/lib/db/repositories/membershipReposit
 import { CompanyRole } from '@/lib/db/models/Membership';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { writeAudit } from '@/lib/audit';
+import { sendEmailViaGraph, buildInviteEmailHtml } from '@/lib/email';
 
 // POST /api/memberships/invite
 // Body: { companyId: string, email: string, role: CompanyRole }
@@ -52,6 +53,16 @@ export async function POST(request: NextRequest) {
       role,
       auth.userId
     );
+
+    // Send invitation email with token link
+    try {
+      const inviteUrl = new URL('/invite', request.nextUrl.origin);
+      inviteUrl.searchParams.set('token', invite.inviteToken);
+      const html = buildInviteEmailHtml(inviteUrl.toString(), { companyName: company.name, inviteeEmail: email.toLowerCase() });
+      await sendEmailViaGraph({ to: email.toLowerCase(), subject: `Uitnodiging voor ${company.name}`, html });
+    } catch (e) {
+      console.warn('Invite email send failed:', e);
+    }
 
     await writeAudit({
       action: 'membership.invite.create',

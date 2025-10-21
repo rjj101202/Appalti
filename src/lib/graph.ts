@@ -5,6 +5,7 @@ export type GraphAuth = {
 };
 
 let cachedToken: { accessToken: string; expiresAt: number } | null = null;
+let cachedMailToken: { accessToken: string; expiresAt: number } | null = null;
 
 function getEnv(name: string): string {
   const v = process.env[name];
@@ -37,6 +38,42 @@ async function getAccessToken(): Promise<string> {
   const json = await res.json();
   cachedToken = { accessToken: json.access_token, expiresAt: now + (json.expires_in || 3600) };
   return cachedToken.accessToken;
+}
+
+// Expose access token retrieval for other Graph use-cases (e.g., sendMail)
+export async function getGraphAccessToken(): Promise<string> {
+  return getAccessToken();
+}
+
+// Separate credentials for Mail (Auth0 Email Provider app)
+export async function getGraphMailAccessToken(): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  if (cachedMailToken && cachedMailToken.expiresAt - 60 > now) {
+    return cachedMailToken.accessToken;
+  }
+  const tenantId = process.env.GRAPH_MAIL_TENANT_ID || process.env.GRAPH_TENANT_ID;
+  const clientId = process.env.GRAPH_MAIL_CLIENT_ID || process.env.GRAPH_CLIENT_ID;
+  const clientSecret = process.env.GRAPH_MAIL_CLIENT_SECRET || process.env.GRAPH_CLIENT_SECRET;
+  if (!tenantId || !clientId || !clientSecret) {
+    throw new Error('Missing mail Graph credentials (GRAPH_MAIL_* or fallback GRAPH_*)');
+  }
+  const body = new URLSearchParams();
+  body.set('client_id', clientId);
+  body.set('client_secret', clientSecret);
+  body.set('grant_type', 'client_credentials');
+  body.set('scope', 'https://graph.microsoft.com/.default');
+  const res = await fetch(`https://login.microsoftonline.com/${encodeURIComponent(tenantId)}/oauth2/v2.0/token`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: body.toString()
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`Graph mail token error: ${t}`);
+  }
+  const json = await res.json();
+  cachedMailToken = { accessToken: json.access_token, expiresAt: now + (json.expires_in || 3600) };
+  return cachedMailToken.accessToken;
 }
 
 export async function graphFetch<T = any>(path: string, init?: RequestInit): Promise<T> {
