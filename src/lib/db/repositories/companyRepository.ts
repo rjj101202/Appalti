@@ -93,6 +93,16 @@ export class CompanyRepository {
   }
 
   /**
+   * Find company by allowed email domain (case-insensitive)
+   */
+  async findByAllowedDomain(domain: string): Promise<Company | null> {
+    const normalized = domain.toLowerCase();
+    return await this.collection.findOne({
+      'settings.allowedEmailDomains': { $elemMatch: { $regex: `^${normalized}$`, $options: 'i' } }
+    } as any);
+  }
+
+  /**
    * Find company by KVK number
    */
   async findByKvkNumber(kvkNumber: string): Promise<Company | null> {

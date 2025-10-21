@@ -12,6 +12,7 @@ export interface Company {
     logo?: string;                 // URL naar logo
     contactEmail?: string;
     contactPhone?: string;
+    allowedEmailDomains?: string[]; // Domeinen die bij dit bedrijf horen (voor auto-domein matching)
     address?: {
       street?: string;
       city?: string;
