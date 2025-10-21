@@ -1,4 +1,4 @@
-import { getGraphAccessToken } from '@/lib/graph';
+import { getGraphMailAccessToken } from '@/lib/graph';
 
 export type SendEmailOptions = {
   to: string | string[];
@@ -14,7 +14,7 @@ function getEnv(name: string, optional = false): string | undefined {
 }
 
 export async function sendEmailViaGraph(options: SendEmailOptions): Promise<boolean> {
-  const token = await getGraphAccessToken();
+  const token = await getGraphMailAccessToken();
   const fromAddress = options.from || getEnv('GRAPH_FROM_EMAIL') || getEnv('EMAIL_FROM');
   if (!fromAddress) throw new Error('GRAPH_FROM_EMAIL or EMAIL_FROM must be set');
 
