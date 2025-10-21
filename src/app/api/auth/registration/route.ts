@@ -4,6 +4,7 @@ import { getAuthContext } from '@/lib/auth/context';
 import { getCompanyRepository } from '@/lib/db/repositories/companyRepository';
 import { getMembershipRepository } from '@/lib/db/repositories/membershipRepository';
 import { CompanyRole } from '@/lib/db/models/Membership';
+import { sendEmailViaGraph, buildOwnerApprovalNotificationHtml } from '@/lib/email';
 
 /**
  * GET /api/auth/registration - Check registration status
@@ -57,6 +58,19 @@ export async function POST(request: NextRequest) {
     
     const body = await request.json();
     const { action, companyName, kvkNumber, inviteToken } = body;
+    // Enforce verified email for registration flows
+    if (process.env.REQUIRE_VERIFIED_EMAIL === '1') {
+      // Fetch minimal user info to inspect verification
+      const { getUserRepository } = await import('@/lib/db/repositories/userRepository');
+      const userRepo = await getUserRepository();
+      const dbUser = await userRepo.findByEmail(auth.email);
+      if (!dbUser?.emailVerified) {
+        return NextResponse.json(
+          { error: 'Email verification required before registration' },
+          { status: 403 }
+        );
+      }
+    }
     
     const companyRepo = await getCompanyRepository();
     const membershipRepo = await getMembershipRepository();
@@ -163,6 +177,38 @@ export async function POST(request: NextRequest) {
         await membershipRepo.acceptInvite(inviteToken);
         
         break;
+      
+      // New flow: request join based on email domain match (no invite token)
+      case 'request-domain-join': {
+        const domain = auth.email.toLowerCase().split('@')[1];
+        const companyRepo2 = await getCompanyRepository();
+        const targetCompany = await companyRepo2.findByAllowedDomain(domain);
+        if (!targetCompany) {
+          return NextResponse.json({ error: 'No company configured for this email domain' }, { status: 404 });
+        }
+
+        // Notify owners by email; actual approval occurs via explicit invite action by owner
+        try {
+          const teamUrl = `${request.nextUrl.origin}/dashboard/team`;
+          const html = buildOwnerApprovalNotificationHtml({ companyName: targetCompany.name, requesterEmail: auth.email, teamUrl });
+          const owners = await (await getMembershipRepository()).findByCompany(targetCompany._id!.toString(), true);
+          const ownerIds = owners.filter(m => m.companyRole === CompanyRole.OWNER).map(m => m.userId.toString());
+          const { getUserRepository } = await import('@/lib/db/repositories/userRepository');
+          const userRepo = await getUserRepository();
+          const ownerEmails: string[] = [];
+          for (const id of ownerIds) {
+            const u = await userRepo.findById(id);
+            if (u?.email) ownerEmails.push(u.email);
+          }
+          if (ownerEmails.length > 0) {
+            await sendEmailViaGraph({ to: ownerEmails, subject: `Nieuw aanmeldverzoek voor ${targetCompany.name}`, html });
+          }
+        } catch (e) {
+          console.warn('Owner notification email failed:', e);
+        }
+
+        return NextResponse.json({ success: true, requestedCompanyId: targetCompany._id?.toString() });
+      }
         
       default:
         return NextResponse.json(

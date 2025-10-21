@@ -39,6 +39,11 @@ async function getAccessToken(): Promise<string> {
   return cachedToken.accessToken;
 }
 
+// Expose access token retrieval for other Graph use-cases (e.g., sendMail)
+export async function getGraphAccessToken(): Promise<string> {
+  return getAccessToken();
+}
+
 export async function graphFetch<T = any>(path: string, init?: RequestInit): Promise<T> {
   const token = await getAccessToken();
   const url = path.startsWith('https://') ? path : `https://graph.microsoft.com/v1.0${path}`;

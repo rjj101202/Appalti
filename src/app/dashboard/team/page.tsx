@@ -11,6 +11,7 @@ export default function TeamPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [inviting, setInviting] = useState(false);
 
   const canManage = session?.companyRole === 'admin' || session?.companyRole === 'owner' || (session as any)?.user?.isAppaltiUser;
 
@@ -80,6 +81,40 @@ export default function TeamPage() {
         <div className="header-section">
           <h1>Team</h1>
           <p>Beheer teamleden binnen de actieve company.</p>
+          {canManage && (
+            <div style={{ marginTop: '0.75rem' }}>
+              <button
+                className="btn btn-primary"
+                onClick={async () => {
+                  const email = prompt('E‑mail adres van de uit te nodigen gebruiker');
+                  if (!email) return;
+                  const role = prompt('Rol (owner/admin/member/viewer)', 'member') || 'member';
+                  setInviting(true);
+                  try {
+                    // We gebruiken de actieve company context in de API route
+                    const companyRes = await fetch('/api/companies/_/members');
+                    if (!companyRes.ok) throw new Error('Kon actieve company niet bepalen');
+                    // Invite endpoint verwacht companyId; backend leest actieve company, maar voor zekerheid vragen we hem op
+                    const inviteRes = await fetch('/api/memberships/invite', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ companyId: (session as any)?.companyId, email, role })
+                    });
+                    const data = await inviteRes.json();
+                    if (!inviteRes.ok) throw new Error(data.error || 'Uitnodigen mislukt');
+                    alert('Uitnodiging aangemaakt. De gebruiker ontvangt een e‑mail.');
+                  } catch (e: any) {
+                    alert(e?.message || 'Uitnodigen mislukt');
+                  } finally {
+                    setInviting(false);
+                  }
+                }}
+                disabled={inviting}
+              >
+                {inviting ? 'Uitnodigen…' : 'Nodig teamlid uit'}
+              </button>
+            </div>
+          )}
         </div>
 
         {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}

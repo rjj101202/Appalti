@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
         email: session.user.email,
         name: session.user.name,
         picture: session.user.image,
+        emailVerified: (session as any)?.user?.emailVerified ?? undefined,
       }
     });
   } catch (error) {
