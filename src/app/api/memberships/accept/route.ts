@@ -90,8 +90,9 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, membershipId: membership._id?.toString() });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Accept invite error:', error);
-    return NextResponse.json({ error: 'Failed to accept invite' }, { status: 500 });
+    const msg = typeof error?.message === 'string' ? error.message : 'Failed to accept invite';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

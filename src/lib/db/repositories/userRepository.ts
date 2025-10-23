@@ -21,6 +21,7 @@ export class UserRepository {
     const now = new Date();
     const user: User = {
       ...input,
+      email: input.email.toLowerCase(),
       emailVerified: input.emailVerified ?? false,
       createdAt: now,
       updatedAt: now,
@@ -50,9 +51,13 @@ export class UserRepository {
    * Find user by email
    */
   async findByEmail(email: string): Promise<User | null> {
-    return await this.collection.findOne({ 
-      email: email.toLowerCase() 
-    });
+    const lower = email.toLowerCase();
+    return await this.collection.findOne({
+      $or: [
+        { email: lower },
+        { email }
+      ]
+    } as any);
   }
 
   /**
@@ -88,6 +93,7 @@ export class UserRepository {
       {
         $set: {
           ...updates,
+          ...(updates.emailVerified !== undefined ? { emailVerified: updates.emailVerified } : {}),
           updatedAt: new Date()
         }
       },
@@ -134,7 +140,7 @@ export class UserRepository {
       if (existingByEmail.auth0Id !== input.auth0Id) {
         user = await this.update(
           existingByEmail._id!.toString(),
-          { ...input }
+          { ...input, email: input.email.toLowerCase() }
         );
         return { user: user!, isNew: false };
       }
@@ -142,7 +148,7 @@ export class UserRepository {
     }
 
     // Create new user
-    user = await this.create(input);
+    user = await this.create({ ...input, email: input.email.toLowerCase() });
     return { user, isNew: true };
   }
 
