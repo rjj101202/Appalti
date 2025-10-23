@@ -10,8 +10,10 @@ export const dynamic = 'force-dynamic';
 function InviteAcceptContent() {
   const search = useSearchParams();
   const router = useRouter();
-  const [status, setStatus] = useState<'idle'|'working'|'error'|'done'>('idle');
+  const [status, setStatus] = useState<'idle'|'working'|'error'|'done'|'needs_account'>('idle');
   const [message, setMessage] = useState<string>('');
+  const [invitedEmail, setInvitedEmail] = useState<string>('');
+  const [companyName, setCompanyName] = useState<string>('');
 
   useEffect(() => {
     const run = async () => {
@@ -21,6 +23,15 @@ function InviteAcceptContent() {
         setMessage('Ontbrekend invite token');
         return;
       }
+      // Haal invite-info op voor branding en registratie-flow
+      try {
+        const infoRes = await fetch(`/api/memberships/invite-info?token=${encodeURIComponent(token)}`);
+        const info = await infoRes.json();
+        if (infoRes.ok && info?.success) {
+          setInvitedEmail(info.email);
+          setCompanyName(info.companyName || '');
+        }
+      } catch {/* ignore */}
       setStatus('working');
       try {
         const res = await fetch('/api/memberships/accept', {
@@ -35,6 +46,11 @@ function InviteAcceptContent() {
         }
         const data = await res.json();
         if (!res.ok) {
+          if (data?.error === 'Invite email does not match your account' || data?.error?.toLowerCase?.().includes('does not match')) {
+            setStatus('needs_account');
+            setMessage('Dit account komt niet overeen met de uitnodiging. Maak een nieuw account aan met het uitgenodigde e‑mailadres.');
+            return;
+          }
           setStatus('error');
           setMessage(data?.error || 'Uitnodiging accepteren mislukt');
           return;
@@ -77,6 +93,22 @@ function InviteAcceptContent() {
           <>
             <p className="text-red-600">{message}</p>
             <button className="btn btn-primary" onClick={() => router.replace('/')}>Terug naar home</button>
+          </>
+        )}
+        {status === 'needs_account' && (
+          <>
+            <p className="text-gray-700" style={{marginBottom:'0.5rem'}}>
+              Je bent uitgenodigd voor <strong>{companyName || 'het bedrijf'}</strong> met e‑mail <strong>{invitedEmail}</strong>.
+            </p>
+            <p className="text-gray-600" style={{marginBottom:'1rem'}}>Log uit en maak een account aan met het uitgenodigde e‑mailadres, of wissel van account.</p>
+            <div style={{display:'flex', gap:'0.5rem', justifyContent:'center'}}>
+              <button className="btn btn-secondary" onClick={async () => { await signIn('auth0', { callbackUrl: typeof window !== 'undefined' ? window.location.href : '/invite' }); }}>
+                Wissel van account
+              </button>
+              <a className="btn btn-primary" href={`/auth/signup?token=${encodeURIComponent(search.get('token') || '')}&email=${encodeURIComponent(invitedEmail || '')}`}>
+                Registreer met dit e‑mailadres
+              </a>
+            </div>
           </>
         )}
       </div>

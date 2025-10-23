@@ -17,7 +17,10 @@ export async function POST(request: NextRequest) {
     }
 
     const auth = await requireAuth(request);
-    const { companyId, email, role } = await request.json();
+    const body = await request.json().catch(() => ({}));
+    const email = (body?.email || '').toLowerCase();
+    const role = body?.role;
+    const companyId = body?.companyId || auth.companyId; // fallback naar actieve company
 
     if (!companyId || !email || !role) {
       return NextResponse.json({ error: 'companyId, email, and role are required' }, { status: 400 });
@@ -47,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     // Create invite
     const invite = await membershipRepo.createInvite(
-      email.toLowerCase(),
+      email,
       companyId,
       company.tenantId,
       role,
