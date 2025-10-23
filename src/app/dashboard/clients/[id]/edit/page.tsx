@@ -200,9 +200,13 @@ export default function ClientEditPage() {
           {message && <div className="success-message" style={{ marginBottom: '1rem' }}>{message}</div>}
           {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
 
-          {/* Bedrijfsgegevens formulier */}
-          <h2 style={{ margin: '0 0 1rem 0' }}>Algemeen</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          {/* Blok 1: Algemene bedrijfsgegevens */}
+          <h2 style={{ margin: '0 0 1rem 0' }}>Algemene bedrijfsgegevens</h2>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(280px, 1fr) minmax(280px, 1fr)',
+            columnGap: '2rem', rowGap: '1rem'
+          }}>
             <div>
               <label className="form-label">Naam</label>
               <input className="form-input" value={form.name || ''} onChange={e => updateField('name', e.target.value)} />
@@ -253,8 +257,31 @@ export default function ClientEditPage() {
             </div>
           </div>
 
-          {/* Documenten sectie */}
-          <h3 style={{ marginTop: '2rem' }}>Documenten</h3>
+          {/* Blok 2: Teamleden */}
+          <h2 style={{ marginTop: '2rem' }}>Teamleden</h2>
+          <p className="text-gray-600" style={{ marginTop: 0 }}>Gebruikers binnen dit klantbedrijf.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1rem' }}>
+            {/* Light-weight fetch on click as placeholder, reusing bestaande endpoints */}
+            <button
+              className="btn btn-secondary"
+              onClick={async () => {
+                try {
+                  const res = await fetch(`/api/clients/${params.id}/members`);
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error || 'Laden mislukt');
+                  const lines = (data.data || []).map((m: any) => `${m.name || m.email} – ${m.companyRole}`);
+                  alert(lines.length ? lines.join('\n') : 'Nog geen teamleden');
+                } catch (e: any) {
+                  alert(e?.message || 'Kon teamleden niet laden');
+                }
+              }}
+            >
+              Toon teamleden lijst (tijdelijk)
+            </button>
+          </div>
+
+          {/* Blok 3: Documenten */}
+          <h2 style={{ marginTop: '2rem' }}>Documenten</h2>
           <p className="text-gray-600" style={{ margin: '0 0 0.75rem 0' }}>Upload documenten (pdf, docx, txt, md, html). Deze worden geïndexeerd voor AI en zoeken. Binaire bestanden worden niet opgeslagen.</p>
           <div
             onDragOver={(e) => { e.preventDefault(); }}
@@ -293,7 +320,7 @@ export default function ClientEditPage() {
             </div>
           )}
 
-          {/* Documentlijst */}
+          {/* Documentlijst en viewer */}
           <div className="card" style={{ marginTop: '1rem' }}>
             <h4 style={{ marginTop: 0 }}>Geüploade documenten</h4>
             {docs.length === 0 ? (
@@ -317,6 +344,18 @@ export default function ClientEditPage() {
                       <td style={{ padding: '0.5rem 0', textAlign: 'right' }}>{typeof d.size === 'number' ? `${Math.round(d.size/1024)} KB` : '-'}</td>
                       <td style={{ padding: '0.5rem 0', textAlign: 'right' }}>{d.chunkCount}</td>
                       <td style={{ padding: '0.5rem 0', textAlign: 'right' }}>
+                        <button className="btn btn-secondary" style={{ marginRight: '0.5rem' }} onClick={async () => {
+                          // Open eenvoudige viewer: haal eerste 50 chunks op
+                          try {
+                            const res = await fetch(`/api/clients/${params.id}/knowledge/${d.id}?offset=0&limit=50`);
+                            const data = await res.json();
+                            if (!res.ok) throw new Error(data.error || 'Laden mislukt');
+                            const text = (data.data.chunks || []).map((c: any) => c.text).join('\n\n');
+                            alert(`${d.title}\n\n${text}`);
+                          } catch (e: any) {
+                            alert(e?.message || 'Kon document niet openen');
+                          }
+                        }}>Bekijken</button>
                         <button className="btn btn-secondary" onClick={() => deleteDoc(d.id)}>Verwijder</button>
                       </td>
                     </tr>
