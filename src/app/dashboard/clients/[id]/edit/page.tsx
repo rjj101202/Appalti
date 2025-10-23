@@ -202,58 +202,54 @@ export default function ClientEditPage() {
 
           {/* Blok 1: Algemene bedrijfsgegevens */}
           <h2 style={{ margin: '0 0 1rem 0' }}>Algemene bedrijfsgegevens</h2>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
-            gap: '1rem'
-          }}>
-            <div>
-              <label className="form-label">Naam</label>
-              <input className="form-input" style={{ width: '100%', maxWidth: 520 }} value={form.name || ''} onChange={e => updateField('name', e.target.value)} />
+          <div className="form-grid">
+            <div className="form-item">
+              <label className="form-label" style={{ whiteSpace: 'nowrap' }}>Naam</label>
+              <input className="form-input" value={form.name || ''} onChange={e => updateField('name', e.target.value)} />
             </div>
-            <div>
-              <label className="form-label">KVK Nummer</label>
-              <input className="form-input" style={{ width: 240 }} value={form.kvkNumber || ''} onChange={e => updateField('kvkNumber', e.target.value)} />
+            <div className="form-item">
+              <label className="form-label" style={{ whiteSpace: 'nowrap' }}>KVK Nummer</label>
+              <input className="form-input" value={form.kvkNumber || ''} onChange={e => updateField('kvkNumber', e.target.value)} />
             </div>
-            <div>
+            <div className="form-item">
               <label className="form-label">Website</label>
               <input className="form-input" placeholder="https://..." value={form.website || ''} onChange={e => updateField('website', e.target.value)} />
             </div>
-            <div>
+            <div className="form-item">
               <label className="form-label">Websites (komma‑gescheiden)</label>
-              <input className="form-input" placeholder="example.com, sub.example.com" defaultValue={websitesText} onBlur={e => updateField('websites', e.target.value.split(',').map(s => s.trim()).filter(Boolean))} />
+              <input className="form-input" placeholder="example.com, sub.example.com" value={websitesText} onChange={e => updateField('websites', e.target.value.split(',').map(s => s.trim()).filter(Boolean))} />
             </div>
-            <div>
+            <div className="form-item">
               <label className="form-label">Handelsnamen (komma‑gescheiden)</label>
-              <input className="form-input" defaultValue={handelsText} onBlur={e => updateField('handelsnamen', e.target.value.split(',').map(s => s.trim()).filter(Boolean))} />
+              <input className="form-input" value={handelsText} onChange={e => updateField('handelsnamen', e.target.value.split(',').map(s => s.trim()).filter(Boolean))} />
             </div>
-            <div>
+            <div className="form-item">
               <label className="form-label">SBI Code</label>
-              <input className="form-input" style={{ width: 200 }} value={form.sbiCode || ''} onChange={e => updateField('sbiCode', e.target.value)} />
+              <input className="form-input" value={form.sbiCode || ''} onChange={e => updateField('sbiCode', e.target.value)} />
             </div>
-            <div>
+            <div className="form-item" style={{ gridColumn: 'span 2' }}>
               <label className="form-label">SBI Omschrijving</label>
               <input className="form-input" value={form.sbiDescription || ''} onChange={e => updateField('sbiDescription', e.target.value)} />
             </div>
           </div>
 
           <h3 style={{ marginTop: '1.5rem' }}>Primair Adres</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '1rem', alignItems: 'end' }}>
-            <div>
+          <div className="form-grid address-grid">
+            <div className="form-item">
               <label className="form-label">Straat</label>
-              <input className="form-input" style={{ width: '100%', maxWidth: 360 }} value={form.address?.street || ''} onChange={e => updateField('address.street', e.target.value)} />
+              <input className="form-input" value={form.address?.street || ''} onChange={e => updateField('address.street', e.target.value)} />
             </div>
-            <div>
+            <div className="form-item">
               <label className="form-label">Postcode</label>
-              <input className="form-input" style={{ width: 160 }} value={form.address?.postalCode || ''} onChange={e => updateField('address.postalCode', e.target.value)} />
+              <input className="form-input" value={form.address?.postalCode || ''} onChange={e => updateField('address.postalCode', e.target.value)} />
             </div>
-            <div>
+            <div className="form-item">
               <label className="form-label">Plaats</label>
-              <input className="form-input" style={{ width: 260 }} value={form.address?.city || ''} onChange={e => updateField('address.city', e.target.value)} />
+              <input className="form-input" value={form.address?.city || ''} onChange={e => updateField('address.city', e.target.value)} />
             </div>
-            <div>
+            <div className="form-item">
               <label className="form-label">Land</label>
-              <input className="form-input" style={{ width: 140 }} value={form.address?.country || 'NL'} onChange={e => updateField('address.country', e.target.value)} />
+              <input className="form-input" value={form.address?.country || 'NL'} onChange={e => updateField('address.country', e.target.value)} />
             </div>
           </div>
 

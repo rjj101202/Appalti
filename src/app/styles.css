@@ -536,6 +536,27 @@ select:focus {
   margin: 0 auto;
 }
 
+/* Appalti form grids (consistent labels/inputs) */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: 1rem 2rem;
+  align-items: end;
+}
+
+.form-grid.address-grid {
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+}
+
+.form-item {
+  display: grid;
+  grid-template-rows: auto auto;
+}
+
+.form-item .form-input {
+  width: 100%;
+}
+
 .header-section {
   margin-bottom: 2rem;
 }
