@@ -7,6 +7,7 @@ import { writeAudit } from '@/lib/audit';
 
 const updateClientSchema = z.object({
     name: z.string().min(1).optional(),
+    kvkNumber: z.string().optional(),
     isOwnCompany: z.boolean().optional(),
     legalForm: z.string().optional(),
     address: z.object({
@@ -31,7 +32,7 @@ const updateClientSchema = z.object({
     employees: z.string().optional(),
     handelsnamen: z.union([z.array(z.string()), z.string()]).optional(),
     kvkData: z.any().optional()
-}).strict();
+}).passthrough();
 
 // GET /api/clients/[id] - Get specific client company
 export async function GET(
