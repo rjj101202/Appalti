@@ -257,113 +257,7 @@ export default function ClientEditPage() {
             </div>
           </div>
 
-          {/* Blok 2: Teamleden */}
-          <h2 style={{ marginTop: '2rem' }}>Teamleden</h2>
-          <p className="text-gray-600" style={{ marginTop: 0 }}>Gebruikers binnen dit klantbedrijf.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1rem' }}>
-            {/* Light-weight fetch on click as placeholder, reusing bestaande endpoints */}
-            <button
-              className="btn btn-secondary"
-              onClick={async () => {
-                try {
-                  const res = await fetch(`/api/clients/${params.id}/members`);
-                  const data = await res.json();
-                  if (!res.ok) throw new Error(data.error || 'Laden mislukt');
-                  const lines = (data.data || []).map((m: any) => `${m.name || m.email} – ${m.companyRole}`);
-                  alert(lines.length ? lines.join('\n') : 'Nog geen teamleden');
-                } catch (e: any) {
-                  alert(e?.message || 'Kon teamleden niet laden');
-                }
-              }}
-            >
-              Toon teamleden lijst (tijdelijk)
-            </button>
-          </div>
-
-          {/* Blok 3: Documenten */}
-          <h2 style={{ marginTop: '2rem' }}>Documenten</h2>
-          <p className="text-gray-600" style={{ margin: '0 0 0.75rem 0' }}>Upload documenten (pdf, docx, txt, md, html). Deze worden geïndexeerd voor AI en zoeken. Binaire bestanden worden niet opgeslagen.</p>
-          <div
-            onDragOver={(e) => { e.preventDefault(); }}
-            onDrop={handleDrop}
-            style={{
-              border: '2px dashed #c084fc', background: '#faf5ff', borderRadius: 12, padding: '1rem',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem'
-            }}
-          >
-            <div>
-              <div style={{ fontWeight: 600, color: '#581c87' }}>Sleep bestanden hierheen</div>
-              <div className="text-gray-600" style={{ fontSize: 12 }}>of kies bestanden via de knop</div>
-            </div>
-            <div>
-              <input ref={fileInputRef} type="file" multiple onChange={(e) => onFilesChosen(e.target.files)} />
-              <button className="btn btn-primary" disabled={uploading} onClick={() => fileInputRef.current?.click()} style={{ marginLeft: '0.5rem' }}>{uploading ? 'Uploaden…' : 'Kies bestanden'}</button>
-            </div>
-          </div>
-
-          {/* Zoeken in documenten */}
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', alignItems: 'center' }}>
-            <input className="form-input" placeholder="Zoek in documenten…" value={searchQ} onChange={(e) => setSearchQ(e.target.value)} />
-            <button className="btn btn-secondary" onClick={doSearch}>Zoek</button>
-          </div>
-          {searchResults.length > 0 && (
-            <div className="card" style={{ marginTop: '0.75rem' }}>
-              <h4 style={{ marginTop: 0 }}>Zoekresultaten</h4>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                {searchResults.map((r, idx) => (
-                  <li key={idx} style={{ padding: '0.5rem 0', borderTop: '1px solid #eee' }}>
-                    <div style={{ fontSize: 12, color: '#6b7280' }}>Bron: {r.document?.title || r.document?.path || 'document'}</div>
-                    <div>{r.text}</div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Documentlijst en viewer */}
-          <div className="card" style={{ marginTop: '1rem' }}>
-            <h4 style={{ marginTop: 0 }}>Geüploade documenten</h4>
-            {docs.length === 0 ? (
-              <div className="text-gray-600">Nog geen documenten geüpload.</div>
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: 'left', padding: '0.5rem 0' }}>Titel</th>
-                    <th style={{ textAlign: 'left', padding: '0.5rem 0' }}>Type</th>
-                    <th style={{ textAlign: 'right', padding: '0.5rem 0' }}>Grootte</th>
-                    <th style={{ textAlign: 'right', padding: '0.5rem 0' }}>Chunks</th>
-                    <th style={{ textAlign: 'right', padding: '0.5rem 0' }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {docs.map((d) => (
-                    <tr key={d.id}>
-                      <td style={{ padding: '0.5rem 0' }}>{d.title}</td>
-                      <td style={{ padding: '0.5rem 0' }}>{d.mimeType || '-'}</td>
-                      <td style={{ padding: '0.5rem 0', textAlign: 'right' }}>{typeof d.size === 'number' ? `${Math.round(d.size/1024)} KB` : '-'}</td>
-                      <td style={{ padding: '0.5rem 0', textAlign: 'right' }}>{d.chunkCount}</td>
-                      <td style={{ padding: '0.5rem 0', textAlign: 'right' }}>
-                        <button className="btn btn-secondary" style={{ marginRight: '0.5rem' }} onClick={async () => {
-                          // Open eenvoudige viewer: haal eerste 50 chunks op
-                          try {
-                            const res = await fetch(`/api/clients/${params.id}/knowledge/${d.id}?offset=0&limit=50`);
-                            const data = await res.json();
-                            if (!res.ok) throw new Error(data.error || 'Laden mislukt');
-                            const text = (data.data.chunks || []).map((c: any) => c.text).join('\n\n');
-                            alert(`${d.title}\n\n${text}`);
-                          } catch (e: any) {
-                            alert(e?.message || 'Kon document niet openen');
-                          }
-                        }}>Bekijken</button>
-                        <button className="btn btn-secondary" onClick={() => deleteDoc(d.id)}>Verwijder</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+          {/* Einde Blok 1 */}
 
           {/* Sticky action bar */}
           <div style={{
@@ -375,7 +269,7 @@ export default function ClientEditPage() {
           </div>
         </div>
 
-        {/* Teamleden sectie */}
+        {/* Blok 2: Teamleden */}
         <div className="card" style={{ marginTop: '2rem' }}>
           <h2 style={{ marginBottom: '1rem' }}>Teamleden</h2>
           <p style={{ color: '#6b7280', marginBottom: '1rem' }}>Bekijk teamleden en nodig nieuwe gebruikers uit voor dit bedrijf.</p>
@@ -433,6 +327,91 @@ export default function ClientEditPage() {
             >
               Client‑omgeving aanmaken
             </button>
+          </div>
+        </div>
+
+        {/* Blok 3: Documenten */}
+        <div className="card" style={{ marginTop: '2rem' }}>
+          <h2 style={{ marginTop: 0 }}>Documenten</h2>
+          <p className="text-gray-600" style={{ margin: '0 0 0.75rem 0' }}>Upload documenten (pdf, docx, txt, md, html). Deze worden geïndexeerd voor AI en zoeken. Binaire bestanden worden niet opgeslagen.</p>
+
+          <div
+            onDragOver={(e) => { e.preventDefault(); }}
+            onDrop={handleDrop}
+            style={{
+              border: '2px dashed #c084fc', background: '#faf5ff', borderRadius: 12, padding: '1rem',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem'
+            }}
+          >
+            <div>
+              <div style={{ fontWeight: 600, color: '#581c87' }}>Sleep bestanden hierheen</div>
+              <div className="text-gray-600" style={{ fontSize: 12 }}>of kies bestanden via de knop</div>
+            </div>
+            <div>
+              <input ref={fileInputRef} type="file" multiple onChange={(e) => onFilesChosen(e.target.files)} />
+              <button className="btn btn-primary" disabled={uploading} onClick={() => fileInputRef.current?.click()} style={{ marginLeft: '0.5rem' }}>{uploading ? 'Uploaden…' : 'Kies bestanden'}</button>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', alignItems: 'center' }}>
+            <input className="form-input" placeholder="Zoek in documenten…" value={searchQ} onChange={(e) => setSearchQ(e.target.value)} />
+            <button className="btn btn-secondary" onClick={doSearch}>Zoek</button>
+          </div>
+          {searchResults.length > 0 && (
+            <div className="card" style={{ marginTop: '0.75rem' }}>
+              <h4 style={{ marginTop: 0 }}>Zoekresultaten</h4>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {searchResults.map((r, idx) => (
+                  <li key={idx} style={{ padding: '0.5rem 0', borderTop: '1px solid #eee' }}>
+                    <div style={{ fontSize: 12, color: '#6b7280' }}>Bron: {r.document?.title || r.document?.path || 'document'}</div>
+                    <div>{r.text}</div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="card" style={{ marginTop: '1rem' }}>
+            <h4 style={{ marginTop: 0 }}>Geüploade documenten</h4>
+            {docs.length === 0 ? (
+              <div className="text-gray-600">Nog geen documenten geüpload.</div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left', padding: '0.5rem 0' }}>Titel</th>
+                    <th style={{ textAlign: 'left', padding: '0.5rem 0' }}>Type</th>
+                    <th style={{ textAlign: 'right', padding: '0.5rem 0' }}>Grootte</th>
+                    <th style={{ textAlign: 'right', padding: '0.5rem 0' }}>Chunks</th>
+                    <th style={{ textAlign: 'right', padding: '0.5rem 0' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {docs.map((d) => (
+                    <tr key={d.id}>
+                      <td style={{ padding: '0.5rem 0' }}>{d.title}</td>
+                      <td style={{ padding: '0.5rem 0' }}>{d.mimeType || '-'}</td>
+                      <td style={{ padding: '0.5rem 0', textAlign: 'right' }}>{typeof d.size === 'number' ? `${Math.round(d.size/1024)} KB` : '-'}</td>
+                      <td style={{ padding: '0.5rem 0', textAlign: 'right' }}>{d.chunkCount}</td>
+                      <td style={{ padding: '0.5rem 0', textAlign: 'right' }}>
+                        <button className="btn btn-secondary" style={{ marginRight: '0.5rem' }} onClick={async () => {
+                          try {
+                            const res = await fetch(`/api/clients/${params.id}/knowledge/${d.id}?offset=0&limit=50`);
+                            const data = await res.json();
+                            if (!res.ok) throw new Error(data.error || 'Laden mislukt');
+                            const text = (data.data.chunks || []).map((c: any) => c.text).join('\n\n');
+                            alert(`${d.title}\n\n${text}`);
+                          } catch (e: any) {
+                            alert(e?.message || 'Kon document niet openen');
+                          }
+                        }}>Bekijken</button>
+                        <button className="btn btn-secondary" onClick={() => deleteDoc(d.id)}>Verwijder</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>
