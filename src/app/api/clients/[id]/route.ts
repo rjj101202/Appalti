@@ -6,30 +6,31 @@ import { z } from 'zod';
 import { writeAudit } from '@/lib/audit';
 
 const updateClientSchema = z.object({
-	name: z.string().min(1).optional(),
-	isOwnCompany: z.boolean().optional(),
-	legalForm: z.string().optional(),
-	address: z.object({
-		street: z.string().optional(),
-		postalCode: z.string().optional(),
-		city: z.string().optional(),
-		country: z.string().optional()
-	}).optional(),
-	addresses: z.array(z.object({
-		type: z.string().optional(),
-		street: z.string().optional(),
-		houseNumber: z.string().optional(),
-		postalCode: z.string().optional(),
-		city: z.string().optional(),
-		country: z.string().optional()
-	})).optional(),
-	website: z.string().url().optional(),
-	websites: z.array(z.string().url()).optional(),
-	sbiCode: z.string().optional(),
-	sbiDescription: z.string().optional(),
-	employees: z.string().optional(),
-	handelsnamen: z.array(z.string()).optional(),
-	kvkData: z.any().optional()
+    name: z.string().min(1).optional(),
+    isOwnCompany: z.boolean().optional(),
+    legalForm: z.string().optional(),
+    address: z.object({
+        street: z.string().optional(),
+        postalCode: z.string().optional(),
+        city: z.string().optional(),
+        country: z.string().optional()
+    }).optional(),
+    addresses: z.array(z.object({
+        type: z.string().optional(),
+        street: z.string().optional(),
+        houseNumber: z.string().optional(),
+        postalCode: z.string().optional(),
+        city: z.string().optional(),
+        country: z.string().optional()
+    })).optional(),
+    // Maak URL velden tolerant: plain strings toegestaan, normaliseren server-side
+    website: z.string().trim().optional(),
+    websites: z.union([z.array(z.string()), z.string()]).optional(),
+    sbiCode: z.string().optional(),
+    sbiDescription: z.string().optional(),
+    employees: z.string().optional(),
+    handelsnamen: z.union([z.array(z.string()), z.string()]).optional(),
+    kvkData: z.any().optional()
 }).strict();
 
 // GET /api/clients/[id] - Get specific client company
@@ -80,7 +81,35 @@ export async function PUT(
     if (!parse.success) {
       return NextResponse.json({ error: 'Invalid request body', details: parse.error.issues }, { status: 400 });
     }
-    const data = parse.data;
+    const data = parse.data as any;
+
+    // Normalisatie helpers
+    const ensureArray = (val: unknown): string[] | undefined => {
+      if (Array.isArray(val)) return val.map((s) => String(s));
+      if (typeof val === 'string') return val.split(',').map((s) => s.trim()).filter(Boolean);
+      return undefined;
+    };
+    const normalizeUrl = (val?: string): string | undefined => {
+      if (!val) return undefined;
+      const trimmed = val.trim();
+      if (!trimmed) return undefined;
+      if (/^https?:\/\//i.test(trimmed)) return trimmed;
+      // Voeg https:// toe indien geen schema is opgegeven
+      return `https://${trimmed}`;
+    };
+
+    // Website(s)
+    if (data.website !== undefined) {
+      data.website = normalizeUrl(data.website);
+    }
+    if (data.websites !== undefined) {
+      const list = ensureArray(data.websites);
+      data.websites = (list || []).map(normalizeUrl).filter(Boolean);
+    }
+    // Handelsnamen tolerant
+    if (data.handelsnamen !== undefined) {
+      data.handelsnamen = ensureArray(data.handelsnamen) || [];
+    }
 
     const auth = await requireAuth(request);
     if (!auth.tenantId) {
