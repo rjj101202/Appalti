@@ -198,6 +198,21 @@ YYYY-MM-DD HH:mm TZ
 - Korte beschrijving van de wijziging(en)
 ```
 
+2025-10-23 20:30 UTC
+- Clientdocumenten (vertical knowledge) toegevoegd per klant:
+  - Upload + indexeer (pdf, docx, txt, md, html). Geen binaire opslag; alleen tekst + embeddings in DB.
+  - Endpoints:
+    - `POST /api/clients/[id]/knowledge/upload` – multipart upload, chunking + embeddings, scope='vertical'.
+    - `GET /api/clients/[id]/knowledge/list` – lijst met documenten en chunk-aantallen.
+    - `DELETE /api/clients/[id]/knowledge/[docId]` – verwijdert document + alle chunks.
+  - RAG gebruikt automatisch deze vertical‑documenten in AI‑generatie en zoek.
+- UI verbeteringen klant bewerk‑scherm (`dashboard/clients/[id]/edit`):
+  - Appalti‑stijl 2‑koloms formulier, sticky actionbar, "← Terug"‑knop.
+  - Sectie “Documenten”: drag‑&‑drop upload, zoeken in documenten (snippets met bron), documentlijst met verwijderknop.
+- Documentatie/rapportage:
+  - Nieuw script: `scripts/generate-analysis-docx.js`.
+  - Rapport: `docs/analyse-platform-met-recente-wijzigingen-23-10.docx`.
+
 2025-10-21 12:00 UTC
 - Email verificatie: NextAuth slaat `email_verified` op in `users.emailVerified`; `REQUIRE_VERIFIED_EMAIL=1` blokkeert on‑geverifieerde logins.
 - Invite e‑mails: `POST /api/memberships/invite` en `POST /api/clients/[id]/invite` versturen nu e‑mail via Microsoft Graph.
