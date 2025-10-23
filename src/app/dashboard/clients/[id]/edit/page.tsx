@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 
@@ -12,6 +12,11 @@ export default function ClientEditPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [docs, setDocs] = useState<Array<any>>([]);
+  const [searchQ, setSearchQ] = useState('');
+  const [searchResults, setSearchResults] = useState<Array<any>>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (params.id) {
@@ -32,6 +37,7 @@ export default function ClientEditPage() {
               address: res.data.address || { street: '', postalCode: '', city: '', country: 'NL' },
               addresses: res.data.addresses || []
             });
+            refreshDocs();
           } else {
             setError('Client niet gevonden');
           }
@@ -52,6 +58,67 @@ export default function ClientEditPage() {
       ref[keys[keys.length - 1]] = value;
       return next;
     });
+  };
+
+  const refreshDocs = async () => {
+    try {
+      const res = await fetch(`/api/clients/${params.id}/knowledge/list`);
+      const data = await res.json();
+      if (res.ok && data.success) setDocs(data.data.items || []);
+    } catch {}
+  };
+
+  const onFilesChosen = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    setError('');
+    setMessage('');
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach(f => formData.append('files', f));
+      const res = await fetch(`/api/clients/${params.id}/knowledge/upload`, { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload mislukt');
+      setMessage(`Geüpload: ${data.data.uploaded} bestand(en)`);
+      await refreshDocs();
+    } catch (e: any) {
+      setError(e?.message || 'Upload mislukt');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDrop: React.DragEventHandler<HTMLDivElement> = (e) => {
+    e.preventDefault();
+    const files = e.dataTransfer?.files;
+    onFilesChosen(files || null);
+  };
+
+  const doSearch = async () => {
+    setSearchResults([]);
+    if (!searchQ.trim()) return;
+    try {
+      const url = new URL('/api/knowledge/search', window.location.origin);
+      url.searchParams.set('q', searchQ);
+      url.searchParams.set('scope', 'vertical');
+      url.searchParams.set('companyId', String(params.id));
+      const res = await fetch(url.toString());
+      const data = await res.json();
+      if (res.ok && data.success) setSearchResults(data.data.results || []);
+    } catch {}
+  };
+
+  const deleteDoc = async (docId: string) => {
+    if (!confirm('Weet je zeker dat je dit document wilt verwijderen? Dit verwijdert ook alle indexering.')) return;
+    try {
+      const res = await fetch(`/api/clients/${params.id}/knowledge/${docId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Verwijderen mislukt');
+      await refreshDocs();
+    } catch (e: any) {
+      alert(e?.message || 'Verwijderen mislukt');
+    }
   };
 
   const save = async () => {
@@ -123,11 +190,18 @@ export default function ClientEditPage() {
   return (
     <DashboardLayout>
       <div className="page-container">
-        <h1>Bedrijfsgegevens bewerken</h1>
-        <div className="card" style={{ marginTop: '1rem' }}>
+        {/* Header met terugknop */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button className="btn btn-secondary" onClick={() => { try { router.back(); } catch { router.push(`/dashboard/clients/${params.id}` as any); } }}>← Terug</button>
+          <h1 style={{ margin: 0 }}>Bedrijfsgegevens bewerken</h1>
+        </div>
+
+        <div className="card" style={{ marginTop: '1rem', paddingBottom: '5rem' }}>
           {message && <div className="success-message" style={{ marginBottom: '1rem' }}>{message}</div>}
           {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
 
+          {/* Bedrijfsgegevens formulier */}
+          <h2 style={{ margin: '0 0 1rem 0' }}>Algemeen</h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div>
               <label className="form-label">Naam</label>
@@ -179,9 +253,86 @@ export default function ClientEditPage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
-            <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Opslaan...' : 'Opslaan'}</button>
+          {/* Documenten sectie */}
+          <h3 style={{ marginTop: '2rem' }}>Documenten</h3>
+          <p className="text-gray-600" style={{ margin: '0 0 0.75rem 0' }}>Upload documenten (pdf, docx, txt, md, html). Deze worden geïndexeerd voor AI en zoeken. Binaire bestanden worden niet opgeslagen.</p>
+          <div
+            onDragOver={(e) => { e.preventDefault(); }}
+            onDrop={handleDrop}
+            style={{
+              border: '2px dashed #c084fc', background: '#faf5ff', borderRadius: 12, padding: '1rem',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem'
+            }}
+          >
+            <div>
+              <div style={{ fontWeight: 600, color: '#581c87' }}>Sleep bestanden hierheen</div>
+              <div className="text-gray-600" style={{ fontSize: 12 }}>of kies bestanden via de knop</div>
+            </div>
+            <div>
+              <input ref={fileInputRef} type="file" multiple onChange={(e) => onFilesChosen(e.target.files)} />
+              <button className="btn btn-primary" disabled={uploading} onClick={() => fileInputRef.current?.click()} style={{ marginLeft: '0.5rem' }}>{uploading ? 'Uploaden…' : 'Kies bestanden'}</button>
+            </div>
+          </div>
+
+          {/* Zoeken in documenten */}
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', alignItems: 'center' }}>
+            <input className="form-input" placeholder="Zoek in documenten…" value={searchQ} onChange={(e) => setSearchQ(e.target.value)} />
+            <button className="btn btn-secondary" onClick={doSearch}>Zoek</button>
+          </div>
+          {searchResults.length > 0 && (
+            <div className="card" style={{ marginTop: '0.75rem' }}>
+              <h4 style={{ marginTop: 0 }}>Zoekresultaten</h4>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {searchResults.map((r, idx) => (
+                  <li key={idx} style={{ padding: '0.5rem 0', borderTop: '1px solid #eee' }}>
+                    <div style={{ fontSize: 12, color: '#6b7280' }}>Bron: {r.document?.title || r.document?.path || 'document'}</div>
+                    <div>{r.text}</div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Documentlijst */}
+          <div className="card" style={{ marginTop: '1rem' }}>
+            <h4 style={{ marginTop: 0 }}>Geüploade documenten</h4>
+            {docs.length === 0 ? (
+              <div className="text-gray-600">Nog geen documenten geüpload.</div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: 'left', padding: '0.5rem 0' }}>Titel</th>
+                    <th style={{ textAlign: 'left', padding: '0.5rem 0' }}>Type</th>
+                    <th style={{ textAlign: 'right', padding: '0.5rem 0' }}>Grootte</th>
+                    <th style={{ textAlign: 'right', padding: '0.5rem 0' }}>Chunks</th>
+                    <th style={{ textAlign: 'right', padding: '0.5rem 0' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {docs.map((d) => (
+                    <tr key={d.id}>
+                      <td style={{ padding: '0.5rem 0' }}>{d.title}</td>
+                      <td style={{ padding: '0.5rem 0' }}>{d.mimeType || '-'}</td>
+                      <td style={{ padding: '0.5rem 0', textAlign: 'right' }}>{typeof d.size === 'number' ? `${Math.round(d.size/1024)} KB` : '-'}</td>
+                      <td style={{ padding: '0.5rem 0', textAlign: 'right' }}>{d.chunkCount}</td>
+                      <td style={{ padding: '0.5rem 0', textAlign: 'right' }}>
+                        <button className="btn btn-secondary" onClick={() => deleteDoc(d.id)}>Verwijder</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Sticky action bar */}
+          <div style={{
+            position: 'sticky', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #eee',
+            padding: '0.75rem 1rem', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem'
+          }}>
             <button className="btn btn-secondary" onClick={reEnrich} disabled={saving || !form.kvkNumber}>Verrijk via KVK</button>
+            <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Opslaan...' : 'Opslaan'}</button>
           </div>
         </div>
 
