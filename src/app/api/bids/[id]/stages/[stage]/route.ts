@@ -27,7 +27,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         status: stage?.status,
         assignedReviewer: stage?.assignedReviewer || null,
         citations: stage?.citations || [],
-        sourceLinks: stage?.sourceLinks || []
+        sourceLinks: stage?.sourceLinks || [],
+        sources: stage?.sources || []
       }
     });
   } catch (e) {

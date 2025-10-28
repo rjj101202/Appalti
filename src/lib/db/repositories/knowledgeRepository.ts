@@ -59,8 +59,10 @@ export class KnowledgeRepository {
   }
 
   async searchByEmbedding(tenantId: string, queryEmbedding: number[], topK: number, docFilter?: any): Promise<KnowledgeChunk[]> {
-    // Preferred path: Atlas Vector Search
+    // Preferred path: Atlas Vector Search (gated by env)
+    const enableVector = String(process.env.ENABLE_VECTOR_SEARCH || '').toLowerCase() === 'true';
     try {
+      if (!enableVector) throw new Error('Vector search disabled by env');
       const vectorFilter: any = { tenantId };
       const pipeline: any[] = [
         {
@@ -106,7 +108,9 @@ export class KnowledgeRepository {
       const res = await this.chunks.aggregate(pipeline).toArray();
       return res as any;
     } catch (e) {
-      console.warn('Vector search unavailable, falling back to in-memory similarity:', (e as any)?.message || e);
+      if (enableVector) {
+        console.warn('Vector search unavailable, falling back to in-memory similarity:', (e as any)?.message || e);
+      }
       // Fallback: fetch candidate chunks by filtered documents and rank in Node
       const docQuery: any = { tenantId };
       if (docFilter?.scope) docQuery.scope = docFilter.scope;
