@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/context';
 import { getDatabase } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
-import PDFDocument from 'pdfkit';
+// pdfkit is CJS; import dynamically in runtime
 
 export const runtime = 'nodejs';
 
@@ -24,6 +24,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       ? stageState.sources
       : (Array.isArray(stageState.sourceLinks) ? (stageState.sourceLinks as string[]).map((u: string, i: number) => ({ label: `S${i+1}`, url: u })) : []);
 
+    const PDFDocument = (await import('pdfkit')).default as any;
     const doc = new PDFDocument({ size: 'A4', margins: { top: 56, bottom: 56, left: 56, right: 56 } });
     const chunks: Buffer[] = [];
     doc.on('data', (d: Buffer) => chunks.push(d));
@@ -53,8 +54,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         'Content-Disposition': `attachment; filename="bid_${params.id}_${params.stage}.pdf"`
       }
     });
-  } catch (e) {
+  } catch (e: any) {
     console.error('Export PDF error', e);
-    return NextResponse.json({ error: 'Failed to export' }, { status: 500 });
+    return NextResponse.json({ error: e?.message || 'Failed to export' }, { status: 500 });
   }
 }

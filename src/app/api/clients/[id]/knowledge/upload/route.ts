@@ -5,6 +5,7 @@ import { getDatabase } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import { chunkText, computeChecksum, embedTexts } from '@/lib/rag';
 import { getKnowledgeRepository } from '@/lib/db/repositories/knowledgeRepository';
+import { put } from '@vercel/blob';
 
 export const runtime = 'nodejs';
 
@@ -92,6 +93,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
       const checksum = computeChecksum(text);
       const safePath = `uploads/${auth.tenantId}/${companyObjectId.toString()}/${Date.now()}-${file.name}`.replace(/[^a-zA-Z0-9._/-]/g, '_');
+      // Upload origineel bestand naar Vercel Blob (publiek) zodat we kunnen linken/previewen
+      let sourceUrl: string | undefined = undefined;
+      try {
+        const blob = await put(safePath, file, { access: 'public' });
+        sourceUrl = blob.url;
+      } catch (e: any) {
+        console.warn('Blob upload failed, continuing without sourceUrl:', e?.message || e);
+      }
 
       // Upsert doc metadata (no binary stored)
       const doc = await repo.upsertDocument(auth.tenantId, {
@@ -99,6 +108,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         companyId: companyObjectId,
         title: file.name,
         path: safePath,
+        sourceUrl,
         mimeType: (file as any).type || undefined,
         size: (file as any).size || undefined,
         checksum,

@@ -69,10 +69,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const allowedHits = verticalHits.filter(h => allowedDocIds.has(h.documentId.toString()));
     let contextSnippets = allowedHits.map(h => ({
       text: h.text,
-      source: byId.get(h.documentId.toString())?.title || byId.get(h.documentId.toString())?.path || byId.get(h.documentId.toString())?.sourceUrl || 'bron',
+      source: byId.get(h.documentId.toString())?.title || byId.get(h.documentId.toString())?.sourceUrl || byId.get(h.documentId.toString())?.path || 'bron',
       type: 'client' as const,
       documentId: h.documentId.toString(),
-      url: byId.get(h.documentId.toString())?.path || byId.get(h.documentId.toString())?.sourceUrl || ''
+      url: byId.get(h.documentId.toString())?.sourceUrl || byId.get(h.documentId.toString())?.path || ''
     })).slice(0, 12);
 
     // Optioneel: appalti_bron (horizontale collectie) meenemen
