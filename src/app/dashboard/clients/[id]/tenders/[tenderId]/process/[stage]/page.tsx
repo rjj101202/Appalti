@@ -9,6 +9,10 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextStyle from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
+import Link from '@tiptap/extension-link';
+import Image from '@tiptap/extension-image';
+import Highlight from '@tiptap/extension-highlight';
+import TextAlign from '@tiptap/extension-text-align';
 
 type Stage = 'storyline' | 'version_65' | 'version_95' | 'final';
 
@@ -41,6 +45,10 @@ export default function StageEditorPage() {
       Underline,
       TextStyle,
       Color,
+      Link.configure({ openOnClick: true, autolink: true }),
+      Image.configure({ inline: false }),
+      Highlight,
+      TextAlign.configure({ types: ['heading', 'paragraph'] })
     ],
     content: '<p></p>',
     editorProps: {

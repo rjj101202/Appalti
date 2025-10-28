@@ -89,25 +89,44 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       }
     } catch {}
 
-    // TenderNed: haal documentlinks en evt. Q&A op uit bron (indien beschikbaar)
+    // TenderNed: haal documentlinks en evt. Q&A op uit bron (indien beschikbaar). Ondersteun ZIP parsing (best effort)
     let tenderDocLinks: string[] = [];
     let tenderDocSummary = '';
+    const tenderSnippets: Array<{ url: string; text: string }> = [];
     try {
       if ((tender as any).source === 'tenderned' && (tender as any).externalId) {
         const xml = await fetchTenderNedXml((tender as any).externalId);
         const summary = parseEformsSummary(xml);
         tenderDocLinks = Array.isArray(summary.documentLinks) ? summary.documentLinks.slice(0, 12) : [];
         // Best-effort: parse eerste PDF
-        const firstPdf = tenderDocLinks.find(u => /\.pdf$/i.test(u));
-        if (firstPdf) {
-          const pdfParse = (await import('pdf-parse')).default;
-          const res = await fetch(firstPdf);
-          if (res.ok) {
+        const pdfParse = (await import('pdf-parse')).default;
+        for (const link of tenderDocLinks) {
+          try {
+            const res = await fetch(link);
+            if (!res.ok) continue;
             const ab = await res.arrayBuffer();
-            const parsed = await pdfParse(Buffer.from(ab));
-            tenderDocSummary = (parsed.text || '').replace(/\s+/g, ' ').slice(0, 4000);
-          }
+            const buf = Buffer.from(ab);
+            if (/\.zip$/i.test(link)) {
+              const JSZip = (await import('jszip')).default;
+              const zip = await JSZip.loadAsync(buf);
+              const entries = Object.keys(zip.files).filter(n => /\.(pdf|docx|txt|md|html)$/i.test(n)).slice(0, 5);
+              for (const n of entries) {
+                const file = await zip.files[n].async('nodebuffer');
+                if (/\.pdf$/i.test(n)) {
+                  const parsed = await pdfParse(file);
+                  const text = (parsed.text || '').replace(/\s+/g,' ').slice(0,1000);
+                  tenderSnippets.push({ url: `${link}#${encodeURIComponent(n)}`, text });
+                }
+                // docx/txt/md/html parsing kan later uitgebreid worden
+              }
+            } else if (/\.pdf$/i.test(link)) {
+              const parsed = await pdfParse(buf);
+              const text = (parsed.text || '').replace(/\s+/g,' ').slice(0,1000);
+              tenderSnippets.push({ url: link, text });
+            }
+          } catch {}
         }
+        tenderDocSummary = tenderSnippets.map(s => s.text).join(' ').slice(0, 4000);
       }
     } catch {}
 
@@ -184,9 +203,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         const snip = (contextSnippets.find(cs => cs.url === url)?.text || '').slice(0, 200);
         sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'client', title, url, documentId: d._id, snippet: snip });
       }
-      // Tender doc links
+      // Tender doc links (inclusief eventuele ZIP entries)
       for (const l of tenderDocLinks) {
-        sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'tender', title: l.split('/').pop() || 'tender document', url: l });
+        const entry = tenderSnippets.find(t => t.url.startsWith(l));
+        sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'tender', title: l.split('/').pop() || 'tender document', url: l, snippet: entry?.text?.slice(0,200) });
       }
       // Stage attachments
       try {
