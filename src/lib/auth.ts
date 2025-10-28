@@ -15,6 +15,9 @@ export const {
   signIn,
   signOut,
 } = NextAuth({
+  // Vertrouw host header (Vercel preview/prod) om "Configuration" errors te voorkomen
+  // Alternatief/aanvulling: zet NEXTAUTH_URL of AUTH_TRUST_HOST=1 in env
+  trustHost: true,
   secret: process.env.NEXTAUTH_SECRET,
   providers: [
     Auth0Provider({
