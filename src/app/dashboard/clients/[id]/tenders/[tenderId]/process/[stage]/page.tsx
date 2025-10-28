@@ -33,6 +33,7 @@ export default function StageEditorPage() {
   const tenderLink = useMemo(() => tenderExternalId ? `https://www.tenderned.nl/aankondigingen/overzicht/${encodeURIComponent(tenderExternalId)}` : '', [tenderExternalId]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [sourceLinks, setSourceLinks] = useState<string[]>([]);
+  const [sources, setSources] = useState<Array<{ label: string; type: 'client'|'tender'|'xai'|'attachment'; title?: string; url?: string }>>([]);
 
   const editor = useEditor({
     extensions: [
@@ -90,6 +91,7 @@ export default function StageEditorPage() {
       setTenderExternalId(meta.externalId || '');
       setClientName(meta.clientName || '');
       setSourceLinks(json.data?.sourceLinks || []);
+      setSources(json.data?.sources || []);
       // assigned reviewer/status ophalen uit server data als beschikbaar
       // (deze endpoint retourneert dit nog niet; we houden UI reactief na toewijzen)
       if (editor) editor.commands.setContent(html || '<p></p>');
@@ -307,13 +309,21 @@ export default function StageEditorPage() {
               </ul>
             </div>
             {/* Bronnen & Referenties */}
-            {(tenderLink || (sourceLinks && sourceLinks.length)) && (
+            {(tenderLink || (sourceLinks && sourceLinks.length) || (sources && sources.length)) && (
               <div style={{ marginTop: '1rem' }}>
                 <h3>Referenties</h3>
                 <ul>
                   {tenderLink && <li><a href={tenderLink} target="_blank" rel="noreferrer">Aankondiging op TenderNed</a></li>}
-                  {sourceLinks.map((u, i) => (
-                    <li key={i}><a href={u} target="_blank" rel="noreferrer">{u}</a></li>
+                  {sources.map((s,i)=> (
+                    <li key={i} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      <span title={s.type} aria-label={s.type} style={{ width:18, height:18, display:'inline-flex', alignItems:'center', justifyContent:'center' }}>
+                        {s.type==='client'?'🌳':s.type==='tender'?'🍃':s.type==='attachment'?'📎':'🏠'}
+                      </span>
+                      <a href={s.url||'#'} target="_blank" rel="noreferrer">[{s.label}] {s.title || s.url}</a>
+                    </li>
+                  ))}
+                  {sourceLinks.filter(u=>!sources.some(s=>s.url===u)).map((u, i) => (
+                    <li key={`extra-${i}`}><a href={u} target="_blank" rel="noreferrer">{u}</a></li>
                   ))}
                 </ul>
               </div>
@@ -342,7 +352,12 @@ export default function StageEditorPage() {
                 {results.map((r:any,i:number)=> (
                   <li key={i} style={{ marginBottom: 6 }}>
                     <div style={{ fontSize: '0.9em' }}>{r.text?.slice(0,180)}...</div>
-                    {r.document?.title && <div style={{ color: '#6b7280' }}>{r.document.title}</div>}
+                    {r.document?.title && (
+                      <div style={{ color: '#6b7280', display:'flex', alignItems:'center', gap:6 }}>
+                        <span>{r.document?.companyId ? '🌳' : (r.document?.scope==='horizontal' ? '🏠' : '🍃')}</span>
+                        <span>{r.document.title}</span>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>

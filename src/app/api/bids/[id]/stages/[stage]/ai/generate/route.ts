@@ -66,7 +66,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const contextSnippets = verticalHits.map(h => ({
       text: h.text,
-      source: byId.get(h.documentId.toString())?.title || byId.get(h.documentId.toString())?.path || byId.get(h.documentId.toString())?.sourceUrl || 'bron'
+      source: byId.get(h.documentId.toString())?.title || byId.get(h.documentId.toString())?.path || byId.get(h.documentId.toString())?.sourceUrl || 'bron',
+      type: 'client' as const,
+      documentId: h.documentId.toString(),
+      url: byId.get(h.documentId.toString())?.path || byId.get(h.documentId.toString())?.sourceUrl || ''
     })).slice(0, 12);
 
     // Extract PDF attachments (leidraad) for this stage as buyer context
@@ -169,11 +172,31 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const xaiJson = await xaiRes.json();
     const text: string = xaiJson?.choices?.[0]?.message?.content || JSON.stringify(xaiJson);
 
-    // Bewaar citaties/links bij de stage zodat UI ze kan tonen
+    // Bewaar citaties/links en herkomst bij de stage zodat UI ze kan tonen
     try {
+      // Bouw gedetailleerde sources met labels
+      const sourcesDetailed: Array<{ label: string; type: 'client'|'tender'|'xai'|'attachment'; title?: string; url?: string; documentId?: any }> = [];
+      let labelIndex = 1;
+      // Client docs
+      for (const d of allDocs) {
+        const title = d.title || d.path || d.sourceUrl || 'document';
+        const url = d.path || d.sourceUrl || '';
+        sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'client', title, url, documentId: d._id });
+      }
+      // Tender doc links
+      for (const l of tenderDocLinks) {
+        sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'tender', title: l.split('/').pop() || 'tender document', url: l });
+      }
+      // Stage attachments
+      try {
+        const stageState = (bid.stages || []).find((s: any) => s.key === stage) || {};
+        const atts: Array<{ name: string; url: string }> = stageState.attachments || [];
+        for (const a of atts) sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'attachment', title: a.name, url: a.url });
+      } catch {}
+
       await db.collection('bids').updateOne(
         { _id: new ObjectId(parsedParams.data.id), tenantId: auth.tenantId, 'stages.key': stage },
-        { $set: { 'stages.$.citations': contextSnippets.map(s => s.source).slice(0, 12), 'stages.$.sourceLinks': allLinks, updatedAt: new Date(), updatedBy: new ObjectId(auth.userId) } }
+        { $set: { 'stages.$.citations': contextSnippets.map(s => s.source).slice(0, 12), 'stages.$.sourceLinks': allLinks, 'stages.$.sources': sourcesDetailed, updatedAt: new Date(), updatedBy: new ObjectId(auth.userId) } }
       );
     } catch {}
 

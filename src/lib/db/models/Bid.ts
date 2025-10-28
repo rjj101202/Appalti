@@ -16,6 +16,13 @@ export interface BidStageState {
   assignedReviewer?: { id: ObjectId; name: string; email?: string };
   citations?: string[]; // human-readable citation titles or urls
   sourceLinks?: string[]; // list of URLs used in generation
+  sources?: Array<{
+    label: string; // S1, S2, ...
+    type: 'client' | 'tender' | 'xai' | 'attachment';
+    title?: string;
+    url?: string; // may be internal path for knowledge docs
+    documentId?: ObjectId; // knowledge document id when applicable
+  }>;
 }
 
 export interface Bid {
