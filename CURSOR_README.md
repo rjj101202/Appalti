@@ -197,12 +197,16 @@ Huidige inrichting van de bidwriter‑flow (versies: `storyline`, `version_65`, 
 - Generatie (X AI / Grok)
   - Endpoint: `POST /api/bids/[id]/stages/[stage]/ai/generate`
   - Provider: X AI (Grok) via env `X_AI_API` (optioneel `X_AI_MODEL`, default `grok-2-latest`)
-  - Bronnen voor RAG/context:
-    - TenderNed (documentlinks + PDF‑samenvattingen, incl. Q&A waar beschikbaar)
-    - Bedrijfsdocumenten (vertical scope)
-    - Referentiedocs uit `appalti_bron` (horizontal, tag `X_Ai`)
+  - Bronnen voor RAG/context (strikt gefilterd):
+    - Bedrijfsdocumenten (vertical scope) – alleen platform‑geüploade bestanden met pad `uploads/<tenant>/<client>/...`
+    - TenderNed (documentlinks + PDF‑samenvattingen, incl. ZIP parsing; er worden PDF‑teksten uit ZIPs gehaald)
     - Stage‑bijlagen (uploads)
-  - Output: tekst met inline citaties [S1]… en Referenties‑sectie; gebruikte links opgeslagen in `stages[].sourceLinks` en citaties in `stages[].citations`.
+    - Optioneel: referentiedocs uit `appalti_bron` (horizontal, tag `X_Ai`) – via toggle in de UI
+  - Output: tekst met inline citaties [S1]… en Referenties‑sectie. Gebruikte links:
+    - Clientdocumenten: interne link `GET /api/clients/{clientId}/knowledge/{docId}`
+    - Tenderdocumenten: externe TenderNed URL (of ZIP#entry)
+    - Bijlagen: blob‑URL
+  - Provenance wordt opgeslagen als `stages[].sources[]` met: label, type (`client` 🌳, `tender` 🍃, `attachment` 📎, `xai` 🏠), titel, url, snippet.
 
 - Review (OpenAI)
   - Paragraph review: `POST /api/bids/[id]/stages/[stage]/review/paragraphs`
@@ -212,18 +216,27 @@ Huidige inrichting van de bidwriter‑flow (versies: `storyline`, `version_65`, 
 
 - Opslaan en voortgang
   - Content per versie opslaan: `PUT /api/bids/[id]/stages/[stage]` (HTML)
-  - Ophalen: `GET /api/bids/[id]/stages/[stage]` (nu inclusief `attachments`, `status`, `assignedReviewer`, `citations`, `sourceLinks`)
+  - Ophalen: `GET /api/bids/[id]/stages/[stage]` (nu inclusief `attachments`, `status`, `assignedReviewer`, `citations`, `sourceLinks`, `sources`)
   - Upload bijlagen: `POST /api/bids/[id]/stages/[stage]/upload` (Vercel Blob)
   - Reviewer toewijzen: `POST /api/bids/[id]/stages/[stage]/assign-reviewer`
   - Submit/approve/reject: `POST /api/bids/[id]/stages/[stage]/submit|review/approve|review/reject`
 
 - UI
-  - Stage‑editor toont “Referenties” (klikbare links) en heeft verbeterde typografie/stijlgids.
+  - Stage‑editor toont “Referenties” met iconen (🌳/🍃/📎/🏠) en detail/snippet bij klik; verbeterde typografie/stijlgids.
+  - Toggle: “Gebruik appalti_bron (extra context)” om horizontale X_Ai‑bron mee te nemen.
+  - Export: knoppen “Export DOCX” en “Export PDF”.
 
 Env‑vereisten:
 - `X_AI_API` (en optioneel `X_AI_MODEL`)
 - `OPENAI_API_KEY` (en optioneel `OPENAI_MODEL`)
 - `VERCEL_BLOB_READ_WRITE_TOKEN` (uploads)
+ - (Aanbevolen) `ENABLE_VECTOR_SEARCH=true|false` om Atlas Vector Search expliciet te schakelen
+ - (Auth) `AUTH_TRUST_HOST=1` of `NEXTAUTH_URL` om eerste‑login “Configuration” te voorkomen
+
+Extra API’s:
+- `GET /api/clients/{clientId}/knowledge/{docId}` – metadata van een clientdocument (interne referentie)
+- `GET /api/knowledge/document/{id}` – metadata voor horizontale docs (appalti_bron)
+- `GET /api/bids/{bidId}/stages/{stage}/export/docx|pdf` – export van huidige stage‑inhoud + referenties
 
 ## 📜 Changelog Updates
 
@@ -239,6 +252,13 @@ YYYY-MM-DD HH:mm TZ
 - `GET /api/bids/[id]/stages/[stage]` retourneert nu ook `assignedReviewer`, `citations`, `sourceLinks`.
 - UI: referentielijst en verbeterde typografie/stijlgids in stage‑editor.
 - KnowledgeRepository: filter op `tags`, `pathIncludes`, `documentIds` toegevoegd.
+
+2025-10-28 19:00 UTC
+- Bidwriter: strikt filter op platform‑geüploade clientdocumenten (`uploads/...`); geen “Klanten Shares/…” meer.
+- Interne referentielinks voor clientdocs: `/api/clients/{clientId}/knowledge/{docId}`; optionele `appalti_bron` toggle (🏠) + endpoint `/api/knowledge/document/{id}`.
+- Tender ZIP parsing (PDFs in ZIP worden samengevat); snippets zichtbaar bij referenties.
+- Editor: link/image/highlight/text‑align; export naar DOCX/PDF via nieuwe API‑routes.
+- Auth: `trustHost: true` + advies `AUTH_TRUST_HOST=1`/`NEXTAUTH_URL` – fixt eerste‑login Configuration‑fout op Vercel.
 
 2025-10-23 20:30 UTC
 - Clientdocumenten (vertical knowledge) toegevoegd per klant:
