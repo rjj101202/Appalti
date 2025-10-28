@@ -9,7 +9,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextStyle from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
-import Link from '@tiptap/extension-link';
+import TiptapLink from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import Highlight from '@tiptap/extension-highlight';
 import TextAlign from '@tiptap/extension-text-align';
@@ -37,7 +37,7 @@ export default function StageEditorPage() {
   const tenderLink = useMemo(() => tenderExternalId ? `https://www.tenderned.nl/aankondigingen/overzicht/${encodeURIComponent(tenderExternalId)}` : '', [tenderExternalId]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [sourceLinks, setSourceLinks] = useState<string[]>([]);
-  const [sources, setSources] = useState<Array<{ label: string; type: 'client'|'tender'|'xai'|'attachment'; title?: string; url?: string }>>([]);
+  const [sources, setSources] = useState<Array<{ label: string; type: 'client'|'tender'|'xai'|'attachment'; title?: string; url?: string; snippet?: string }>>([]);
 
   const editor = useEditor({
     extensions: [
@@ -45,7 +45,7 @@ export default function StageEditorPage() {
       Underline,
       TextStyle,
       Color,
-      Link.configure({ openOnClick: true, autolink: true }),
+      TiptapLink.configure({ openOnClick: true, autolink: true }),
       Image.configure({ inline: false }),
       Highlight,
       TextAlign.configure({ types: ['heading', 'paragraph'] })
@@ -97,13 +97,9 @@ export default function StageEditorPage() {
       setAttachments(json.data?.attachments || []);
       setStageStatus(json.data?.status || '');
       setTenderExternalId(meta.externalId || '');
-<<<<<<< HEAD
-      setSourceLinks(json.data?.sourceLinks || []);
-=======
       setClientName(meta.clientName || '');
       setSourceLinks(json.data?.sourceLinks || []);
       setSources(json.data?.sources || []);
->>>>>>> cursor/analyseer-platform-met-focus-op-bidwriter-8b68
       // assigned reviewer/status ophalen uit server data als beschikbaar
       // (deze endpoint retourneert dit nog niet; we houden UI reactief na toewijzen)
       if (editor) editor.commands.setContent(html || '<p></p>');
@@ -321,19 +317,11 @@ export default function StageEditorPage() {
               </ul>
             </div>
             {/* Bronnen & Referenties */}
-<<<<<<< HEAD
-            {(tenderLink || (sourceLinks && sourceLinks.length)) && (
-=======
             {(tenderLink || (sourceLinks && sourceLinks.length) || (sources && sources.length)) && (
->>>>>>> cursor/analyseer-platform-met-focus-op-bidwriter-8b68
               <div style={{ marginTop: '1rem' }}>
                 <h3>Referenties</h3>
                 <ul>
                   {tenderLink && <li><a href={tenderLink} target="_blank" rel="noreferrer">Aankondiging op TenderNed</a></li>}
-<<<<<<< HEAD
-                  {sourceLinks.map((u, i) => (
-                    <li key={i}><a href={u} target="_blank" rel="noreferrer">{u}</a></li>
-=======
                   {sources.map((s,i)=> (
                     <li key={i} style={{ display:'flex', alignItems:'center', gap:8 }} onClick={()=>{
                       const detail = `${s.title || s.url || ''}\n\n${s.snippet || ''}`;
@@ -347,7 +335,6 @@ export default function StageEditorPage() {
                   ))}
                   {sourceLinks.filter(u=>!sources.some(s=>s.url===u)).map((u, i) => (
                     <li key={`extra-${i}`}><a href={u} target="_blank" rel="noreferrer">{u}</a></li>
->>>>>>> cursor/analyseer-platform-met-focus-op-bidwriter-8b68
                   ))}
                 </ul>
               </div>

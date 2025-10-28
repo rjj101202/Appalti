@@ -7,7 +7,6 @@ import { embedTexts } from '@/lib/rag';
 import { getKnowledgeRepository } from '@/lib/db/repositories/knowledgeRepository';
 import { parseEformsSummary } from '@/lib/tenderned-parse';
 import { fetchTenderNedXml } from '@/lib/tenderned';
-// Note: pdf-parse is dynamically imported to avoid bundling test assets during build
 
 export const runtime = 'nodejs';
 
@@ -58,39 +57,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     // Vertical client context (bedrijfsspecifiek)
     const verticalHits = await repo.searchByEmbedding(auth.tenantId, embedding, topK, { scope: 'vertical', companyId: bid.clientCompanyId });
-
-<<<<<<< HEAD
-    // Extra referentiemateriaal: appalti_bron / X_Ai collectie (horizontaal)
-    const xAiRefHits = await repo.searchByEmbedding(auth.tenantId, embedding, Math.max(6, Math.floor(topK / 2)), { scope: 'horizontal', tags: ['X_Ai'], pathIncludes: 'appalti_bron' });
-=======
-    // Alleen documenten uit de map van de betreffende client company (vertical scope)
-    const allHitDocIds = Array.from(new Set(verticalHits.map(h => h.documentId.toString()))).map(s => new ObjectId(s));
-    const allDocs = allHitDocIds.length ? await db.collection('knowledge_documents').find({ _id: { $in: allHitDocIds } }).toArray() : [];
-    const byId = new Map(allDocs.map(d => [d._id.toString(), d]));
->>>>>>> cursor/analyseer-platform-met-focus-op-bidwriter-8b68
-
-    // Load docs metadata for citations
-    const allHitDocIds = Array.from(new Set([...verticalHits, ...xAiRefHits].map(h => h.documentId.toString()))).map(s => new ObjectId(s));
-    const allDocs = allHitDocIds.length ? await db.collection('knowledge_documents').find({ _id: { $in: allHitDocIds } }).toArray() : [];
+    const verticalDocIdStrings = Array.from(new Set(verticalHits.map(h => h.documentId.toString())));
+    const verticalDocIds = verticalDocIdStrings.map(s => new ObjectId(s));
+    const allDocs = verticalDocIds.length ? await db.collection('knowledge_documents').find({ _id: { $in: verticalDocIds } }).toArray() : [];
     const byId = new Map(allDocs.map(d => [d._id.toString(), d]));
 
-    const verticalSnippets = verticalHits.map(h => ({
+    const contextSnippets = verticalHits.map(h => ({
       text: h.text,
-<<<<<<< HEAD
-      source: byId.get(h.documentId.toString())?.title || byId.get(h.documentId.toString())?.sourceUrl || 'bron'
-    }));
-    const xAiSnippets = xAiRefHits.map(h => ({
-      text: h.text,
-      source: byId.get(h.documentId.toString())?.title || byId.get(h.documentId.toString())?.sourceUrl || 'bron'
-    }));
-    const contextSnippets = [...verticalSnippets, ...xAiSnippets].slice(0, 12);
-=======
       source: byId.get(h.documentId.toString())?.title || byId.get(h.documentId.toString())?.path || byId.get(h.documentId.toString())?.sourceUrl || 'bron',
       type: 'client' as const,
       documentId: h.documentId.toString(),
       url: byId.get(h.documentId.toString())?.path || byId.get(h.documentId.toString())?.sourceUrl || ''
     })).slice(0, 12);
->>>>>>> cursor/analyseer-platform-met-focus-op-bidwriter-8b68
 
     // Extract PDF attachments (leidraad) for this stage as buyer context
     let buyerDocSummary = '';
@@ -109,34 +87,15 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       }
     } catch {}
 
-<<<<<<< HEAD
-    // TenderNed: haal documentlinks en evt. Q&A op uit bron (indien beschikbaar)
-    let tenderDocLinks: string[] = [];
-    let tenderDocSummary = '';
-=======
-    // TenderNed: haal documentlinks en evt. Q&A op uit bron (indien beschikbaar). Ondersteun ZIP parsing (best effort)
+    // TenderNed: documentlinks + ZIP parsing (best effort)
     let tenderDocLinks: string[] = [];
     let tenderDocSummary = '';
     const tenderSnippets: Array<{ url: string; text: string }> = [];
->>>>>>> cursor/analyseer-platform-met-focus-op-bidwriter-8b68
     try {
       if ((tender as any).source === 'tenderned' && (tender as any).externalId) {
         const xml = await fetchTenderNedXml((tender as any).externalId);
         const summary = parseEformsSummary(xml);
         tenderDocLinks = Array.isArray(summary.documentLinks) ? summary.documentLinks.slice(0, 12) : [];
-        // Best-effort: parse eerste PDF
-<<<<<<< HEAD
-        const firstPdf = tenderDocLinks.find(u => /\.pdf$/i.test(u));
-        if (firstPdf) {
-          const pdfParse = (await import('pdf-parse')).default;
-          const res = await fetch(firstPdf);
-          if (res.ok) {
-            const ab = await res.arrayBuffer();
-            const parsed = await pdfParse(Buffer.from(ab));
-            tenderDocSummary = (parsed.text || '').replace(/\s+/g, ' ').slice(0, 4000);
-          }
-        }
-=======
         const pdfParse = (await import('pdf-parse')).default;
         for (const link of tenderDocLinks) {
           try {
@@ -155,7 +114,6 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
                   const text = (parsed.text || '').replace(/\s+/g,' ').slice(0,1000);
                   tenderSnippets.push({ url: `${link}#${encodeURIComponent(n)}`, text });
                 }
-                // docx/txt/md/html parsing kan later uitgebreid worden
               }
             } else if (/\.pdf$/i.test(link)) {
               const parsed = await pdfParse(buf);
@@ -165,7 +123,6 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           } catch {}
         }
         tenderDocSummary = tenderSnippets.map(s => s.text).join(' ').slice(0, 4000);
->>>>>>> cursor/analyseer-platform-met-focus-op-bidwriter-8b68
       }
     } catch {}
 
@@ -192,24 +149,15 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     // Bouw referentielijst met labels S1..Sn
     const linkSet = new Set<string>();
-<<<<<<< HEAD
-    // Knowledge docs
     for (const d of allDocs) {
-      const url = d.sourceUrl || d.path || '';
-=======
-    // Knowledge docs (uitsluitend client company map)
-    for (const d of allDocs) {
-      const url = d.path || d.sourceUrl || '';
->>>>>>> cursor/analyseer-platform-met-focus-op-bidwriter-8b68
+      const url = (d as any).path || (d as any).sourceUrl || '';
       if (url) linkSet.add(url);
     }
-    // Stage attachments
     try {
       const stageState = (bid.stages || []).find((s: any) => s.key === stage) || {};
       const atts: Array<{ name: string; url: string }> = stageState.attachments || [];
       for (const a of atts) if (a?.url) linkSet.add(a.url);
     } catch {}
-    // Tender doc links
     for (const l of tenderDocLinks) linkSet.add(l);
     const allLinks = Array.from(linkSet);
 
@@ -236,31 +184,20 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const xaiJson = await xaiRes.json();
     const text: string = xaiJson?.choices?.[0]?.message?.content || JSON.stringify(xaiJson);
 
-<<<<<<< HEAD
-    // Bewaar citaties/links bij de stage zodat UI ze kan tonen
-    try {
-      await db.collection('bids').updateOne(
-        { _id: new ObjectId(parsedParams.data.id), tenantId: auth.tenantId, 'stages.key': stage },
-        { $set: { 'stages.$.citations': contextSnippets.map(s => s.source).slice(0, 12), 'stages.$.sourceLinks': allLinks, updatedAt: new Date(), updatedBy: new ObjectId(auth.userId) } }
-=======
     // Bewaar citaties/links en herkomst bij de stage zodat UI ze kan tonen
     try {
-      // Bouw gedetailleerde sources met labels
-      const sourcesDetailed: Array<{ label: string; type: 'client'|'tender'|'xai'|'attachment'; title?: string; url?: string; documentId?: any }> = [];
+      const sourcesDetailed: Array<{ label: string; type: 'client'|'tender'|'xai'|'attachment'; title?: string; url?: string; documentId?: any; snippet?: string }> = [];
       let labelIndex = 1;
-      // Client docs
       for (const d of allDocs) {
-        const title = d.title || d.path || d.sourceUrl || 'document';
-        const url = d.path || d.sourceUrl || '';
+        const title = (d as any).title || (d as any).path || (d as any).sourceUrl || 'document';
+        const url = (d as any).path || (d as any).sourceUrl || '';
         const snip = (contextSnippets.find(cs => cs.url === url)?.text || '').slice(0, 200);
-        sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'client', title, url, documentId: d._id, snippet: snip });
+        sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'client', title, url, documentId: (d as any)._id, snippet: snip });
       }
-      // Tender doc links (inclusief eventuele ZIP entries)
       for (const l of tenderDocLinks) {
         const entry = tenderSnippets.find(t => t.url.startsWith(l));
         sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'tender', title: l.split('/').pop() || 'tender document', url: l, snippet: entry?.text?.slice(0,200) });
       }
-      // Stage attachments
       try {
         const stageState = (bid.stages || []).find((s: any) => s.key === stage) || {};
         const atts: Array<{ name: string; url: string }> = stageState.attachments || [];
@@ -270,7 +207,6 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       await db.collection('bids').updateOne(
         { _id: new ObjectId(parsedParams.data.id), tenantId: auth.tenantId, 'stages.key': stage },
         { $set: { 'stages.$.citations': contextSnippets.map(s => s.source).slice(0, 12), 'stages.$.sourceLinks': allLinks, 'stages.$.sources': sourcesDetailed, updatedAt: new Date(), updatedBy: new ObjectId(auth.userId) } }
->>>>>>> cursor/analyseer-platform-met-focus-op-bidwriter-8b68
       );
     } catch {}
 
