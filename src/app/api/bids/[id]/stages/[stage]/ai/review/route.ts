@@ -19,8 +19,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const parsed = paramsSchema.safeParse(params);
     if (!parsed.success) return NextResponse.json({ error: 'Invalid params' }, { status: 400 });
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) return NextResponse.json({ error: 'ANTHROPIC_API_KEY missing' }, { status: 400 });
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) return NextResponse.json({ error: 'OPENAI_API_KEY missing' }, { status: 400 });
 
     const db = await getDatabase();
     const bid = await db.collection('bids').findOne({ _id: new ObjectId(parsed.data.id), tenantId: auth.tenantId });
@@ -28,20 +28,28 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const stageState = (bid.stages || []).find((s: any) => s.key === parsed.data.stage) || {};
     const current = String(stageState.content || '').slice(0, 12000);
 
-    const system = 'Je bent een senior reviewer/redacteur bij Appalti. Geef beknopte verbeterpunten en lever daarna een verbeterde versie. Toon eerst bullets met issues, daarna de verbeterde tekst.';
+    const system = 'Je bent de meest waarschijnlijke interne beoordelaar (inkoop/contractmanager). Geef beknopte verbeterpunten (bullets) en daarna een verbeterde versie. Focus op eisen, bewijs en helderheid.';
     const user = `Beoordeel en verbeter onderstaande tekst voor fase "${parsed.data.stage}".\n\nTEKST:\n${current}`;
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-3-5-sonnet-latest', max_tokens: 1600, system, messages: [{ role: 'user', content: user }] })
+      headers: { 'content-type': 'application/json', 'authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        temperature: 0,
+        max_tokens: 1600,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user }
+        ]
+      })
     });
     if (!res.ok) {
       const t = await res.text();
       return NextResponse.json({ error: `AI error: ${t}` }, { status: 500 });
     }
     const data = await res.json();
-    const text = data?.content?.[0]?.text || data?.content || JSON.stringify(data);
+    const text = data?.choices?.[0]?.message?.content || JSON.stringify(data);
 
     return NextResponse.json({ success: true, data: { review: text } });
   } catch (e) {

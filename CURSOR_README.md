@@ -53,7 +53,7 @@ Workflow:
 ### Belangrijke externe integraties
 - **KVK API**: Zoeken en verrijken van bedrijfsdata (v1/v2 endpoints, aggregator beschikbaar)
 - **@vercel/blob**: Bestandsopslag voor o.a. avatar uploads (edge runtime)
-- (Toekomst) **AI**: Anthropic / OpenAI voor analyse en content
+- **AI**: X AI (Grok) voor generatie; OpenAI voor review
 
 ## 🔐 Authenticatie & Autorisatie
 
@@ -190,6 +190,41 @@ Overzicht van de relevante mappen/onderdelen in deze repo:
 
 ---
 
+## ✍️ Bidwriter (AI)
+
+Huidige inrichting van de bidwriter‑flow (versies: `storyline`, `version_65`, `version_95`, `final`):
+
+- Generatie (X AI / Grok)
+  - Endpoint: `POST /api/bids/[id]/stages/[stage]/ai/generate`
+  - Provider: X AI (Grok) via env `X_AI_API` (optioneel `X_AI_MODEL`, default `grok-2-latest`)
+  - Bronnen voor RAG/context:
+    - TenderNed (documentlinks + PDF‑samenvattingen, incl. Q&A waar beschikbaar)
+    - Bedrijfsdocumenten (vertical scope)
+    - Referentiedocs uit `appalti_bron` (horizontal, tag `X_Ai`)
+    - Stage‑bijlagen (uploads)
+  - Output: tekst met inline citaties [S1]… en Referenties‑sectie; gebruikte links opgeslagen in `stages[].sourceLinks` en citaties in `stages[].citations`.
+
+- Review (OpenAI)
+  - Paragraph review: `POST /api/bids/[id]/stages/[stage]/review/paragraphs`
+  - Full review: `POST /api/bids/[id]/stages/[stage]/ai/review`
+  - Provider: OpenAI met `OPENAI_API_KEY` (optioneel `OPENAI_MODEL`, default `gpt-4o-mini`)
+  - Persona: “waarschijnlijke interne beoordelaar” (inkoop/contractmanager); streng op eisen, bewijs, helderheid.
+
+- Opslaan en voortgang
+  - Content per versie opslaan: `PUT /api/bids/[id]/stages/[stage]` (HTML)
+  - Ophalen: `GET /api/bids/[id]/stages/[stage]` (nu inclusief `attachments`, `status`, `assignedReviewer`, `citations`, `sourceLinks`)
+  - Upload bijlagen: `POST /api/bids/[id]/stages/[stage]/upload` (Vercel Blob)
+  - Reviewer toewijzen: `POST /api/bids/[id]/stages/[stage]/assign-reviewer`
+  - Submit/approve/reject: `POST /api/bids/[id]/stages/[stage]/submit|review/approve|review/reject`
+
+- UI
+  - Stage‑editor toont “Referenties” (klikbare links) en heeft verbeterde typografie/stijlgids.
+
+Env‑vereisten:
+- `X_AI_API` (en optioneel `X_AI_MODEL`)
+- `OPENAI_API_KEY` (en optioneel `OPENAI_MODEL`)
+- `VERCEL_BLOB_READ_WRITE_TOKEN` (uploads)
+
 ## 📜 Changelog Updates
 
 Plaats nieuwe entries hier, meest recent bovenaan. Formaat:
@@ -197,6 +232,13 @@ Plaats nieuwe entries hier, meest recent bovenaan. Formaat:
 YYYY-MM-DD HH:mm TZ
 - Korte beschrijving van de wijziging(en)
 ```
+
+2025-10-28 11:00 UTC
+- Bidwriter: generate switched naar X AI (Grok) met `X_AI_API`; review switched naar OpenAI.
+- RAG‑bronnen uitgebreid: TenderNed doclinks + PDF, bedrijfsdocumenten (vertical), `appalti_bron` (horizontal, tag `X_Ai`), stage‑bijlagen.
+- `GET /api/bids/[id]/stages/[stage]` retourneert nu ook `assignedReviewer`, `citations`, `sourceLinks`.
+- UI: referentielijst en verbeterde typografie/stijlgids in stage‑editor.
+- KnowledgeRepository: filter op `tags`, `pathIncludes`, `documentIds` toegevoegd.
 
 2025-10-23 20:30 UTC
 - Clientdocumenten (vertical knowledge) toegevoegd per klant:

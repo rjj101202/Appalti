@@ -88,6 +88,17 @@ export class KnowledgeRepository {
       if (docFilter) {
         if (docFilter.scope) matchDoc['doc.scope'] = docFilter.scope;
         if (docFilter.companyId) matchDoc['doc.companyId'] = docFilter.companyId instanceof ObjectId ? docFilter.companyId : new ObjectId(String(docFilter.companyId));
+        if (docFilter.tags && Array.isArray(docFilter.tags) && docFilter.tags.length) {
+          matchDoc['doc.tags'] = { $in: docFilter.tags };
+        }
+        if (docFilter.pathIncludes) {
+          const values = Array.isArray(docFilter.pathIncludes) ? docFilter.pathIncludes : [docFilter.pathIncludes];
+          matchDoc['doc.path'] = { $regex: values.map((v: string) => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), $options: 'i' };
+        }
+        if (docFilter.documentIds && Array.isArray(docFilter.documentIds) && docFilter.documentIds.length) {
+          const ids = docFilter.documentIds.map((id: any) => id instanceof ObjectId ? id : new ObjectId(String(id)));
+          matchDoc['doc._id'] = { $in: ids };
+        }
       }
       if (Object.keys(matchDoc).length > 0) pipeline.push({ $match: matchDoc });
       pipeline.push({ $limit: topK });
@@ -100,6 +111,17 @@ export class KnowledgeRepository {
       const docQuery: any = { tenantId };
       if (docFilter?.scope) docQuery.scope = docFilter.scope;
       if (docFilter?.companyId) docQuery.companyId = docFilter.companyId instanceof ObjectId ? docFilter.companyId : new ObjectId(String(docFilter.companyId));
+      if (docFilter?.tags && Array.isArray(docFilter.tags) && docFilter.tags.length) {
+        docQuery.tags = { $in: docFilter.tags };
+      }
+      if (docFilter?.pathIncludes) {
+        const values = Array.isArray(docFilter.pathIncludes) ? docFilter.pathIncludes : [docFilter.pathIncludes];
+        docQuery.path = { $regex: values.map((v: string) => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), $options: 'i' };
+      }
+      if (docFilter?.documentIds && Array.isArray(docFilter.documentIds) && docFilter.documentIds.length) {
+        const ids = docFilter.documentIds.map((id: any) => id instanceof ObjectId ? id : new ObjectId(String(id)));
+        docQuery._id = { $in: ids };
+      }
       const docs = await this.docs.find(docQuery).project({ _id: 1 }).toArray();
       if (!docs.length) return [] as any;
       const docIds = docs.map(d => d._id);
