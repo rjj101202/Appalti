@@ -14,6 +14,8 @@ export interface BidStageState {
   attachments?: { name: string; url: string; size?: number; type?: string }[];
   authorUserId?: ObjectId;
   assignedReviewer?: { id: ObjectId; name: string; email?: string };
+  citations?: string[]; // human-readable citation titles or urls
+  sourceLinks?: string[]; // list of URLs used in generation
 }
 
 export interface Bid {

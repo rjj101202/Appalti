@@ -19,7 +19,17 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const bid = await db.collection('bids').findOne({ _id: new ObjectId(parsed.data.id), tenantId: auth.tenantId });
     if (!bid) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     const stage = (bid.stages || []).find((s: any) => s.key === parsed.data.stage);
-    return NextResponse.json({ success: true, data: { content: stage?.content || '', attachments: stage?.attachments || [], status: stage?.status } });
+    return NextResponse.json({
+      success: true,
+      data: {
+        content: stage?.content || '',
+        attachments: stage?.attachments || [],
+        status: stage?.status,
+        assignedReviewer: stage?.assignedReviewer || null,
+        citations: stage?.citations || [],
+        sourceLinks: stage?.sourceLinks || []
+      }
+    });
   } catch (e) {
     console.error('Stage GET error', e);
     return NextResponse.json({ error: 'Failed' }, { status: 500 });

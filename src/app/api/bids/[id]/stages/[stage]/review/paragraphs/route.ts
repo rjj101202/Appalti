@@ -28,23 +28,31 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const plain = content.replace(/<[^>]+>/g, '');
     const paragraphs = plain.split(/\n\n+/).map(p => p.trim()).filter(Boolean).slice(0, body.data.max);
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) return NextResponse.json({ error: 'ANTHROPIC_API_KEY missing' }, { status: 400 });
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) return NextResponse.json({ error: 'OPENAI_API_KEY missing' }, { status: 400 });
 
-    const instruction = `Je bent een reviewer van aanbestedingsteksten. Voor elke alinea geef je: (1) korte diagnose (1 zin), (2) verbeterde alinea. Antwoord strikt als JSON: [{index,diagnose,improved}] voor de alinea-indexen.`;
+    const instruction = `Je bent de meest waarschijnlijke interne beoordelaar van de opdrachtgever (bijv. inkoopadviseur/contractmanager). Beoordeel streng op eisen, bewijs en helderheid. Voor elke alinea: (1) korte diagnose (1 zin), (2) verbeterde alinea. Antwoord strikt als JSON: [{index,diagnose,improved}]`;
     const user = `Alinea's (genummerd):\n` + paragraphs.map((p, i) => `${i}: ${p}`).join('\n\n');
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-3-5-sonnet-latest', max_tokens: 1200, system: instruction, messages: [{ role: 'user', content: user }] })
+      headers: { 'content-type': 'application/json', 'authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        temperature: 0,
+        max_tokens: 1200,
+        messages: [
+          { role: 'system', content: instruction },
+          { role: 'user', content: user }
+        ]
+      })
     });
     if (!res.ok) {
       const t = await res.text();
       return NextResponse.json({ error: `AI error: ${t}` }, { status: 500 });
     }
     const data = await res.json();
-    const text = data?.content?.[0]?.text || data?.content || '[]';
+    const text = data?.choices?.[0]?.message?.content || JSON.stringify(data) || '[]';
     let parsed: any[] = [];
     try { parsed = JSON.parse(text); } catch { parsed = []; }
 

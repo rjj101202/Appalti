@@ -5,6 +5,8 @@ import { getDatabase } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import { embedTexts } from '@/lib/rag';
 import { getKnowledgeRepository } from '@/lib/db/repositories/knowledgeRepository';
+import { parseEformsSummary } from '@/lib/tenderned-parse';
+import { fetchTenderNedXml } from '@/lib/tenderned';
 // Note: pdf-parse is dynamically imported to avoid bundling test assets during build
 
 export const runtime = 'nodejs';
@@ -54,18 +56,26 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const topK = parsedBody.data.topK || 8;
 
-    // Vertical client context (Intergarde)
+    // Vertical client context (bedrijfsspecifiek)
     const verticalHits = await repo.searchByEmbedding(auth.tenantId, embedding, topK, { scope: 'vertical', companyId: bid.clientCompanyId });
 
-    // Load docs metadata for citations
-    const docIds = Array.from(new Set(verticalHits.map(h => h.documentId.toString()))).map(s => new ObjectId(s));
-    const docs = await db.collection('knowledge_documents').find({ _id: { $in: docIds } }).toArray();
-    const byId = new Map(docs.map(d => [d._id.toString(), d]));
+    // Extra referentiemateriaal: appalti_bron / X_Ai collectie (horizontaal)
+    const xAiRefHits = await repo.searchByEmbedding(auth.tenantId, embedding, Math.max(6, Math.floor(topK / 2)), { scope: 'horizontal', tags: ['X_Ai'], pathIncludes: 'appalti_bron' });
 
-    const contextSnippets = verticalHits.map(h => ({
+    // Load docs metadata for citations
+    const allHitDocIds = Array.from(new Set([...verticalHits, ...xAiRefHits].map(h => h.documentId.toString()))).map(s => new ObjectId(s));
+    const allDocs = allHitDocIds.length ? await db.collection('knowledge_documents').find({ _id: { $in: allHitDocIds } }).toArray() : [];
+    const byId = new Map(allDocs.map(d => [d._id.toString(), d]));
+
+    const verticalSnippets = verticalHits.map(h => ({
       text: h.text,
       source: byId.get(h.documentId.toString())?.title || byId.get(h.documentId.toString())?.sourceUrl || 'bron'
-    })).slice(0, 12);
+    }));
+    const xAiSnippets = xAiRefHits.map(h => ({
+      text: h.text,
+      source: byId.get(h.documentId.toString())?.title || byId.get(h.documentId.toString())?.sourceUrl || 'bron'
+    }));
+    const contextSnippets = [...verticalSnippets, ...xAiSnippets].slice(0, 12);
 
     // Extract PDF attachments (leidraad) for this stage as buyer context
     let buyerDocSummary = '';
@@ -84,54 +94,100 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       }
     } catch {}
 
-    // TenderNed summary fields (buyer) if available in tender record in future
-    const tenderBuyer = tender?.title?.includes('provincie') ? 'Opdrachtgever: provincie (volgens TenderNed samenvatting)' : '';
+    // TenderNed: haal documentlinks en evt. Q&A op uit bron (indien beschikbaar)
+    let tenderDocLinks: string[] = [];
+    let tenderDocSummary = '';
+    try {
+      if ((tender as any).source === 'tenderned' && (tender as any).externalId) {
+        const xml = await fetchTenderNedXml((tender as any).externalId);
+        const summary = parseEformsSummary(xml);
+        tenderDocLinks = Array.isArray(summary.documentLinks) ? summary.documentLinks.slice(0, 12) : [];
+        // Best-effort: parse eerste PDF
+        const firstPdf = tenderDocLinks.find(u => /\.pdf$/i.test(u));
+        if (firstPdf) {
+          const pdfParse = (await import('pdf-parse')).default;
+          const res = await fetch(firstPdf);
+          if (res.ok) {
+            const ab = await res.arrayBuffer();
+            const parsed = await pdfParse(Buffer.from(ab));
+            tenderDocSummary = (parsed.text || '').replace(/\s+/g, ' ').slice(0, 4000);
+          }
+        }
+      }
+    } catch {}
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) return NextResponse.json({ error: 'ANTHROPIC_API_KEY missing' }, { status: 400 });
+    const xApiKey = process.env.X_AI_API;
+    if (!xApiKey) return NextResponse.json({ error: 'X_AI_API missing' }, { status: 400 });
 
-    const system = 'Je bent een tenderschrijver die voor de inschrijver (Intergarde) schrijft. Schrijf professioneel, helder, overtuigend en onderbouw met context.';
+    const system = 'Je bent een senior tenderschrijver (Grok) die voor de inschrijver schrijft. Schrijf professioneel, helder, overtuigend en strikt bedrijfsspecifiek. Gebruik bronnen en voeg inline citaties [S1], [S2] toe met een Referenties-sectie met URLs.';
 
-    let user = `Schrijf een eerste versie (storyline/raamwerk) van het inschrijvingsdocument voor de aanbesteding "${tender.title}". Schrijf expliciet vanuit Intergarde (inschrijver) aan de opdrachtgever.\n`;
-    if (clientCompany) {
-      user += `Kandidaat-inschrijver: ${clientCompany.name}.`;
-      if (clientCompany.website) user += ` Website: ${clientCompany.website}.`;
-      if (clientCompany.address?.city) user += ` Plaats: ${clientCompany.address.city}.`;
-      user += '\n';
-    }
+    let user = `Schrijf de eerste versie voor de aanbesteding "${tender.title}" voor inschrijver: ${clientCompany?.name || 'onbekend bedrijf'}.\n`;
+    if (clientCompany?.website) user += `Website inschrijver: ${clientCompany.website}.\n`;
+    if (clientCompany?.address?.city) user += `Locatie: ${clientCompany.address.city}.\n`;
     if (tender.description) user += `Tender omschrijving (kort): ${tender.description}\n`;
-    if (tenderBuyer) user += `${tenderBuyer}\n`;
-    if (buyerDocSummary) user += `Belangrijke elementen uit de leidraad (samenvatting, max 4000 tekens): ${buyerDocSummary}\n`;
+    if (buyerDocSummary) user += `Leidraad (samenvatting, max 4000 tekens): ${buyerDocSummary}\n`;
+    if (tenderDocSummary) user += `Tender document (samenvatting): ${tenderDocSummary}\n`;
     if (Array.isArray(tender.cpvCodes) && tender.cpvCodes.length) user += `CPV: ${tender.cpvCodes.join(', ')}\n`;
     if (parsedBody.data.prompt) user += `Extra instructie: ${parsedBody.data.prompt}\n`;
 
-    // Structure guidance based on best practices
-    user += `\nStructuur en richtlijnen:\n- Korte inleiding (begrip van vraag/opdrachtgever-doelen)\n- Onze begrip van doelstellingen en context\n- Oplossingsrichting (hoe Intergarde invulling geeft)\n- Waardepropositie en onderscheidend vermogen\n- Relevante ervaring en referenties (indien bekend)\n- Projectaanpak en planning\n- Kwaliteit/risico's/mitigatie\n- Governance en communicatie\n- Conclusie: waarom Intergarde gekozen moet worden.\nSchrijf puntsgewijs waar passend, maar voldoende volzinnen. Verwijs beknopt naar bronnen.\n`;
+    user += `\nEisen:\n- Schrijf bedrijfsspecifiek; neem GEEN claims op zonder bewijs/citatie.\n- Gebruik citaties [S1], [S2], ... in de tekst.\n- Voeg onderaan een sectie "Referenties" toe met dezelfde labels en URLs/titels.\n- Structuur: Inleiding, Begrip van doelstellingen, Oplossingsrichting, Waardepropositie, Ervaring/Referenties, Aanpak & Planning, Kwaliteit & Risico's, Governance & Communicatie, Conclusie.\n`;
 
     user += `\nBronfragmenten (max 12):\n`;
     for (const s of contextSnippets) {
       user += `---\n${s.text.slice(0, 1500)}\nBron: ${s.source}\n`;
     }
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    // Bouw referentielijst met labels S1..Sn
+    const linkSet = new Set<string>();
+    // Knowledge docs
+    for (const d of allDocs) {
+      const url = d.sourceUrl || d.path || '';
+      if (url) linkSet.add(url);
+    }
+    // Stage attachments
+    try {
+      const stageState = (bid.stages || []).find((s: any) => s.key === stage) || {};
+      const atts: Array<{ name: string; url: string }> = stageState.attachments || [];
+      for (const a of atts) if (a?.url) linkSet.add(a.url);
+    } catch {}
+    // Tender doc links
+    for (const l of tenderDocLinks) linkSet.add(l);
+    const allLinks = Array.from(linkSet);
+
+    const xaiRes = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
+        'authorization': `Bearer ${xApiKey}`
       },
-      body: JSON.stringify({ model: 'claude-3-5-sonnet-latest', max_tokens: 2000, system, messages: [{ role: 'user', content: user }] })
+      body: JSON.stringify({
+        model: process.env.X_AI_MODEL || 'grok-2-latest',
+        temperature: 0.3,
+        max_tokens: 2000,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user + `\n\nBeschikbare links:\n` + allLinks.map((u, i) => `[S${i+1}] ${u}`).join('\n') }
+        ]
+      })
     });
-    if (!res.ok) {
-      const t = await res.text();
-      return NextResponse.json({ error: `AI error: ${t}` }, { status: 500 });
+    if (!xaiRes.ok) {
+      const t = await xaiRes.text();
+      return NextResponse.json({ error: `X AI error: ${t}` }, { status: 500 });
     }
-    const data = await res.json();
-    const text = data?.content?.[0]?.text || data?.content || JSON.stringify(data);
+    const xaiJson = await xaiRes.json();
+    const text: string = xaiJson?.choices?.[0]?.message?.content || JSON.stringify(xaiJson);
+
+    // Bewaar citaties/links bij de stage zodat UI ze kan tonen
+    try {
+      await db.collection('bids').updateOne(
+        { _id: new ObjectId(parsedParams.data.id), tenantId: auth.tenantId, 'stages.key': stage },
+        { $set: { 'stages.$.citations': contextSnippets.map(s => s.source).slice(0, 12), 'stages.$.sourceLinks': allLinks, updatedAt: new Date(), updatedBy: new ObjectId(auth.userId) } }
+      );
+    } catch {}
 
     const citations = contextSnippets.map(s => s.source);
 
-    return NextResponse.json({ success: true, data: { generatedText: text, citations } });
+    return NextResponse.json({ success: true, data: { generatedText: text, citations, links: allLinks } });
   } catch (e: any) {
     console.error('AI generate error', e);
     return NextResponse.json({ error: e?.message || 'Failed to generate' }, { status: 500 });

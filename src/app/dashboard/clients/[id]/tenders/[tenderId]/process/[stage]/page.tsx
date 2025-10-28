@@ -31,10 +31,21 @@ export default function StageEditorPage() {
   const [tenderExternalId, setTenderExternalId] = useState<string>('');
   const tenderLink = useMemo(() => tenderExternalId ? `https://www.tenderned.nl/aankondigingen/overzicht/${encodeURIComponent(tenderExternalId)}` : '', [tenderExternalId]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [sourceLinks, setSourceLinks] = useState<string[]>([]);
 
   const editor = useEditor({
-    extensions: [StarterKit, Underline, TextStyle, Color],
+    extensions: [
+      StarterKit,
+      Underline,
+      TextStyle,
+      Color,
+    ],
     content: '<p></p>',
+    editorProps: {
+      attributes: {
+        class: 'prose max-w-none prose-headings:scroll-mt-24 prose-h1:mb-3 prose-h2:mt-6 prose-h2:mb-2 prose-p:leading-7 prose-li:my-1'
+      }
+    }
   });
 
   const bidIdFromQuery = async (): Promise<string | undefined> => {
@@ -69,6 +80,7 @@ export default function StageEditorPage() {
       setAttachments(json.data?.attachments || []);
       setStageStatus(json.data?.status || '');
       setTenderExternalId(meta.externalId || '');
+      setSourceLinks(json.data?.sourceLinks || []);
       // assigned reviewer/status ophalen uit server data als beschikbaar
       // (deze endpoint retourneert dit nog niet; we houden UI reactief na toewijzen)
       if (editor) editor.commands.setContent(html || '<p></p>');
@@ -272,16 +284,28 @@ export default function StageEditorPage() {
             {/* Rich editor */}
             <div className="card" style={{ padding: '0.5rem' }}>
               <Toolbar editor={editor} />
-              <div style={{ border: '1px solid #e5e7eb', borderRadius: 6, minHeight: 400, padding: 8 }}>
+              <div style={{ border: '1px solid #e5e7eb', borderRadius: 6, minHeight: 500, padding: 12, background: '#fff' }}>
                 {editor && <EditorContent editor={editor} />}
               </div>
             </div>
-            {/* Bronnen (TenderNed) */}
-            {tenderLink && (
+            {/* Design hulp: stijlgids voor consistente opmaak */}
+            <div className="card" style={{ marginTop: '1rem' }}>
+              <h3>Stijlgids (versie‑specifiek)</h3>
+              <ul style={{ color: '#6b7280' }}>
+                <li>Gebruik H2 voor hoofddelen, H3 voor subsecties.</li>
+                <li>Gebruik opsommingen voor eisen en aanpak.</li>
+                <li>Voeg citaties [S1], [S2] toe bij claims; bewijs is verplicht.</li>
+              </ul>
+            </div>
+            {/* Bronnen & Referenties */}
+            {(tenderLink || (sourceLinks && sourceLinks.length)) && (
               <div style={{ marginTop: '1rem' }}>
-                <h3>Bronnen</h3>
+                <h3>Referenties</h3>
                 <ul>
-                  <li><a href={tenderLink} target="_blank" rel="noreferrer">Aankondiging op TenderNed</a></li>
+                  {tenderLink && <li><a href={tenderLink} target="_blank" rel="noreferrer">Aankondiging op TenderNed</a></li>}
+                  {sourceLinks.map((u, i) => (
+                    <li key={i}><a href={u} target="_blank" rel="noreferrer">{u}</a></li>
+                  ))}
                 </ul>
               </div>
             )}
