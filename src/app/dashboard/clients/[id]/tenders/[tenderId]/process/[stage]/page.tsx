@@ -13,6 +13,13 @@ import TiptapLink from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import Highlight from '@tiptap/extension-highlight';
 import TextAlign from '@tiptap/extension-text-align';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import CodeBlock from '@tiptap/extension-code-block';
 
 type Stage = 'storyline' | 'version_65' | 'version_95' | 'final';
 
@@ -49,7 +56,14 @@ export default function StageEditorPage() {
       TiptapLink.configure({ openOnClick: true, autolink: true }),
       Image.configure({ inline: false }),
       Highlight,
-      TextAlign.configure({ types: ['heading', 'paragraph'] })
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      TaskList,
+      TaskItem.configure({ nested: true }),
+      CodeBlock
     ],
     content: '<p></p>',
     editorProps: {
@@ -438,8 +452,12 @@ function Toolbar({ editor }: { editor: any }) {
       <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleUnderline?.().run?.()}><u>U</u></button>
       <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleBulletList().run()}>• Lijst</button>
       <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleOrderedList().run()}>1. Lijst</button>
+      <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleTaskList?.().run?.()}>☑ Taken</button>
+      <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleCodeBlock?.().run?.()}></> Code</button>
       <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>H2</button>
       <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>H3</button>
+      <button className="btn btn-secondary" onClick={() => editor.chain().focus().insertTable?.({ rows: 3, cols: 3, withHeaderRow: true }).run?.()}>Tabel</button>
+      <TemplateMenu onInsert={(html) => editor.chain().focus().insertContent(html).run()} />
       <button className="btn btn-secondary" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}>Clear</button>
     </div>
   );
@@ -468,6 +486,21 @@ function ExportButtons({ clientId, tenderId, stage }: { clientId: string; tender
       <button className="btn btn-secondary" onClick={async()=>{ const id = await getBidId(); if (id) download(`/api/bids/${id}/stages/${stage}/export/docx`); }}>Export DOCX</button>
       <button className="btn btn-secondary" onClick={async()=>{ const id = await getBidId(); if (id) download(`/api/bids/${id}/stages/${stage}/export/pdf`); }}>Export PDF</button>
     </div>
+  );
+}
+
+function TemplateMenu({ onInsert }: { onInsert: (html: string) => void }) {
+  const templates: Array<{ name: string; html: string }> = [
+    { name: 'Inleiding', html: '<h2>Inleiding</h2><p>Samenvatting van doel en context.</p>' },
+    { name: 'Aanpak', html: '<h2>Aanpak</h2><ul><li>Stap 1</li><li>Stap 2</li><li>Stap 3</li></ul>' },
+    { name: 'Risico\'s & mitigatie', html: '<h2>Risico\'s &amp; mitigatie</h2><ul><li>Risico A – mitigatie</li><li>Risico B – mitigatie</li></ul>' },
+    { name: 'Referentiesectie', html: '<h2>Referenties</h2><p>Zie [S1], [S2], ...</p>' },
+  ];
+  return (
+    <select className="btn btn-secondary" onChange={(e)=>{ const t = templates.find(x=>x.name===e.target.value); if (t) onInsert(t.html); e.currentTarget.selectedIndex=0; }}>
+      <option>Templates…</option>
+      {templates.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
+    </select>
   );
 }
 
