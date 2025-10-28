@@ -59,10 +59,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const verticalHits = await repo.searchByEmbedding(auth.tenantId, embedding, topK, { scope: 'vertical', companyId: bid.clientCompanyId });
     const verticalDocIdStrings = Array.from(new Set(verticalHits.map(h => h.documentId.toString())));
     const verticalDocIds = verticalDocIdStrings.map(s => new ObjectId(s));
-    const allDocs = verticalDocIds.length ? await db.collection('knowledge_documents').find({ _id: { $in: verticalDocIds } }).toArray() : [];
-    const byId = new Map(allDocs.map(d => [d._id.toString(), d]));
+    const docsRaw = verticalDocIds.length ? await db.collection('knowledge_documents').find({ _id: { $in: verticalDocIds } }).toArray() : [];
+    // STRICT: alleen platform‑geüploade documenten meenemen (uploads/<tenant>/<company>/...)
+    const allDocs = docsRaw.filter((d: any) => typeof d.path === 'string' && /^uploads\//.test(d.path || ''));
+    const allowedDocIds = new Set(allDocs.map((d: any) => d._id.toString()));
+    const byId = new Map(allDocs.map((d: any) => [d._id.toString(), d]));
 
-    const contextSnippets = verticalHits.map(h => ({
+    const allowedHits = verticalHits.filter(h => allowedDocIds.has(h.documentId.toString()));
+    const contextSnippets = allowedHits.map(h => ({
       text: h.text,
       source: byId.get(h.documentId.toString())?.title || byId.get(h.documentId.toString())?.path || byId.get(h.documentId.toString())?.sourceUrl || 'bron',
       type: 'client' as const,
@@ -150,8 +154,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // Bouw referentielijst met labels S1..Sn
     const linkSet = new Set<string>();
     for (const d of allDocs) {
-      const url = (d as any).path || (d as any).sourceUrl || '';
-      if (url) linkSet.add(url);
+      const url = `/api/clients/${bid.clientCompanyId.toString()}/knowledge/${(d as any)._id.toString()}`;
+      linkSet.add(url);
     }
     try {
       const stageState = (bid.stages || []).find((s: any) => s.key === stage) || {};
@@ -190,7 +194,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       let labelIndex = 1;
       for (const d of allDocs) {
         const title = (d as any).title || (d as any).path || (d as any).sourceUrl || 'document';
-        const url = (d as any).path || (d as any).sourceUrl || '';
+        const url = `/api/clients/${bid.clientCompanyId.toString()}/knowledge/${(d as any)._id.toString()}`;
         const snip = (contextSnippets.find(cs => cs.url === url)?.text || '').slice(0, 200);
         sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'client', title, url, documentId: (d as any)._id, snippet: snip });
       }
