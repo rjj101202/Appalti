@@ -28,6 +28,7 @@ export default function StageEditorPage() {
   const [results, setResults] = useState<any[]>([]);
   const [genLoading, setGenLoading] = useState(false);
   const [revLoading, setRevLoading] = useState(false);
+  const [useAppaltiBron, setUseAppaltiBron] = useState(false);
   const [contacts, setContacts] = useState<{ _id: string; name: string; email?: string }[]>([]);
   const [reviewerId, setReviewerId] = useState('');
   const [stageStatus, setStageStatus] = useState<string>('');
@@ -145,7 +146,7 @@ export default function StageEditorPage() {
       setGenLoading(true);
       const bidId = await bidIdFromQuery();
       if (!bidId) throw new Error('Bid niet gevonden');
-      const res = await fetch(`/api/bids/${bidId}/stages/${stage}/ai/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+      const res = await fetch(`/api/bids/${bidId}/stages/${stage}/ai/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ includeAppaltiBron: useAppaltiBron }) });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || 'Genereren mislukt');
       const next = (editor?.getHTML() || '') + `\n<p>\n</p>` + (json.data.generatedText || '').split('\n').map(l => `<p>${l}</p>`).join('');
@@ -307,6 +308,14 @@ export default function StageEditorPage() {
                 {editor && <EditorContent editor={editor} />}
               </div>
             </div>
+            {/* Export & opties */}
+            <div style={{ display:'flex', gap:8, alignItems:'center', marginTop:'0.5rem', flexWrap:'wrap' }}>
+              <label style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                <input type="checkbox" checked={useAppaltiBron} onChange={e=>setUseAppaltiBron(e.target.checked)} />
+                Gebruik appalti_bron (extra context)
+              </label>
+              <ExportButtons clientId={String(clientId)} tenderId={String(tenderId)} stage={stage} />
+            </div>
             {/* Design hulp: stijlgids voor consistente opmaak */}
             <div className="card" style={{ marginTop: '1rem' }}>
               <h3>Stijlgids (versie‑specifiek)</h3>
@@ -432,6 +441,32 @@ function Toolbar({ editor }: { editor: any }) {
       <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>H2</button>
       <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>H3</button>
       <button className="btn btn-secondary" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}>Clear</button>
+    </div>
+  );
+}
+
+function ExportButtons({ clientId, tenderId, stage }: { clientId: string; tenderId: string; stage: string }) {
+  const download = (url: string) => {
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noreferrer';
+    a.click();
+  };
+  // Resolve bidId via API (same helper as above would require lifting; keep simple fetch)
+  const getBidId = async (): Promise<string|undefined> => {
+    try {
+      const res = await fetch(`/api/clients/${clientId}/tenders`);
+      const json = await res.json();
+      if (!res.ok || !json.success) return undefined;
+      const item = (json.data || []).find((x: any) => x.id === tenderId);
+      return item?.bid?.id;
+    } catch { return undefined; }
+  };
+  return (
+    <div style={{ display:'inline-flex', gap:6 }}>
+      <button className="btn btn-secondary" onClick={async()=>{ const id = await getBidId(); if (id) download(`/api/bids/${id}/stages/${stage}/export/docx`); }}>Export DOCX</button>
+      <button className="btn btn-secondary" onClick={async()=>{ const id = await getBidId(); if (id) download(`/api/bids/${id}/stages/${stage}/export/pdf`); }}>Export PDF</button>
     </div>
   );
 }
