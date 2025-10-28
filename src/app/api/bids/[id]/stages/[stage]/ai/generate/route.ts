@@ -181,7 +181,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       for (const d of allDocs) {
         const title = d.title || d.path || d.sourceUrl || 'document';
         const url = d.path || d.sourceUrl || '';
-        sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'client', title, url, documentId: d._id });
+        const snip = (contextSnippets.find(cs => cs.url === url)?.text || '').slice(0, 200);
+        sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'client', title, url, documentId: d._id, snippet: snip });
       }
       // Tender doc links
       for (const l of tenderDocLinks) {

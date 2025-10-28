@@ -315,7 +315,10 @@ export default function StageEditorPage() {
                 <ul>
                   {tenderLink && <li><a href={tenderLink} target="_blank" rel="noreferrer">Aankondiging op TenderNed</a></li>}
                   {sources.map((s,i)=> (
-                    <li key={i} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <li key={i} style={{ display:'flex', alignItems:'center', gap:8 }} onClick={()=>{
+                      const detail = `${s.title || s.url || ''}\n\n${s.snippet || ''}`;
+                      alert(detail);
+                    }}>
                       <span title={s.type} aria-label={s.type} style={{ width:18, height:18, display:'inline-flex', alignItems:'center', justifyContent:'center' }}>
                         {s.type==='client'?'🌳':s.type==='tender'?'🍃':s.type==='attachment'?'📎':'🏠'}
                       </span>
