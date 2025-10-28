@@ -59,23 +59,15 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // Vertical client context (bedrijfsspecifiek)
     const verticalHits = await repo.searchByEmbedding(auth.tenantId, embedding, topK, { scope: 'vertical', companyId: bid.clientCompanyId });
 
-    // Extra referentiemateriaal: appalti_bron / X_Ai collectie (horizontaal)
-    const xAiRefHits = await repo.searchByEmbedding(auth.tenantId, embedding, Math.max(6, Math.floor(topK / 2)), { scope: 'horizontal', tags: ['X_Ai'], pathIncludes: 'appalti_bron' });
-
-    // Load docs metadata for citations
-    const allHitDocIds = Array.from(new Set([...verticalHits, ...xAiRefHits].map(h => h.documentId.toString()))).map(s => new ObjectId(s));
+    // Alleen documenten uit de map van de betreffende client company (vertical scope)
+    const allHitDocIds = Array.from(new Set(verticalHits.map(h => h.documentId.toString()))).map(s => new ObjectId(s));
     const allDocs = allHitDocIds.length ? await db.collection('knowledge_documents').find({ _id: { $in: allHitDocIds } }).toArray() : [];
     const byId = new Map(allDocs.map(d => [d._id.toString(), d]));
 
-    const verticalSnippets = verticalHits.map(h => ({
+    const contextSnippets = verticalHits.map(h => ({
       text: h.text,
-      source: byId.get(h.documentId.toString())?.title || byId.get(h.documentId.toString())?.sourceUrl || 'bron'
-    }));
-    const xAiSnippets = xAiRefHits.map(h => ({
-      text: h.text,
-      source: byId.get(h.documentId.toString())?.title || byId.get(h.documentId.toString())?.sourceUrl || 'bron'
-    }));
-    const contextSnippets = [...verticalSnippets, ...xAiSnippets].slice(0, 12);
+      source: byId.get(h.documentId.toString())?.title || byId.get(h.documentId.toString())?.path || byId.get(h.documentId.toString())?.sourceUrl || 'bron'
+    })).slice(0, 12);
 
     // Extract PDF attachments (leidraad) for this stage as buyer context
     let buyerDocSummary = '';
@@ -139,9 +131,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     // Bouw referentielijst met labels S1..Sn
     const linkSet = new Set<string>();
-    // Knowledge docs
+    // Knowledge docs (uitsluitend client company map)
     for (const d of allDocs) {
-      const url = d.sourceUrl || d.path || '';
+      const url = d.path || d.sourceUrl || '';
       if (url) linkSet.add(url);
     }
     // Stage attachments

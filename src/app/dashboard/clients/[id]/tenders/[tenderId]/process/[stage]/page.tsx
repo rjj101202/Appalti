@@ -29,6 +29,7 @@ export default function StageEditorPage() {
   const [stageStatus, setStageStatus] = useState<string>('');
   const [assignedReviewer, setAssignedReviewer] = useState<{ id: string; name: string; email?: string }|null>(null);
   const [tenderExternalId, setTenderExternalId] = useState<string>('');
+  const [clientName, setClientName] = useState<string>('');
   const tenderLink = useMemo(() => tenderExternalId ? `https://www.tenderned.nl/aankondigingen/overzicht/${encodeURIComponent(tenderExternalId)}` : '', [tenderExternalId]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [sourceLinks, setSourceLinks] = useState<string[]>([]);
@@ -62,13 +63,20 @@ export default function StageEditorPage() {
     try {
       setLoading(true);
       // Haal bid + tender meta op
-      const meta = await (async (): Promise<{ bidId?: string; externalId?: string }> => {
+      const meta = await (async (): Promise<{ bidId?: string; externalId?: string, clientName?: string }> => {
         try {
           const res = await fetch(`/api/clients/${clientId}/tenders`);
           const json = await res.json();
           if (!res.ok || !json.success) return {};
           const item = (json.data || []).find((x: any) => x.id === tenderId);
-          return { bidId: item?.bid?.id, externalId: item?.externalId };
+          // clientName ophalen
+          let name = '';
+          try {
+            const r2 = await fetch(`/api/clients/${clientId}`);
+            const j2 = await r2.json();
+            if (r2.ok && j2.success) name = j2.data?.name || '';
+          } catch {}
+          return { bidId: item?.bid?.id, externalId: item?.externalId, clientName: name };
         } catch { return {}; }
       })();
       const bidId = meta.bidId;
@@ -80,6 +88,7 @@ export default function StageEditorPage() {
       setAttachments(json.data?.attachments || []);
       setStageStatus(json.data?.status || '');
       setTenderExternalId(meta.externalId || '');
+      setClientName(meta.clientName || '');
       setSourceLinks(json.data?.sourceLinks || []);
       // assigned reviewer/status ophalen uit server data als beschikbaar
       // (deze endpoint retourneert dit nog niet; we houden UI reactief na toewijzen)
@@ -357,7 +366,7 @@ export default function StageEditorPage() {
             </div>
             {/* Reviewer */}
             <div className="card" style={{ padding: '0.75rem' }}>
-              <h3>Beoordeling door Intergarde</h3>
+              <h3>Beoordeling door {clientName || 'client'}</h3>
               <div style={{ fontSize: '0.9em', marginBottom: 6 }}>Status: {stageStatus || 'draft'}</div>
               {assignedReviewer && <div style={{ fontSize: '0.9em', marginBottom: 6 }}>Reviewer: {assignedReviewer.name} ({assignedReviewer.email || 'n/a'})</div>}
               <select value={reviewerId} onChange={e=>setReviewerId(e.target.value)} style={{ width: '100%', marginBottom: 8 }}>
