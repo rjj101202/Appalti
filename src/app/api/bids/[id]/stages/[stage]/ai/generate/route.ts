@@ -77,21 +77,52 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     // Optioneel: appalti_bron (horizontale collectie) meenemen
     let xaiDocs: any[] = [];
+    let xaiApiSnippets: Array<{ text: string; source: string; type: 'xai'; documentId?: string; url?: string }> = [];
     if (parsedBody.data.includeAppaltiBron) {
-      try {
-        const xAiRefHits = await repo.searchByEmbedding(auth.tenantId, embedding, Math.max(4, Math.floor(topK / 2)), { scope: 'horizontal', tags: ['X_Ai'], pathIncludes: 'appalti_bron' });
-        const xIds = Array.from(new Set(xAiRefHits.map(h => h.documentId.toString()))).map(s => new ObjectId(s));
-        xaiDocs = xIds.length ? await db.collection('knowledge_documents').find({ _id: { $in: xIds } }).toArray() : [];
-        const xById = new Map(xaiDocs.map((d: any) => [d._id.toString(), d]));
-        const xSnippets = xAiRefHits.map(h => ({
-          text: h.text,
-          source: xById.get(h.documentId.toString())?.title || xById.get(h.documentId.toString())?.path || xById.get(h.documentId.toString())?.sourceUrl || 'bron',
-          type: 'xai' as const,
-          documentId: h.documentId.toString(),
-          url: `/api/knowledge/document/${h.documentId.toString()}`
-        })).slice(0, 6);
-        contextSnippets = [...contextSnippets, ...xSnippets].slice(0, 12);
-      } catch {}
+      // Eerst proberen via X AI Collections API als XAI_COLLECTION_ID aanwezig is; anders fallback naar onze repo
+      const collectionId = process.env.XAI_COLLECTION_ID;
+      const xApiKey = process.env.X_AI_API;
+      let usedApi = false;
+      if (collectionId && xApiKey) {
+        try {
+          const xr = await fetch('https://api.x.ai/v1/collections/query', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'authorization': `Bearer ${xApiKey}` },
+            body: JSON.stringify({ collection_id: collectionId, query, top_k: Math.max(6, Math.floor(topK / 2)) })
+          });
+          if (xr.ok) {
+            const j = await xr.json();
+            const arr: any[] = j.results || j.documents || j.items || [];
+            xaiApiSnippets = arr.map((it: any) => ({
+              text: String(it.text || it.snippet || it.content || ''),
+              source: String(it.title || it.document?.title || it.url || it.document?.url || 'bron'),
+              type: 'xai' as const,
+              documentId: String(it.id || it.documentId || ''),
+              url: String(it.url || it.document?.url || '')
+            })).slice(0, 6);
+            if (xaiApiSnippets.length) usedApi = true;
+          }
+        } catch {}
+      }
+      if (!usedApi) {
+        try {
+          const xAiRefHits = await repo.searchByEmbedding(auth.tenantId, embedding, Math.max(4, Math.floor(topK / 2)), { scope: 'horizontal', tags: ['X_Ai'], pathIncludes: 'appalti_bron' });
+          const xIds = Array.from(new Set(xAiRefHits.map(h => h.documentId.toString()))).map(s => new ObjectId(s));
+          xaiDocs = xIds.length ? await db.collection('knowledge_documents').find({ _id: { $in: xIds } }).toArray() : [];
+          const xById = new Map(xaiDocs.map((d: any) => [d._id.toString(), d]));
+          const xSnippets = xAiRefHits.map(h => ({
+            text: h.text,
+            source: xById.get(h.documentId.toString())?.title || xById.get(h.documentId.toString())?.path || xById.get(h.documentId.toString())?.sourceUrl || 'bron',
+            type: 'xai' as const,
+            documentId: h.documentId.toString(),
+            url: `/api/knowledge/document/${h.documentId.toString()}`
+          })).slice(0, 6);
+          contextSnippets = [...contextSnippets, ...xSnippets].slice(0, 12);
+        } catch {}
+      }
+      if (xaiApiSnippets.length) {
+        contextSnippets = [...contextSnippets, ...xaiApiSnippets].slice(0, 12);
+      }
     }
 
     // Extract PDF attachments (leidraad) for this stage as buyer context
@@ -186,6 +217,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // Links naar appalti_bron docs (indien actief)
     if (parsedBody.data.includeAppaltiBron) {
       for (const d of xaiDocs) linkSet.add(`/api/knowledge/document/${(d as any)._id.toString()}`);
+      for (const s of xaiApiSnippets) if (s.url) linkSet.add(s.url);
     }
     const allLinks = Array.from(linkSet);
 
@@ -218,8 +250,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       let labelIndex = 1;
       for (const d of allDocs) {
         const title = (d as any).title || (d as any).path || (d as any).sourceUrl || 'document';
-        const url = `/api/clients/${bid.clientCompanyId.toString()}/knowledge/${(d as any)._id.toString()}`;
-        const snip = (contextSnippets.find(cs => cs.url === url)?.text || '').slice(0, 200);
+        const blobUrl = (d as any).sourceUrl as string | undefined;
+        const url = blobUrl || `/api/clients/${bid.clientCompanyId.toString()}/knowledge/${(d as any)._id.toString()}`;
+        const snip = (contextSnippets.find(cs => cs.url === (blobUrl || (d as any).path))?.text || '').slice(0, 200);
         sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'client', title, url, documentId: (d as any)._id, snippet: snip });
       }
       for (const l of tenderDocLinks) {
@@ -231,6 +264,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         for (const d of xaiDocs) {
           const url = `/api/knowledge/document/${(d as any)._id.toString()}`;
           sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'xai', title: (d as any).title || (d as any).path, url });
+        }
+        for (const s of xaiApiSnippets) {
+          sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'xai', title: s.source, url: s.url });
         }
       }
       try {
