@@ -19,9 +19,11 @@ export async function middleware(request: NextRequest) {
     console.log('Middleware - Session:', !!session)
   }
 
-  // Als geen sessie en niet op home/auth pagina's
+  // Als geen sessie: direct naar Auth0 provider i.p.v. tussenpagina
   if (!session && !pathname.startsWith('/auth')) {
-    return NextResponse.redirect(new URL('/auth/signin', request.url))
+    const target = new URL('/api/auth/signin/auth0', request.url);
+    target.searchParams.set('callbackUrl', '/dashboard');
+    return NextResponse.redirect(target)
   }
   
   return NextResponse.next()

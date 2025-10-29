@@ -44,7 +44,7 @@ export default function Home() {
                 </a>
               </>
             ) : (
-              <a href="/api/auth/signin" className="btn btn-primary">
+              <a href="/api/auth/signin/auth0?callbackUrl=/dashboard" className="btn btn-primary">
                 Login
               </a>
             )}
