@@ -25,16 +25,31 @@ export class KnowledgeRepository {
     this.chunks = db.collection<KnowledgeChunk>('knowledge_chunks');
 
     this.docs.createIndex({ tenantId: 1, scope: 1, companyId: 1, path: 1 }, { name: 'docs_scope_path' });
-    this.docs.createIndex(
-      { tenantId: 1, driveItemId: 1, userUpn: 1 },
-      {
-        name: 'docs_item_unique',
-        unique: true,
-        sparse: true,
-        // Don't index documents that don't carry driveItemId/userUpn
-        partialFilterExpression: { driveItemId: { $exists: true }, userUpn: { $exists: true } }
+    // Ensure unique index only applies to docs that came from external drives (driveItemId+userUpn present)
+    // Some earlier deployments created this index without a partial filter, causing E11000 on uploads.
+    // Try to self-heal by recreating the index with a partial filter if needed.
+    (async () => {
+      try {
+        const idx = await this.docs.indexes();
+        const existing = idx.find((i: any) => i.name === 'docs_item_unique');
+        const wants = {
+          key: { tenantId: 1, driveItemId: 1, userUpn: 1 },
+          name: 'docs_item_unique',
+          unique: true,
+          sparse: true,
+          partialFilterExpression: { driveItemId: { $exists: true }, userUpn: { $exists: true } },
+        } as any;
+        const needsFix = !existing || !existing.partialFilterExpression;
+        if (needsFix && existing) {
+          await this.docs.dropIndex('docs_item_unique').catch(() => {});
+        }
+        if (needsFix) {
+          await this.docs.createIndex(wants.key, wants);
+        }
+      } catch (e) {
+        console.warn('knowledgeRepository index ensure warning:', (e as any)?.message || e);
       }
-    );
+    })();
     this.chunks.createIndex({ tenantId: 1, documentId: 1, chunkIndex: 1 }, { unique: true, name: 'chunks_idx' });
     // Atlas Vector Search index should be created separately on chunks.embedding
   }
