@@ -10,17 +10,31 @@ export default function BidProcessPage() {
   const { id: clientId, tenderId } = useParams<{ id: string; tenderId: string }>();
   const router = useRouter();
   const [bid, setBid] = useState<any>(null);
+  const [tenderMeta, setTenderMeta] = useState<{ externalId?: string; deadline?: string; summary?: any } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const load = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/clients/${clientId}/tenders`);
+      const res = await fetch(`/api/clients/${clientId}/tenders`, { cache: 'no-store' });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || 'Laden mislukt');
       const item = (json.data || []).find((x: any) => x.id === tenderId);
       setBid(item?.bid || null);
+      // Load TenderNed summary when available
+      try {
+        const externalId = item?.externalId;
+        const deadline = item?.deadline || '';
+        if (externalId) {
+          const r2 = await fetch(`/api/bids/sources/tenderned/${encodeURIComponent(externalId)}`, { cache: 'no-store' });
+          const j2 = await r2.json();
+          const summary = r2.ok && j2?.success ? j2.summary : undefined;
+          setTenderMeta({ externalId, deadline, summary });
+        } else {
+          setTenderMeta({ externalId, deadline, summary: undefined });
+        }
+      } catch { /* ignore */ }
     } catch (e: any) {
       setError(e?.message || 'Laden mislukt');
     } finally {
@@ -69,6 +83,41 @@ export default function BidProcessPage() {
         {error && <p className="error-message">{error}</p>}
         {!loading && !error && (
           <div className="action-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+            {/* Tender meta */}
+            <div className="card" style={{ gridColumn: 'span 2', marginBottom: '0.5rem' }}>
+              <h3 style={{ marginBottom: 6 }}>Tendergegevens</h3>
+              {tenderMeta ? (
+                <div style={{ display:'flex', gap: '2rem', flexWrap:'wrap', color:'#374151' }}>
+                  <div>
+                    <div style={{ fontSize:12, color:'#6b7280' }}>Inschrijfdeadline</div>
+                    <div>
+                      {tenderMeta.summary?.deadlineDate || tenderMeta.deadline || '–'}
+                      {tenderMeta.summary?.deadlineTime ? ` ${tenderMeta.summary.deadlineTime}` : ''}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize:12, color:'#6b7280' }}>Publicatie</div>
+                    <div>
+                      {tenderMeta.summary?.publicationIssueDate || '–'}
+                      {tenderMeta.summary?.publicationIssueTime ? ` ${tenderMeta.summary.publicationIssueTime}` : ''}
+                    </div>
+                  </div>
+                  {tenderMeta.summary?.buyer && (
+                    <div>
+                      <div style={{ fontSize:12, color:'#6b7280' }}>Aanbestedende dienst</div>
+                      <div>{tenderMeta.summary.buyer}</div>
+                    </div>
+                  )}
+                  {tenderMeta.externalId && (
+                    <div>
+                      <a className="btn btn-secondary" href={`https://www.tenderned.nl/aankondigingen/overzicht/${encodeURIComponent(tenderMeta.externalId)}`} target="_blank" rel="noreferrer">Bekijk op TenderNed</a>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ color:'#6b7280' }}>Geen tendergegevens beschikbaar.</div>
+              )}
+            </div>
             <StageCard stage="storyline" title="Storyline" description="Eerste versie van het aanbestedingsdocument." />
             <StageCard stage="version_65" title="65% versie" description="Inhoud en structuur grotendeels compleet." />
             <StageCard stage="version_95" title="95% versie" description="Bijna definitief; laatste checks." />

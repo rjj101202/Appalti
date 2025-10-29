@@ -4,6 +4,9 @@ import { getTenderRepository } from '@/lib/db/repositories/tenderRepository';
 import { getBidRepository } from '@/lib/db/repositories/bidRepository';
 import { ObjectId } from 'mongodb';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const auth = await requireAuth(request);
