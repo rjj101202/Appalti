@@ -230,7 +230,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       body: JSON.stringify({
         model: process.env.X_AI_MODEL || 'grok-2-latest',
         temperature: 0.3,
-        max_tokens: 2000,
+        max_tokens: 3500,
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: user + `\n\nBeschikbare links:\n` + allLinks.map((u, i) => `[S${i+1}] ${u}`).join('\n') }
@@ -242,7 +242,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: `X AI error: ${t}` }, { status: 500 });
     }
     const xaiJson = await xaiRes.json();
-    const text: string = xaiJson?.choices?.[0]?.message?.content || JSON.stringify(xaiJson);
+    let text: string = xaiJson?.choices?.[0]?.message?.content || JSON.stringify(xaiJson);
 
     // Bewaar citaties/links en herkomst bij de stage zodat UI ze kan tonen
     try {
@@ -282,6 +282,32 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     } catch {}
 
     const citations = contextSnippets.map(s => s.source);
+
+    // Voeg altijd een Referenties-sectie toe onderaan met alle gebruikte bronnen
+    try {
+      const refsLines: string[] = [];
+      const used: Array<{ label: string; title?: string; url?: string }> = [];
+      // Hergebruik eerder gebouwde sources (als beschikbaar)
+      const dbBid = await db.collection('bids').findOne({ _id: new ObjectId(parsedParams.data.id), tenantId: auth.tenantId });
+      const stageState = (dbBid?.stages || []).find((s: any) => s.key === stage) || {};
+      const sourcesDetailed = Array.isArray(stageState.sources) ? stageState.sources : [];
+      if (sourcesDetailed.length) {
+        for (const s of sourcesDetailed) used.push({ label: s.label, title: s.title, url: s.url });
+      } else {
+        // Fallback: bouw een lijst vanuit links (S1..Sn)
+        allLinks.forEach((u, i) => used.push({ label: `S${i+1}`, url: u }));
+      }
+      if (used.length) {
+        refsLines.push('\n\n## Referenties\n');
+        for (const s of used) {
+          const line = `[${s.label}] ${s.title || s.url || ''}`;
+          refsLines.push(line);
+        }
+        if (!/##\s*Referenties/i.test(text)) {
+          text = `${text}\n${refsLines.join('\n')}`;
+        }
+      }
+    } catch {}
 
     return NextResponse.json({ success: true, data: { generatedText: text, citations, links: allLinks } });
   } catch (e: any) {

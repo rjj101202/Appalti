@@ -35,7 +35,7 @@ export default function StageEditorPage() {
   const [results, setResults] = useState<any[]>([]);
   const [genLoading, setGenLoading] = useState(false);
   const [revLoading, setRevLoading] = useState(false);
-  const [useAppaltiBron, setUseAppaltiBron] = useState(false);
+  const [useAppaltiBron, setUseAppaltiBron] = useState(true);
   const [contacts, setContacts] = useState<{ _id: string; name: string; email?: string }[]>([]);
   const [reviewerId, setReviewerId] = useState('');
   const [stageStatus, setStageStatus] = useState<string>('');
