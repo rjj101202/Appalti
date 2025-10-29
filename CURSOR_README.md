@@ -240,6 +240,14 @@ Extra API’s:
 
 ## Update Logs
 
+2025-10-29 14:30 UTC
+- Bidwriter Phase 1 – Interactieve bron‑previews
+  - Data: `stages[].sources[]` uitgebreid met `chunks[]` per bron (chunkIndex + optionele pageNumber) om exacte fragmenten te kunnen aanwijzen.
+  - API: nieuw `GET /api/knowledge/chunk/preview?docId=...&chunkIndex=...&window=1` geeft `{ prev, focus, next }` terug (gesaniteerde tekst) voor snelle hover‑previews.
+  - Generatie: `POST /api/bids/[id]/stages/[stage]/ai/generate` verrijkt `sources[]` automatisch met gebruikte chunk‑indices voor client‑ en appalti_bron‑documenten.
+  - UI: in de stage‑editor toont hover over een referentie [S#] direct een tooltip met de echte context (…prev, focus, next…); klik opent een “Bron‑inspector” paneel met het fragment gemarkeerd.
+  - Doel: grondslag voor “bron‑intelligent” schrijven; volgende fases brengen PDF/DOCX viewers met highlight en uitgebreidere Word‑achtige opmaak.
+
 2025-10-29 – Platform updates en fixes
 - Auth (login flow)
   - Custom sign‑in pagina wordt overgeslagen: ongeauthenticeerde requests redirecten direct naar Auth0 met callback `/dashboard`.

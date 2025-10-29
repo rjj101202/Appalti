@@ -23,6 +23,14 @@ export interface BidStageState {
     url?: string; // may be internal path for knowledge docs
     documentId?: ObjectId; // knowledge document id when applicable
     snippet?: string; // short excerpt used in generation
+    // Optional fine-grained traceability for previews/highlights
+    chunks?: Array<{
+      index: number;
+      pageNumber?: number;
+      paragraphIndex?: number;
+      charStart?: number;
+      charEnd?: number;
+    }>;
   }>;
 }
 

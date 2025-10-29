@@ -72,7 +72,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       source: byId.get(h.documentId.toString())?.title || byId.get(h.documentId.toString())?.sourceUrl || byId.get(h.documentId.toString())?.path || 'bron',
       type: 'client' as const,
       documentId: h.documentId.toString(),
-      url: byId.get(h.documentId.toString())?.sourceUrl || byId.get(h.documentId.toString())?.path || ''
+      url: byId.get(h.documentId.toString())?.sourceUrl || byId.get(h.documentId.toString())?.path || '',
+      chunkIndex: (h as any).chunkIndex,
+      pageNumber: (h as any).pageNumber
     })).slice(0, 12);
 
     // Optioneel: appalti_bron (horizontale collectie) meenemen
@@ -115,7 +117,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
             source: xById.get(h.documentId.toString())?.title || xById.get(h.documentId.toString())?.path || xById.get(h.documentId.toString())?.sourceUrl || 'bron',
             type: 'xai' as const,
             documentId: h.documentId.toString(),
-            url: `/api/knowledge/document/${h.documentId.toString()}`
+            url: `/api/knowledge/document/${h.documentId.toString()}`,
+            chunkIndex: (h as any).chunkIndex,
+            pageNumber: (h as any).pageNumber
           })).slice(0, 6);
           contextSnippets = [...contextSnippets, ...xSnippets].slice(0, 12);
         } catch {}
@@ -246,14 +250,26 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     // Bewaar citaties/links en herkomst bij de stage zodat UI ze kan tonen
     try {
-      const sourcesDetailed: Array<{ label: string; type: 'client'|'tender'|'xai'|'attachment'; title?: string; url?: string; documentId?: any; snippet?: string }> = [];
+      const sourcesDetailed: Array<{ label: string; type: 'client'|'tender'|'xai'|'attachment'; title?: string; url?: string; documentId?: any; snippet?: string; chunks?: Array<{ index: number; pageNumber?: number }> }> = [];
+      // Map documentId -> chunk refs from collected snippets
+      const docToChunks = new Map<string, Array<{ index: number; pageNumber?: number }>>();
+      for (const cs of contextSnippets as any[]) {
+        const docId = cs.documentId as string | undefined;
+        const idx = cs.chunkIndex as number | undefined;
+        if (!docId || typeof idx !== 'number') continue;
+        const arr = docToChunks.get(docId) || [];
+        if (!arr.some(a => a.index === idx)) arr.push({ index: idx, pageNumber: cs.pageNumber });
+        // cap to 3 entries per doc for UI simplicity
+        docToChunks.set(docId, arr.slice(0, 3));
+      }
       let labelIndex = 1;
       for (const d of allDocs) {
         const title = (d as any).title || (d as any).path || (d as any).sourceUrl || 'document';
         const blobUrl = (d as any).sourceUrl as string | undefined;
         const url = blobUrl || `/api/clients/${bid.clientCompanyId.toString()}/knowledge/${(d as any)._id.toString()}`;
         const snip = (contextSnippets.find(cs => cs.url === (blobUrl || (d as any).path))?.text || '').slice(0, 200);
-        sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'client', title, url, documentId: (d as any)._id, snippet: snip });
+        const chunks = docToChunks.get((d as any)._id.toString()) || [];
+        sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'client', title, url, documentId: (d as any)._id, snippet: snip, chunks });
       }
       for (const l of tenderDocLinks) {
         const entry = tenderSnippets.find(t => t.url.startsWith(l));
@@ -263,7 +279,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       if (parsedBody.data.includeAppaltiBron) {
         for (const d of xaiDocs) {
           const url = `/api/knowledge/document/${(d as any)._id.toString()}`;
-          sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'xai', title: (d as any).title || (d as any).path, url });
+          const chunks = docToChunks.get((d as any)._id.toString()) || [];
+          sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'xai', title: (d as any).title || (d as any).path, url, documentId: (d as any)._id, chunks });
         }
         for (const s of xaiApiSnippets) {
           sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'xai', title: s.source, url: s.url });

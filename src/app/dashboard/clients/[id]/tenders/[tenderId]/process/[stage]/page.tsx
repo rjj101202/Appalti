@@ -45,7 +45,15 @@ export default function StageEditorPage() {
   const tenderLink = useMemo(() => tenderExternalId ? `https://www.tenderned.nl/aankondigingen/overzicht/${encodeURIComponent(tenderExternalId)}` : '', [tenderExternalId]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [sourceLinks, setSourceLinks] = useState<string[]>([]);
-  const [sources, setSources] = useState<Array<{ label: string; type: 'client'|'tender'|'xai'|'attachment'; title?: string; url?: string; snippet?: string }>>([]);
+  const [sources, setSources] = useState<Array<{ label: string; type: 'client'|'tender'|'xai'|'attachment'; title?: string; url?: string; snippet?: string; documentId?: any; chunks?: Array<{ index: number; pageNumber?: number }> }>>([]);
+
+  // Hover preview tooltip state
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const [hoverText, setHoverText] = useState<string>('');
+  const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null);
+
+  // Right-side inspector state
+  const [inspector, setInspector] = useState<{ open: boolean; title?: string; content?: { prev?: string|null; focus?: string|null; next?: string|null } | null }>({ open: false, content: null });
 
   const editor = useEditor({
     extensions: [
@@ -346,14 +354,64 @@ export default function StageEditorPage() {
                 <ul>
                   {tenderLink && <li><a href={tenderLink} target="_blank" rel="noreferrer">Aankondiging op TenderNed</a></li>}
                   {sources.map((s,i)=> (
-                    <li key={i} style={{ display:'flex', alignItems:'center', gap:8 }} onClick={()=>{
-                      const detail = `${s.title || s.url || ''}\n\n${s.snippet || ''}`;
-                      alert(detail);
-                    }}>
+                    <li
+                      key={i}
+                      style={{ display:'flex', alignItems:'center', gap:8, position:'relative' }}
+                      onMouseEnter={async (e)=>{
+                        setHoverIdx(i);
+                        setHoverPos({ x: (e.currentTarget.getBoundingClientRect().right + window.scrollX + 12), y: (e.currentTarget.getBoundingClientRect().top + window.scrollY) });
+                        try {
+                          // Only preview if we can resolve a document + chunk
+                          const docId = (typeof s.documentId === 'string') ? s.documentId : (s as any).documentId?.$oid || undefined;
+                          const firstChunk = s.chunks && s.chunks.length ? s.chunks[0].index : undefined;
+                          if (docId && typeof firstChunk === 'number') {
+                            const params = new URLSearchParams({ docId, chunkIndex: String(firstChunk), window: '1' });
+                            const r = await fetch(`/api/knowledge/chunk/preview?${params.toString()}`);
+                            const j = await r.json();
+                            if (r.ok && j.success) {
+                              const focus = j.data?.focus?.text || '';
+                              const prev = j.data?.prev?.text || '';
+                              const next = j.data?.next?.text || '';
+                              setHoverText([prev && `… ${prev}`, focus, next && `${next} …`].filter(Boolean).join('\n\n'));
+                            } else {
+                              setHoverText(s.snippet || '');
+                            }
+                          } else {
+                            setHoverText(s.snippet || '');
+                          }
+                        } catch {
+                          setHoverText(s.snippet || '');
+                        }
+                      }}
+                      onMouseLeave={()=>{ setHoverIdx(null); setHoverText(''); setHoverPos(null); }}
+                      onClick={async ()=>{
+                        try {
+                          const docId = (typeof s.documentId === 'string') ? s.documentId : (s as any).documentId?.$oid || undefined;
+                          const firstChunk = s.chunks && s.chunks.length ? s.chunks[0].index : undefined;
+                          if (docId && typeof firstChunk === 'number') {
+                            const params = new URLSearchParams({ docId, chunkIndex: String(firstChunk), window: '1' });
+                            const r = await fetch(`/api/knowledge/chunk/preview?${params.toString()}`);
+                            const j = await r.json();
+                            if (r.ok && j.success) {
+                              setInspector({ open: true, title: s.title || s.url, content: { prev: j.data?.prev?.text || null, focus: j.data?.focus?.text || null, next: j.data?.next?.text || null } });
+                              return;
+                            }
+                          }
+                          setInspector({ open: true, title: s.title || s.url, content: { prev: null, focus: s.snippet || null, next: null } });
+                        } catch {
+                          setInspector({ open: true, title: s.title || s.url, content: { prev: null, focus: s.snippet || null, next: null } });
+                        }
+                      }}
+                    >
                       <span title={s.type} aria-label={s.type} style={{ width:18, height:18, display:'inline-flex', alignItems:'center', justifyContent:'center' }}>
                         {s.type==='client'?'🌳':s.type==='tender'?'🍃':s.type==='attachment'?'📎':'🏠'}
                       </span>
                       <a href={s.url||'#'} target="_blank" rel="noreferrer">[{s.label}] {s.title || s.url}</a>
+                      {(hoverIdx===i && hoverPos && hoverText) && (
+                        <div style={{ position:'absolute', top:0, left:'calc(100% + 8px)', zIndex:50, maxWidth: 420, background:'#111827', color:'#f9fafb', borderRadius:8, padding:'8px 10px', boxShadow:'0 8px 20px rgba(0,0,0,0.25)' }}>
+                          <div style={{ fontSize:'0.85em', whiteSpace:'pre-wrap', lineHeight:1.4 }}>{hoverText}</div>
+                        </div>
+                      )}
                     </li>
                   ))}
                   {sourceLinks.filter(u=>!sources.some(s=>s.url===u)).map((u, i) => (
@@ -376,6 +434,23 @@ export default function StageEditorPage() {
               )}
             </div>
           </div>
+          {/* Bron-inspector (rechts onder) */}
+          {inspector.open && (
+            <div className="card" style={{ marginTop: '1rem' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <h3>Bron-inspector</h3>
+                <button className="btn btn-secondary" onClick={()=>setInspector({ open:false, content:null })}>Sluiten</button>
+              </div>
+              <div style={{ color:'#6b7280', marginBottom:8 }}>{inspector.title}</div>
+              {inspector.content && (
+                <div style={{ display:'grid', gridTemplateColumns:'1fr', gap:8 }}>
+                  {inspector.content.prev && <div style={{ fontSize:'0.9em', whiteSpace:'pre-wrap', background:'#f9fafb', padding:8, borderRadius:6 }}>… {inspector.content.prev}</div>}
+                  {inspector.content.focus && <div style={{ whiteSpace:'pre-wrap', background:'#eef2ff', padding:10, borderRadius:6 }}>{inspector.content.focus}</div>}
+                  {inspector.content.next && <div style={{ fontSize:'0.9em', whiteSpace:'pre-wrap', background:'#f9fafb', padding:8, borderRadius:6 }}>{inspector.content.next} …</div>}
+                </div>
+              )}
+            </div>
+          )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {/* Zoek bronnen */}
             <div className="card" style={{ padding: '0.75rem' }}>
