@@ -453,7 +453,7 @@ function Toolbar({ editor }: { editor: any }) {
       <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleBulletList().run()}>• Lijst</button>
       <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleOrderedList().run()}>1. Lijst</button>
       <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleTaskList?.().run?.()}>☑ Taken</button>
-      <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleCodeBlock?.().run?.()}></> Code</button>
+      <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleCodeBlock?.().run?.()}>{"<> Code"}</button>
       <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>H2</button>
       <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>H3</button>
       <button className="btn btn-secondary" onClick={() => editor.chain().focus().insertTable?.({ rows: 3, cols: 3, withHeaderRow: true }).run?.()}>Tabel</button>
