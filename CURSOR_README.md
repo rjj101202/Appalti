@@ -238,6 +238,29 @@ Extra API’s:
 - `GET /api/knowledge/document/{id}` – metadata voor horizontale docs (appalti_bron)
 - `GET /api/bids/{bidId}/stages/{stage}/export/docx|pdf` – export van huidige stage‑inhoud + referenties
 
+## Update Logs
+
+2025-10-29 – Platform updates en fixes
+- Auth (login flow)
+  - Custom sign‑in pagina wordt overgeslagen: ongeauthenticeerde requests redirecten direct naar Auth0 met callback `/dashboard`.
+  - Home “Login” gebruikt `signIn('auth0')` voor een stabiele flow.
+  - PKCE/state issues in eerste callback verholpen door `checks: []` bij Auth0 provider in NextAuth; `trustHost: true` toegevoegd. Zorg in Auth0 voor correcte URIs (Callback/Web Origin/Logout/CORS).
+- Knowledge (uploads & index)
+  - Upload: originele file wordt publiek opgeslagen in Vercel Blob; `sourceUrl` wordt in `knowledge_documents` bewaard voor klikbare referenties.
+  - Unieke index `docs_item_unique` hersteld met partial filter (alleen voor externe drive items). App start controleert de index; indien nodig droppen en correct opnieuw aanmaken. Fix voor E11000 duplicate key bij uploads.
+- Bidwriter generate
+  - Contextfilter: alleen platform‑geüploade clientdocumenten (`uploads/<tenant>/<client>/...`), tenderdocumenten (incl. ZIP parsing), stage‑bijlagen; optioneel `appalti_bron` via X AI Collections of interne store (toggle standaard AAN).
+  - Grok (X AI) is het model voor opstellen; `max_tokens` verhoogd naar 3500.
+  - Server voegt altijd onderaan een sectie “## Referenties” toe met alle [S#] bronnen (fallback wanneer modeloutput afbreekt).
+  - `stages[].sources[]` wordt bijgewerkt met herkomst: label, type (🌳/🍃/📎/🏠), titel, url, snippet.
+- Editor (Word‑like stap 1)
+  - TipTap uitgebreid: tabellen (header/cellen), takenlijst, codeblock, highlight, text‑align, links en afbeeldingen; verbeterde typografie.
+  - Template‑menu (Inleiding, Aanpak, Risico’s & mitigatie, Referentiesectie).
+  - Export knoppen: DOCX/PDF; printvriendelijke route beschikbaar voor snel afdrukken.
+- UI & referenties
+  - Referentielinks bij clientdocs openen nu het echte bestand (blob‑URL) of interne metadata wanneer blob ontbreekt.
+  - Referentielijst met iconen (🌳 client, 🍃 tender, 📎 bijlagen, 🏠 appalti_bron) en details/snippets.
+
 ## 📜 Changelog Updates
 
 Plaats nieuwe entries hier, meest recent bovenaan. Formaat:
