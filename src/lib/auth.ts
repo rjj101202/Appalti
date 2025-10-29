@@ -24,6 +24,9 @@ export const {
       clientId: process.env.AUTH0_CLIENT_ID!,
       clientSecret: process.env.AUTH0_CLIENT_SECRET!,
       issuer: process.env.AUTH0_ISSUER_BASE_URL!,
+      // Disable PKCE for server-side flow to avoid first-callback parsing issues
+      // (state check remains active)
+      checks: ['state'],
       authorization: {
         params: {
           prompt: "login",
