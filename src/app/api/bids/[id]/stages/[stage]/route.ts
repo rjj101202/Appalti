@@ -4,6 +4,9 @@ import { requireAuth } from '@/lib/auth/context';
 import { getDatabase } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 const paramsSchema = z.object({
   id: z.string().min(1),
   stage: z.enum(['storyline','version_65','version_95','final'])

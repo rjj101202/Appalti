@@ -81,9 +81,16 @@ export default function StageEditorPage() {
     }
   });
 
+  // Ensure inline references like [S1] are wrapped for hover previews
+  const decorateCitationsInHtml = (html: string): string => {
+    try {
+      return String(html || '').replace(/\[(S\d+)\]/g, (_m, g1) => `<span class="citation" data-label="${g1}" style="text-decoration:underline dotted; cursor:help">[${g1}]</span>`);
+    } catch { return html; }
+  };
+
   const bidIdFromQuery = async (): Promise<string | undefined> => {
     try {
-      const res = await fetch(`/api/clients/${clientId}/tenders`);
+      const res = await fetch(`/api/clients/${clientId}/tenders`, { cache: 'no-store' });
       const json = await res.json();
       if (!res.ok || !json.success) return undefined;
       const item = (json.data || []).find((x: any) => x.id === tenderId);
@@ -97,14 +104,14 @@ export default function StageEditorPage() {
       // Haal bid + tender meta op
       const meta = await (async (): Promise<{ bidId?: string; externalId?: string, clientName?: string }> => {
         try {
-          const res = await fetch(`/api/clients/${clientId}/tenders`);
+          const res = await fetch(`/api/clients/${clientId}/tenders`, { cache: 'no-store' });
           const json = await res.json();
           if (!res.ok || !json.success) return {};
           const item = (json.data || []).find((x: any) => x.id === tenderId);
           // clientName ophalen
           let name = '';
           try {
-            const r2 = await fetch(`/api/clients/${clientId}`);
+            const r2 = await fetch(`/api/clients/${clientId}`, { cache: 'no-store' });
             const j2 = await r2.json();
             if (r2.ok && j2.success) name = j2.data?.name || '';
           } catch {}
@@ -113,7 +120,7 @@ export default function StageEditorPage() {
       })();
       const bidId = meta.bidId;
       if (!bidId) throw new Error('Bid niet gevonden');
-      const res = await fetch(`/api/bids/${bidId}/stages/${stage}`);
+      const res = await fetch(`/api/bids/${bidId}/stages/${stage}`, { cache: 'no-store' });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || 'Laden mislukt');
       const html = String(json.data?.content || '');
@@ -125,7 +132,7 @@ export default function StageEditorPage() {
       setSources(json.data?.sources || []);
       // assigned reviewer/status ophalen uit server data als beschikbaar
       // (deze endpoint retourneert dit nog niet; we houden UI reactief na toewijzen)
-      if (editor) editor.commands.setContent(html || '<p></p>');
+      if (editor) editor.commands.setContent(decorateCitationsInHtml(html || '<p></p>'));
     } catch (e: any) {
       setError(e?.message || 'Laden mislukt');
     } finally {
@@ -171,7 +178,7 @@ export default function StageEditorPage() {
       const res = await fetch(`/api/bids/${bidId}/stages/${stage}/ai/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ includeAppaltiBron: useAppaltiBron }) });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || 'Genereren mislukt');
-      const next = (editor?.getHTML() || '') + `\n<p>\n</p>` + (json.data.generatedText || '').split('\n').map(l => `<p>${l}</p>`).join('');
+      const next = (editor?.getHTML() || '') + `\n<p>\n</p>` + (json.data.generatedText || '').split('\n').map(l => `<p>${decorateCitationsInHtml(l)}</p>`).join('');
       editor?.commands.setContent(next);
     } catch (e: any) { alert(e?.message || 'Genereren mislukt'); }
     finally { setGenLoading(false); }
@@ -192,6 +199,80 @@ export default function StageEditorPage() {
   };
 
   const [suggestions, setSuggestions] = useState<any[]>([]);
+
+  // Inline citation hover/click inside editor content
+  useEffect(() => {
+    function findSourceByLabel(label: string) {
+      return sources.find(s => s.label === label);
+    }
+    async function fetchPreviewFor(source: any) {
+      try {
+        const docId = (typeof source?.documentId === 'string') ? source.documentId : source?.documentId?.$oid;
+        const firstChunk = source?.chunks && source.chunks.length ? source.chunks[0].index : undefined;
+        if (!docId || typeof firstChunk !== 'number') return { text: source?.snippet || '' };
+        const params = new URLSearchParams({ docId, chunkIndex: String(firstChunk), window: '1' });
+        const r = await fetch(`/api/knowledge/chunk/preview?${params.toString()}`);
+        const j = await r.json();
+        if (r.ok && j.success) {
+          const prev = j.data?.prev?.text || '';
+          const focus = j.data?.focus?.text || '';
+          const next = j.data?.next?.text || '';
+          return { text: [prev && `… ${prev}`, focus, next && `${next} …`].filter(Boolean).join('\n\n') };
+        }
+      } catch {}
+      return { text: source?.snippet || '' };
+    }
+    const onMouseOver = async (ev: MouseEvent) => {
+      const t = ev.target as HTMLElement;
+      const el = t && t.closest ? (t.closest('.citation') as HTMLElement | null) : null;
+      if (!el) return;
+      const label = el.dataset.label || '';
+      const src = findSourceByLabel(label);
+      if (!src) return;
+      const preview = await fetchPreviewFor(src);
+      setHoverText(preview.text || '');
+      setHoverPos({ x: ev.clientX + 12, y: ev.clientY + 12 });
+    };
+    const onMouseOut = (ev: MouseEvent) => {
+      const t = ev.target as HTMLElement;
+      if (t && t.classList && t.classList.contains('citation')) {
+        setHoverText('');
+        setHoverPos(null);
+      }
+    };
+    const onClick = async (ev: MouseEvent) => {
+      const t = ev.target as HTMLElement;
+      const el = t && t.closest ? (t.closest('.citation') as HTMLElement | null) : null;
+      if (!el) return;
+      const label = el.dataset.label || '';
+      const src = findSourceByLabel(label);
+      if (!src) return;
+      try {
+        const docId = (typeof src?.documentId === 'string') ? src.documentId : src?.documentId?.$oid;
+        const firstChunk = src?.chunks && src.chunks.length ? src.chunks[0].index : undefined;
+        if (docId && typeof firstChunk === 'number') {
+          const params = new URLSearchParams({ docId, chunkIndex: String(firstChunk), window: '1' });
+          const r = await fetch(`/api/knowledge/chunk/preview?${params.toString()}`);
+          const j = await r.json();
+          if (r.ok && j.success) {
+            setInspector({ open: true, title: src.title || src.url, content: { prev: j.data?.prev?.text || null, focus: j.data?.focus?.text || null, next: j.data?.next?.text || null } });
+            return;
+          }
+        }
+        setInspector({ open: true, title: src.title || src.url, content: { prev: null, focus: src.snippet || null, next: null } });
+      } catch {
+        setInspector({ open: true, title: src.title || src.url, content: { prev: null, focus: src.snippet || null, next: null } });
+      }
+    };
+    document.addEventListener('mouseover', onMouseOver);
+    document.addEventListener('mouseout', onMouseOut);
+    document.addEventListener('click', onClick);
+    return () => {
+      document.removeEventListener('mouseover', onMouseOver);
+      document.removeEventListener('mouseout', onMouseOut);
+      document.removeEventListener('click', onClick);
+    };
+  }, [sources]);
 
   const applySuggestion = (s: any, mode: 'replace'|'append') => {
     const currentHtml = editor?.getHTML() || '';
