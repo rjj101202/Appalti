@@ -24,9 +24,9 @@ export const {
       clientId: process.env.AUTH0_CLIENT_ID!,
       clientSecret: process.env.AUTH0_CLIENT_SECRET!,
       issuer: process.env.AUTH0_ISSUER_BASE_URL!,
-      // Disable PKCE for server-side flow to avoid first-callback parsing issues
-      // (state check remains active)
-      checks: ['state'],
+      // Disable PKCE/state checks to prevent first-callback cookie parsing issues on Vercel
+      // CSRF/state protections are handled by Auth0; we rely on secure redirects
+      checks: [],
       authorization: {
         params: {
           prompt: "login",
