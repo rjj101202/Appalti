@@ -25,7 +25,16 @@ export class KnowledgeRepository {
     this.chunks = db.collection<KnowledgeChunk>('knowledge_chunks');
 
     this.docs.createIndex({ tenantId: 1, scope: 1, companyId: 1, path: 1 }, { name: 'docs_scope_path' });
-    this.docs.createIndex({ tenantId: 1, driveItemId: 1, userUpn: 1 }, { unique: true, sparse: true, name: 'docs_item_unique' });
+    this.docs.createIndex(
+      { tenantId: 1, driveItemId: 1, userUpn: 1 },
+      {
+        name: 'docs_item_unique',
+        unique: true,
+        sparse: true,
+        // Don't index documents that don't carry driveItemId/userUpn
+        partialFilterExpression: { driveItemId: { $exists: true }, userUpn: { $exists: true } }
+      }
+    );
     this.chunks.createIndex({ tenantId: 1, documentId: 1, chunkIndex: 1 }, { unique: true, name: 'chunks_idx' });
     // Atlas Vector Search index should be created separately on chunks.embedding
   }
@@ -36,15 +45,19 @@ export class KnowledgeRepository {
     if (doc.driveItemId) filter.driveItemId = doc.driveItemId;
     if (doc.userUpn) filter.userUpn = doc.userUpn;
     if (!doc.driveItemId && !doc.userUpn && doc.path) filter.path = doc.path;
+    // Clean undefined/null fields to avoid inserting explicit nulls (which may hit unique index)
+    const toSetRaw: any = { ...doc };
+    if (toSetRaw.driveItemId == null) delete toSetRaw.driveItemId;
+    if (toSetRaw.userUpn == null) delete toSetRaw.userUpn;
     const toSet: Partial<KnowledgeDocument> = {
-      ...doc,
+      ...toSetRaw,
       tenantId,
       updatedAt: now
     } as any;
 
     const res = await this.docs.findOneAndUpdate(
       filter,
-      { $set: toSet, $setOnInsert: { createdAt: now } },
+      { $set: toSet, $unset: { driveItemId: toSetRaw.driveItemId == null ? '' : undefined, userUpn: toSetRaw.userUpn == null ? '' : undefined } as any, $setOnInsert: { createdAt: now } },
       { upsert: true, returnDocument: 'after' }
     );
     return res as unknown as KnowledgeDocument;
