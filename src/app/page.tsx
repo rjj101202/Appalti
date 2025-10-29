@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ArrowRight, Zap, Shield, TrendingUp, Users } from 'lucide-react';
@@ -44,9 +45,9 @@ export default function Home() {
                 </a>
               </>
             ) : (
-              <a href="/api/auth/signin/auth0?callbackUrl=/dashboard" className="btn btn-primary">
+              <button className="btn btn-primary" onClick={()=>signIn('auth0', { callbackUrl: '/dashboard' })}>
                 Login
-              </a>
+              </button>
             )}
           </div>
         </div>
