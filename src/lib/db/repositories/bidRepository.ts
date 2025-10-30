@@ -36,6 +36,11 @@ export class BidRepository {
     return this.collection.findOne({ _id: new ObjectId(id), tenantId });
   }
 
+  async delete(id: string, tenantId: string): Promise<boolean> {
+    const res = await this.collection.deleteOne({ _id: new ObjectId(id), tenantId });
+    return res.deletedCount > 0;
+  }
+
   async updateStageStatus(id: string, tenantId: string, stage: BidStageKey, status: StageStatus): Promise<boolean> {
     const res = await this.collection.updateOne(
       { _id: new ObjectId(id), tenantId, 'stages.key': stage },
