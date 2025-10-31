@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -21,11 +21,25 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   const { data: session } = useSession();
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
 
   const displayName = session?.user?.name || session?.user?.email || 'User';
   const displayEmail = session?.user?.email || '';
   const initial = (displayName?.charAt(0) || 'U').toUpperCase();
-  const userAvatar = (session?.user as any)?.image || (session?.user as any)?.avatar;
+
+  // Load avatar directly from API (bypasses session cache)
+  useEffect(() => {
+    if (session?.user) {
+      fetch('/api/users/me')
+        .then(res => res.json())
+        .then(data => {
+          if (data?.data?.avatar) {
+            setUserAvatar(data.data.avatar);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [session?.user, pathname]); // Reload when pathname changes (e.g., after profile update)
 
   return (
     <div className="dashboard-container">
