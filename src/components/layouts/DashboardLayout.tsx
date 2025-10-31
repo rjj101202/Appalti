@@ -25,6 +25,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const displayName = session?.user?.name || session?.user?.email || 'User';
   const displayEmail = session?.user?.email || '';
   const initial = (displayName?.charAt(0) || 'U').toUpperCase();
+  const userAvatar = (session?.user as any)?.image || (session?.user as any)?.avatar;
 
   return (
     <div className="dashboard-container">
@@ -90,14 +91,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 width: '32px',
                 height: '32px',
                 borderRadius: '50%',
-                backgroundColor: '#8b1c6d',
+                backgroundColor: userAvatar ? 'transparent' : '#9333ea',
+                backgroundImage: userAvatar ? `url(${userAvatar})` : 'none',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
-                fontWeight: '500'
+                fontWeight: '500',
+                overflow: 'hidden'
               }}>
-                {initial}
+                {!userAvatar && initial}
               </div>
               <div style={{ marginLeft: '12px' }}>
                 <p style={{ margin: 0, fontSize: '14px', fontWeight: '500', color: '#374151' }}>

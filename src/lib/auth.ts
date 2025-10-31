@@ -58,6 +58,14 @@ export const {
           (session as any).companyId = active?.companyId?.toString();
           (session as any).companyRole = active?.companyRole;
           (session as any).platformRole = active?.platformRole;
+          
+          // Add avatar from user profile
+          const userRepo = await getUserRepository();
+          const userProfile = await userRepo.findById(user.id);
+          if (userProfile?.avatar) {
+            session.user.image = userProfile.avatar;
+            (session.user as any).avatar = userProfile.avatar;
+          }
         } catch (e) {
           if (NEXTAUTH_DEBUG) console.warn('[NextAuth] Session enrichment failed:', e);
         }

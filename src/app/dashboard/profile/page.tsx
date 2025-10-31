@@ -4,10 +4,12 @@ import { useEffect, useState, useRef } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 export default function ProfilePage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { data: session, update: updateSession } = useSession();
   
   // User data
   const [me, setMe] = useState<any>(null);
@@ -47,54 +49,71 @@ export default function ProfilePage() {
     try {
       setLoading(true);
       
-      // Load user data
-      const meRes = await fetch('/api/users/me');
-      const meData = await meRes.json();
-      if (meData?.data) {
-        setMe(meData.data);
-        setName(meData.data.name || '');
-        setAvatar(meData.data.avatar || meData.data.image || '');
-        setPhoneNumber(meData.data.phoneNumber || '');
-        setJobTitle(meData.data.metadata?.jobTitle || '');
-        setBio(meData.data.metadata?.bio || '');
+      // Load all data in parallel for better performance
+      const today = new Date().toISOString().split('T')[0];
+      const in30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      const [meRes, workRes, statsRes, calRes, msgRes, teamRes] = await Promise.allSettled([
+        fetch('/api/users/me'),
+        fetch('/api/users/me/work'),
+        fetch('/api/users/me/stats'),
+        fetch(`/api/users/me/calendar?from=${today}&to=${in30Days}`),
+        fetch('/api/messages?type=received'),
+        fetch('/api/companies/_/members')
+      ]);
+
+      // Process user data
+      if (meRes.status === 'fulfilled') {
+        const meData = await meRes.value.json();
+        if (meData?.data) {
+          setMe(meData.data);
+          setName(meData.data.name || '');
+          setAvatar(meData.data.avatar || meData.data.image || '');
+          setPhoneNumber(meData.data.phoneNumber || '');
+          setJobTitle(meData.data.metadata?.jobTitle || '');
+          setBio(meData.data.metadata?.bio || '');
+        }
       }
 
-      // Load active work
-      try {
-        const workRes = await fetch('/api/users/me/work');
-        const workData = await workRes.json();
-        if (workData.success) setActiveWork(workData.data || []);
-      } catch {}
+      // Process work data
+      if (workRes.status === 'fulfilled') {
+        try {
+          const workData = await workRes.value.json();
+          if (workData.success) setActiveWork(workData.data || []);
+        } catch {}
+      }
 
-      // Load stats
-      try {
-        const statsRes = await fetch('/api/users/me/stats');
-        const statsData = await statsRes.json();
-        if (statsData.success) setStats(statsData.data);
-      } catch {}
+      // Process stats
+      if (statsRes.status === 'fulfilled') {
+        try {
+          const statsData = await statsRes.value.json();
+          if (statsData.success) setStats(statsData.data);
+        } catch {}
+      }
 
-      // Load calendar events (next 30 days)
-      try {
-        const today = new Date().toISOString().split('T')[0];
-        const in30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        const calRes = await fetch(`/api/users/me/calendar?from=${today}&to=${in30Days}`);
-        const calData = await calRes.json();
-        if (calData.success) setCalendarEvents(calData.data || []);
-      } catch {}
+      // Process calendar
+      if (calRes.status === 'fulfilled') {
+        try {
+          const calData = await calRes.value.json();
+          if (calData.success) setCalendarEvents(calData.data || []);
+        } catch {}
+      }
 
-      // Load messages (received)
-      try {
-        const msgRes = await fetch('/api/messages?type=received');
-        const msgData = await msgRes.json();
-        if (msgData.success) setMessages(msgData.data || []);
-      } catch {}
+      // Process messages
+      if (msgRes.status === 'fulfilled') {
+        try {
+          const msgData = await msgRes.value.json();
+          if (msgData.success) setMessages(msgData.data || []);
+        } catch {}
+      }
 
-      // Load team members for messaging
-      try {
-        const teamRes = await fetch('/api/companies/_/members');
-        const teamData = await teamRes.json();
-        if (teamData.success) setTeamMembers(teamData.data || []);
-      } catch {}
+      // Process team members
+      if (teamRes.status === 'fulfilled') {
+        try {
+          const teamData = await teamRes.value.json();
+          if (teamData.success) setTeamMembers(teamData.data || []);
+        } catch {}
+      }
 
     } catch (e) {
       console.error('Load profile error:', e);
@@ -157,6 +176,19 @@ export default function ProfilePage() {
         // Update me state so avatar persists
         setMe((prev: any) => ({ ...prev, avatar: json.url, image: json.url }));
         setUploadMsg('✓ Geüpload en opgeslagen');
+        
+        // Update NextAuth session so sidebar shows new avatar immediately
+        if (updateSession) {
+          await updateSession({
+            ...session,
+            user: {
+              ...session?.user,
+              image: json.url,
+              avatar: json.url
+            }
+          });
+        }
+        
         setTimeout(() => setUploadMsg(''), 3000);
       } else {
         setUploadMsg(json.error || 'Upload mislukt');
