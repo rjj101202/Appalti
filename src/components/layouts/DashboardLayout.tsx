@@ -21,25 +21,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   const { data: session } = useSession();
-  const [userAvatar, setUserAvatar] = useState<string | null>(null);
 
   const displayName = session?.user?.name || session?.user?.email || 'User';
   const displayEmail = session?.user?.email || '';
   const initial = (displayName?.charAt(0) || 'U').toUpperCase();
-
-  // Load avatar once from API (bypasses session cache)
-  useEffect(() => {
-    if (session?.user && !userAvatar) {
-      fetch('/api/users/me')
-        .then(res => res.json())
-        .then(data => {
-          if (data?.data?.avatar) {
-            setUserAvatar(data.data.avatar);
-          }
-        })
-        .catch(() => {});
-    }
-  }, [session?.user]); // Only reload when session changes, not on every navigation
+  const userAvatar = (session?.user as any)?.image;
 
   return (
     <div className="dashboard-container">

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/context';
 import { put } from '@vercel/blob';
 import { getUserRepository } from '@/lib/db/repositories/userRepository';
+import { getDatabase } from '@/lib/mongodb';
+import { ObjectId } from 'mongodb';
 
 // Use node runtime because this route imports MongoDB repositories
 export const runtime = 'nodejs';
@@ -27,16 +29,25 @@ export async function POST(request: NextRequest) {
 		const blob = await put(filename, file, { access: 'public' });
 		console.log('[Avatar Upload] Blob URL:', blob.url);
 		
+		// Update our custom users collection
 		const userRepo = await getUserRepository();
 		const updateResult = await userRepo.update(auth.userId, { avatar: blob.url });
-		console.log('[Avatar Upload] Database update result:', updateResult ? 'SUCCESS' : 'FAILED');
+		console.log('[Avatar Upload] Custom users update:', updateResult ? 'SUCCESS' : 'FAILED');
 		
 		if (!updateResult) {
 			console.error('[Avatar Upload] Database update returned null');
 			return NextResponse.json({ error: 'Failed to save avatar to database' }, { status: 500 });
 		}
 		
-		console.log('[Avatar Upload] Final user avatar:', updateResult.avatar);
+		// CRITICAL: Also update NextAuth adapter users table so session.user.image updates immediately
+		const db = await getDatabase();
+		await db.collection('users').updateOne(
+			{ _id: new ObjectId(auth.userId) },
+			{ $set: { image: blob.url } }
+		);
+		console.log('[Avatar Upload] NextAuth users table updated with image');
+		
+		console.log('[Avatar Upload] Final avatar:', blob.url);
 		return NextResponse.json({ success: true, url: blob.url });
 	} catch (e) {
 		console.error('[Avatar Upload] Error:', e);
