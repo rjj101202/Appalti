@@ -55,7 +55,7 @@ export default function FeedbackWidget() {
             position: 'fixed',
             bottom: 20,
             right: 20,
-            backgroundColor: '#9333ea',
+            backgroundColor: '#8b1c6d',
             color: 'white',
             border: 'none',
             borderRadius: '50%',
@@ -106,7 +106,7 @@ export default function FeedbackWidget() {
           {/* Header */}
           <div
             style={{
-              backgroundColor: '#9333ea',
+              backgroundColor: '#8b1c6d',
               color: 'white',
               padding: '1rem',
               display: 'flex',
@@ -196,7 +196,7 @@ export default function FeedbackWidget() {
                   onClick={handleSubmit}
                   disabled={submitting || !message.trim()}
                   style={{
-                    backgroundColor: message.trim() ? '#9333ea' : '#9ca3af',
+                    backgroundColor: message.trim() ? '#8b1c6d' : '#9ca3af',
                     color: 'white',
                     border: 'none',
                     borderRadius: 6,

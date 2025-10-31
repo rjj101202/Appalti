@@ -113,7 +113,7 @@ export default function ClientsPage() {
                     <td>
                       <Link 
                         href={`/dashboard/clients/${client._id}`} 
-                        style={{ color: '#9333ea', textDecoration: 'none', fontWeight: '500' }}
+                        style={{ color: '#8b1c6d', textDecoration: 'none', fontWeight: '500' }}
                       >
                         {client.name}
                       </Link>

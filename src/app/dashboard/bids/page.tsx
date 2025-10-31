@@ -162,7 +162,7 @@ export default function BidsPage() {
                                 {b.cpvCodes && b.cpvCodes.length > 0 ? (
                                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
                                     {b.cpvCodes.map((code, i) => (
-                                      <span key={i} style={{ backgroundColor: '#f3e8ff', color: '#7e22ce', padding: '0.125rem 0.5rem', borderRadius: 4, fontSize: '0.85em' }}>
+                                      <span key={i} style={{ backgroundColor: '#f3e8ff', color: '#8b1c6d', padding: '0.125rem 0.5rem', borderRadius: 4, fontSize: '0.85em' }}>
                                         {code}
                                       </span>
                                     ))}

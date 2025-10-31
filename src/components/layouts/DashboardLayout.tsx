@@ -90,7 +90,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 width: '32px',
                 height: '32px',
                 borderRadius: '50%',
-                backgroundColor: '#9333ea',
+                backgroundColor: '#8b1c6d',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
