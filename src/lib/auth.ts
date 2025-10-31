@@ -108,13 +108,14 @@ export const {
           }
         });
 
-        // Update existing user's verification status/name/avatar on subsequent logins
+        // Update existing user's verification status/name on subsequent logins
+        // NOTE: We do NOT update avatar here to preserve custom uploaded avatars
         if (!isNew) {
           try {
             await userRepo.updateByAuth0Id(auth0Sub || `auth0|${user.email}`, {
               emailVerified: emailVerifiedFromProvider,
               name: user.name || undefined,
-              avatar: user.image || undefined,
+              // avatar: user.image || undefined, // REMOVED - don't overwrite custom avatars
             });
           } catch (e) {
             if (NEXTAUTH_DEBUG) console.warn('[NextAuth] User update post-login failed:', e);
