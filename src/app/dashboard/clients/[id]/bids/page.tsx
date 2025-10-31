@@ -110,10 +110,24 @@ export default function ClientBidsOverviewPage() {
                       <td colSpan={4} style={{ color: '#6b7280' }}>Geen gekoppelde tenders</td>
                     </tr>
                   )}
-                  {items.map((t) => (
+                  {items.map((t) => {
+                    // Format deadline properly - handle various date formats and invalid dates
+                    const formatDeadline = (deadline: any) => {
+                      if (!deadline) return '-';
+                      try {
+                        const d = new Date(deadline);
+                        // Check if date is valid and not the epoch (1970-01-01)
+                        if (isNaN(d.getTime()) || d.getFullYear() === 1970) return '-';
+                        return d.toLocaleDateString('nl-NL');
+                      } catch {
+                        return '-';
+                      }
+                    };
+                    
+                    return (
                     <tr key={t.id}>
                       <td style={{ maxWidth: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</td>
-                      <td style={{ whiteSpace: 'nowrap' }}>{t.deadline ? new Date(t.deadline).toLocaleDateString('nl-NL') : '-'}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{formatDeadline(t.deadline)}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>{t.bid?.currentStage || '-'}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'inline-flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -133,7 +147,8 @@ export default function ClientBidsOverviewPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

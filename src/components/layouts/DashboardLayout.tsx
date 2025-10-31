@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import FeedbackWidget from '@/components/FeedbackWidget';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -14,7 +15,6 @@ const navigation = [
   { name: 'Client Companies', href: '/dashboard/clients', key: 'clients' },
   { name: 'Bids', href: '/dashboard/bids', key: 'bids' },
   { name: 'Team', href: '/dashboard/team', key: 'team' },
-  { name: 'Instellingen', href: '/dashboard/settings', key: 'settings' },
 ];
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
@@ -142,6 +142,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {children}
         </main>
       </div>
+
+      {/* Feedback Widget */}
+      <FeedbackWidget />
     </div>
   );
 }
