@@ -62,9 +62,13 @@ export const {
           // Add avatar from user profile
           const userRepo = await getUserRepository();
           const userProfile = await userRepo.findById(user.id);
+          console.log('[NextAuth] User profile avatar:', userProfile?.avatar || 'NONE');
           if (userProfile?.avatar) {
             session.user.image = userProfile.avatar;
             (session.user as any).avatar = userProfile.avatar;
+            console.log('[NextAuth] ✓ Avatar added to session:', userProfile.avatar);
+          } else {
+            console.log('[NextAuth] ✗ No avatar found in user profile');
           }
         } catch (e) {
           if (NEXTAUTH_DEBUG) console.warn('[NextAuth] Session enrichment failed:', e);
