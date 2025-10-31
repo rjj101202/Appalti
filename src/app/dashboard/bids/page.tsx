@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
+import { formatDateNL } from '@/lib/date-utils';
 
 type BidItem = {
   id: string;
@@ -140,8 +141,8 @@ export default function BidsPage() {
                           <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(b as any).title || '-'}</span>
                         </div>
                       </td>
-                      <td style={{ whiteSpace: 'nowrap' }}>{b.publicationDate ? new Date(b.publicationDate).toLocaleDateString('nl-NL') : '-'}</td>
-                      <td style={{ whiteSpace: 'nowrap' }}>{b.submissionDeadline ? new Date(b.submissionDeadline).toLocaleDateString('nl-NL') : '-'}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{formatDateNL(b.publicationDate)}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{formatDateNL(b.submissionDeadline)}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>{(b as any).city || '-'}</td>
                       <td style={{ whiteSpace: 'nowrap', width: 200 }}>
                         <div style={{ display: 'inline-flex', gap: '0.5rem' }}>

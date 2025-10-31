@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
+import { formatDateNL } from '@/lib/date-utils';
 
 export default function ClientBidsOverviewPage() {
   const { id } = useParams<{ id: string }>();
@@ -110,24 +111,10 @@ export default function ClientBidsOverviewPage() {
                       <td colSpan={4} style={{ color: '#6b7280' }}>Geen gekoppelde tenders</td>
                     </tr>
                   )}
-                  {items.map((t) => {
-                    // Format deadline properly - handle various date formats and invalid dates
-                    const formatDeadline = (deadline: any) => {
-                      if (!deadline) return '-';
-                      try {
-                        const d = new Date(deadline);
-                        // Check if date is valid and not the epoch (1970-01-01)
-                        if (isNaN(d.getTime()) || d.getFullYear() === 1970) return '-';
-                        return d.toLocaleDateString('nl-NL');
-                      } catch {
-                        return '-';
-                      }
-                    };
-                    
-                    return (
+                  {items.map((t) => (
                     <tr key={t.id}>
                       <td style={{ maxWidth: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</td>
-                      <td style={{ whiteSpace: 'nowrap' }}>{formatDeadline(t.deadline)}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{formatDateNL(t.deadline)}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>{t.bid?.currentStage || '-'}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'inline-flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -147,8 +134,7 @@ export default function ClientBidsOverviewPage() {
                         </div>
                       </td>
                     </tr>
-                    );
-                  })}
+                  ))}
                 </tbody>
               </table>
             </div>

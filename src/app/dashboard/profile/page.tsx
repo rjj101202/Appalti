@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { formatDateNL, daysUntilDeadline } from '@/lib/date-utils';
 import { useSession } from 'next-auth/react';
 
 export default function ProfilePage() {
@@ -534,10 +535,9 @@ export default function ProfilePage() {
                       final: 'Final'
                     };
                     
-                    const deadline = work.tenderDeadline ? new Date(work.tenderDeadline) : null;
-                    const daysUntil = deadline ? Math.ceil((deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
-                    const isUrgent = daysUntil !== null && daysUntil < 7;
-                    const isWarning = daysUntil !== null && daysUntil >= 7 && daysUntil < 14;
+                     const daysUntil = daysUntilDeadline(work.tenderDeadline);
+                     const isUrgent = daysUntil !== null && daysUntil < 7;
+                     const isWarning = daysUntil !== null && daysUntil >= 7 && daysUntil < 14;
 
                     return (
                       <div
@@ -558,14 +558,14 @@ export default function ProfilePage() {
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                           <div style={{ fontWeight: 600, fontSize: '0.95em' }}>{work.tenderTitle}</div>
-                          {deadline && (
+                          {daysUntil !== null && (
                             <div style={{ 
                               fontSize: '0.75em', 
                               fontWeight: 600,
                               color: isUrgent ? '#dc2626' : isWarning ? '#f59e0b' : '#6b7280',
                               whiteSpace: 'nowrap'
                             }}>
-                              {daysUntil !== null && daysUntil >= 0 ? `${daysUntil}d` : 'Verlopen'}
+                              {daysUntil >= 0 ? `${daysUntil}d` : 'Verlopen'}
                             </div>
                           )}
                         </div>
@@ -583,9 +583,9 @@ export default function ProfilePage() {
                           }}>
                             {stageLabels[work.currentStage] || work.currentStage}
                           </span>
-                          {deadline && (
+                          {work.tenderDeadline && (
                             <span style={{ fontSize: '0.75em', color: '#6b7280' }}>
-                              Deadline: {deadline.toLocaleDateString('nl-NL')}
+                              Deadline: {formatDateNL(work.tenderDeadline)}
                             </span>
                           )}
                         </div>
