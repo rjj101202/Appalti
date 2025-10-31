@@ -45,7 +45,21 @@ export async function POST(request: NextRequest) {
         
         let newDeadline = null;
         if (summary?.deadlineDate) {
-          newDeadline = new Date(summary.deadlineDate);
+          // Parse deadline - handle formats like "2025-10-06+02:00" or "2025-10-06"
+          const dateStr = String(summary.deadlineDate);
+          // Extract just the date part (YYYY-MM-DD)
+          const match = dateStr.match(/^(\d{4}-\d{2}-\d{2})/);
+          if (match) {
+            newDeadline = new Date(match[1] + 'T00:00:00.000Z');
+          } else {
+            // Fallback: try direct parsing
+            try {
+              newDeadline = new Date(dateStr);
+              if (isNaN(newDeadline.getTime())) newDeadline = null;
+            } catch {
+              newDeadline = null;
+            }
+          }
         }
         
         // DIRECT database update
