@@ -7,11 +7,9 @@ import { z } from 'zod';
 const createEventSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
-  date: z.string(), // ISO date string
+  date: z.string(),
   time: z.string().optional(),
-  type: z.enum(['meeting', 'deadline', 'reminder', 'other']).optional(),
-  relatedBidId: z.string().optional(),
-  relatedTenderId: z.string().optional()
+  type: z.enum(['meeting', 'deadline', 'reminder', 'other']).optional()
 });
 
 export async function GET(request: NextRequest) {
@@ -62,8 +60,6 @@ export async function POST(request: NextRequest) {
       date: new Date(parsed.data.date),
       time: parsed.data.time || null,
       type: parsed.data.type || 'other',
-      relatedBidId: parsed.data.relatedBidId ? new ObjectId(parsed.data.relatedBidId) : null,
-      relatedTenderId: parsed.data.relatedTenderId ? new ObjectId(parsed.data.relatedTenderId) : null,
       createdAt: new Date()
     };
 
@@ -102,4 +98,3 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to delete event' }, { status: 500 });
   }
 }
-
