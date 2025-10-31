@@ -13,8 +13,7 @@ export async function GET(request: NextRequest) {
       $or: [
         { assignedUserIds: new ObjectId(auth.userId) },
         { createdBy: new ObjectId(auth.userId) }
-      ],
-      currentStage: { $ne: 'final' }
+      ]
     });
 
     // Count approved stages this month
@@ -44,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     const approvedCount = approvedThisMonth[0]?.total || 0;
 
-    // Most used CPV codes (from tenders user worked on)
+    // Most used CPV codes
     const userBids = await db.collection('bids')
       .find({
         $or: [
@@ -74,19 +73,12 @@ export async function GET(request: NextRequest) {
       .slice(0, 5)
       .map(([code, count]) => ({ code, count }));
 
-    // Unread messages count
-    const unreadCount = await db.collection('messages').countDocuments({
-      toUserId: new ObjectId(auth.userId),
-      isRead: false
-    });
-
     return NextResponse.json({
       success: true,
       data: {
         activeBids: activeBidsCount,
         approvedStagesThisMonth: approvedCount,
-        topCpvCodes,
-        unreadMessages: unreadCount
+        topCpvCodes
       }
     });
   } catch (e: any) {
@@ -94,4 +86,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 });
   }
 }
-
