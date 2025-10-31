@@ -260,53 +260,54 @@ export default function TeamPage() {
 
             {/* Team Members Table */}
             <h2 style={{ marginBottom: '1rem' }}>Teamleden</h2>
-          <div className="data-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Naam</th>
-                  <th>E‑mail</th>
-                  <th>Rol</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {members.map((m) => (
-                  <tr key={m.membershipId}>
-                    <td>
-                      <Link href={`/dashboard/team/${m.userId}`} style={{ color: '#9333ea', textDecoration: 'none' }}>
-                        {m.name || '-'}
-                      </Link>
-                    </td>
-                    <td>{m.email || '-'}</td>
-                    <td>
-                      {canManage ? (
-                        <select
-                          value={m.companyRole}
-                          onChange={(e) => updateRole(m.membershipId, e.target.value)}
-                          disabled={savingId === m.membershipId}
-                        >
-                          <option value="viewer">viewer</option>
-                          <option value="member">member</option>
-                          <option value="admin">admin</option>
-                          <option value="owner">owner</option>
-                        </select>
-                      ) : (
-                        m.companyRole
-                      )}
-                    </td>
-                    <td>{m.isActive ? 'Actief' : 'Inactief'}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      {canManage && m.isActive && (
-                        <button className="btn btn-secondary" onClick={() => deactivate(m.membershipId)} disabled={savingId === m.membershipId}>Deactiveer</button>
-                      )}
-                    </td>
+            <div className="data-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Naam</th>
+                    <th>E‑mail</th>
+                    <th>Rol</th>
+                    <th>Status</th>
+                    <th></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {members.map((m) => (
+                    <tr key={m.membershipId}>
+                      <td>
+                        <Link href={`/dashboard/team/${m.userId}`} style={{ color: '#9333ea', textDecoration: 'none' }}>
+                          {m.name || '-'}
+                        </Link>
+                      </td>
+                      <td>{m.email || '-'}</td>
+                      <td>
+                        {canManage ? (
+                          <select
+                            value={m.companyRole}
+                            onChange={(e) => updateRole(m.membershipId, e.target.value)}
+                            disabled={savingId === m.membershipId}
+                          >
+                            <option value="viewer">viewer</option>
+                            <option value="member">member</option>
+                            <option value="admin">admin</option>
+                            <option value="owner">owner</option>
+                          </select>
+                        ) : (
+                          m.companyRole
+                        )}
+                      </td>
+                      <td>{m.isActive ? 'Actief' : 'Inactief'}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        {canManage && m.isActive && (
+                          <button className="btn btn-secondary" onClick={() => deactivate(m.membershipId)} disabled={savingId === m.membershipId}>Deactiveer</button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </DashboardLayout>
