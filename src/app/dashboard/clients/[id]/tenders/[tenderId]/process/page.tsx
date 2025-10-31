@@ -77,7 +77,7 @@ export default function BidProcessPage() {
   return (
     <DashboardLayout>
       <div className="page-container">
-        <button className="btn btn-secondary" onClick={() => router.push(`/dashboard/clients/${clientId}`)}>← Terug</button>
+        <button className="btn btn-secondary" onClick={() => router.push(`/dashboard/clients/${clientId}/bids`)}>← Terug</button>
         <h1 style={{ marginTop: '1rem' }}>Bid proces</h1>
         {loading && <p>Laden...</p>}
         {error && <p className="error-message">{error}</p>}
