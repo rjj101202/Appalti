@@ -27,9 +27,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const displayEmail = session?.user?.email || '';
   const initial = (displayName?.charAt(0) || 'U').toUpperCase();
 
-  // Load avatar directly from API (bypasses session cache)
+  // Load avatar once from API (bypasses session cache)
   useEffect(() => {
-    if (session?.user) {
+    if (session?.user && !userAvatar) {
       fetch('/api/users/me')
         .then(res => res.json())
         .then(data => {
@@ -39,7 +39,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         })
         .catch(() => {});
     }
-  }, [session?.user, pathname]); // Reload when pathname changes (e.g., after profile update)
+  }, [session?.user]); // Only reload when session changes, not on every navigation
 
   return (
     <div className="dashboard-container">
