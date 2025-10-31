@@ -12,12 +12,16 @@ export default function TeamPage() {
   const [error, setError] = useState('');
   const [savingId, setSavingId] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
+  const [companyInfo, setCompanyInfo] = useState<any>(null);
+  const [editingCompany, setEditingCompany] = useState(false);
+  const [companyForm, setCompanyForm] = useState({ name: '', contactEmail: '', contactPhone: '', description: '' });
 
   const canManage = session?.companyRole === 'admin' || session?.companyRole === 'owner' || (session as any)?.user?.isAppaltiUser;
 
   useEffect(() => {
     (async () => {
       try {
+        // Load members
         const res = await fetch('/api/companies/active/members');
         if (res.status === 404) {
           // fallback naar route die actieve company gebruikt, met dummy id
@@ -30,6 +34,21 @@ export default function TeamPage() {
           if (res.ok && data.success) setMembers(data.data);
           else setError(data.error || 'Laden mislukt');
         }
+        
+        // Load company info
+        try {
+          const companyRes = await fetch('/api/auth/me');
+          const meData = await companyRes.json();
+          if (companyRes.ok && meData.company) {
+            setCompanyInfo(meData.company);
+            setCompanyForm({
+              name: meData.company.name || '',
+              contactEmail: meData.company.settings?.contactEmail || '',
+              contactPhone: meData.company.settings?.contactPhone || '',
+              description: meData.company.settings?.description || ''
+            });
+          }
+        } catch {}
       } catch (e: any) {
         setError(e?.message || 'Laden mislukt');
       } finally {
@@ -72,6 +91,31 @@ export default function TeamPage() {
       alert(e?.message || 'Deactiveren mislukt');
     } finally {
       setSavingId(null);
+    }
+  };
+
+  const saveCompanyInfo = async () => {
+    try {
+      const res = await fetch(`/api/companies/${companyInfo._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: companyForm.name,
+          settings: {
+            ...companyInfo.settings,
+            contactEmail: companyForm.contactEmail,
+            contactPhone: companyForm.contactPhone,
+            description: companyForm.description
+          }
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Opslaan mislukt');
+      setCompanyInfo(data.data);
+      setEditingCompany(false);
+      alert('Bedrijfsinformatie bijgewerkt');
+    } catch (e: any) {
+      alert(e?.message || 'Opslaan mislukt');
     }
   };
 
@@ -125,6 +169,97 @@ export default function TeamPage() {
             <p style={{ marginTop: '1rem', color: '#6b7280' }}>Laden...</p>
           </div>
         ) : (
+          <>
+            {/* Company Information Section */}
+            {companyInfo && (
+              <div className="card" style={{ marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h2 style={{ margin: 0 }}>Bedrijfsinformatie</h2>
+                  {canManage && !editingCompany && (
+                    <button className="btn btn-secondary" onClick={() => setEditingCompany(true)}>
+                      Bewerken
+                    </button>
+                  )}
+                </div>
+                
+                {editingCompany ? (
+                  <div style={{ display: 'grid', gap: '1rem' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 500 }}>Bedrijfsnaam</label>
+                      <input
+                        type="text"
+                        value={companyForm.name}
+                        onChange={(e) => setCompanyForm({ ...companyForm, name: e.target.value })}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 500 }}>Contact E-mail</label>
+                      <input
+                        type="email"
+                        value={companyForm.contactEmail}
+                        onChange={(e) => setCompanyForm({ ...companyForm, contactEmail: e.target.value })}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 500 }}>Contact Telefoon</label>
+                      <input
+                        type="tel"
+                        value={companyForm.contactPhone}
+                        onChange={(e) => setCompanyForm({ ...companyForm, contactPhone: e.target.value })}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 500 }}>Beschrijving</label>
+                      <textarea
+                        value={companyForm.description}
+                        onChange={(e) => setCompanyForm({ ...companyForm, description: e.target.value })}
+                        rows={4}
+                        style={{ width: '100%', resize: 'vertical' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button className="btn btn-primary" onClick={saveCompanyInfo}>
+                        Opslaan
+                      </button>
+                      <button className="btn btn-secondary" onClick={() => setEditingCompany(false)}>
+                        Annuleren
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
+                    <div>
+                      <div style={{ fontSize: '0.85em', fontWeight: 600, color: '#6b7280', marginBottom: '0.25rem' }}>Bedrijfsnaam</div>
+                      <div style={{ fontSize: '1em' }}>{companyInfo.name || '–'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.85em', fontWeight: 600, color: '#6b7280', marginBottom: '0.25rem' }}>Contact E-mail</div>
+                      <div style={{ fontSize: '1em' }}>{companyInfo.settings?.contactEmail || '–'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.85em', fontWeight: 600, color: '#6b7280', marginBottom: '0.25rem' }}>Contact Telefoon</div>
+                      <div style={{ fontSize: '1em' }}>{companyInfo.settings?.contactPhone || '–'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.85em', fontWeight: 600, color: '#6b7280', marginBottom: '0.25rem' }}>Actieve Leden</div>
+                      <div style={{ fontSize: '1em' }}>{members.filter(m => m.isActive).length}</div>
+                    </div>
+                    {companyForm.description && (
+                      <div style={{ gridColumn: '1 / -1' }}>
+                        <div style={{ fontSize: '0.85em', fontWeight: 600, color: '#6b7280', marginBottom: '0.25rem' }}>Beschrijving</div>
+                        <div style={{ fontSize: '1em', whiteSpace: 'pre-wrap' }}>{companyForm.description}</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Team Members Table */}
+            <h2 style={{ marginBottom: '1rem' }}>Teamleden</h2>
           <div className="data-table">
             <table>
               <thead>
