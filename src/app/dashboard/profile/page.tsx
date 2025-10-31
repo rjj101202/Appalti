@@ -120,13 +120,24 @@ export default function ProfilePage() {
           }
         })
       });
+      const json = await res.json();
       if (res.ok) {
+        // Update me state with saved data
+        setMe((prev: any) => ({
+          ...prev,
+          name,
+          avatar,
+          image: avatar,
+          phoneNumber,
+          metadata: { ...prev?.metadata, jobTitle, bio }
+        }));
         setSaveMsg('✓ Opgeslagen');
         setTimeout(() => setSaveMsg(''), 3000);
       } else {
-        setSaveMsg('Opslaan mislukt');
+        setSaveMsg(json.error || 'Opslaan mislukt');
       }
-    } catch {
+    } catch (e) {
+      console.error('Save profile error:', e);
       setSaveMsg('Opslaan mislukt');
     } finally {
       setSaving(false);
@@ -143,12 +154,15 @@ export default function ProfilePage() {
       const json = await res.json();
       if (res.ok && json.url) {
         setAvatar(json.url);
-        setUploadMsg('✓ Geüpload');
+        // Update me state so avatar persists
+        setMe((prev: any) => ({ ...prev, avatar: json.url, image: json.url }));
+        setUploadMsg('✓ Geüpload en opgeslagen');
         setTimeout(() => setUploadMsg(''), 3000);
       } else {
         setUploadMsg(json.error || 'Upload mislukt');
       }
-    } catch {
+    } catch (e) {
+      console.error('Avatar upload error:', e);
       setUploadMsg('Upload mislukt');
     } finally {
       setUploading(false);
@@ -164,11 +178,22 @@ export default function ProfilePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newEvent)
       });
+      const json = await res.json();
       if (res.ok) {
         setNewEvent({ title: '', date: '', time: '', type: 'reminder' });
-        await loadAll();
+        // Reload calendar events
+        const today = new Date().toISOString().split('T')[0];
+        const in30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const calRes = await fetch(`/api/users/me/calendar?from=${today}&to=${in30Days}`);
+        const calData = await calRes.json();
+        if (calData.success) setCalendarEvents(calData.data || []);
+      } else {
+        alert(json.error || 'Toevoegen mislukt');
       }
-    } catch {} finally {
+    } catch (e) {
+      console.error('Add calendar event error:', e);
+      alert('Toevoegen mislukt');
+    } finally {
       setAddingEvent(false);
     }
   };
