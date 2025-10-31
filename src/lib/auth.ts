@@ -38,6 +38,7 @@ export const {
   adapter: MongoDBAdapter(clientPromise),
   callbacks: {
     async session({ session, token, user }) {
+      console.log('[NextAuth] Session callback - user.id:', user?.id, 'user._id:', (user as any)?._id);
       if (NEXTAUTH_DEBUG) console.log('[NextAuth] Session callback in', { hasSession: !!session, userId: user?.id });
       // Add custom fields to session
       if (session?.user) {
