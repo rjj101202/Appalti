@@ -91,7 +91,6 @@ export const {
         // NextAuth Adapter already creates the user in the users collection.
         // We find the user by email (since user.id might be UUID format)
         
-        const userRepo = await getUserRepository();
         const dbUser = await userRepo.findByEmail(user.email);
         
         if (!dbUser) {
