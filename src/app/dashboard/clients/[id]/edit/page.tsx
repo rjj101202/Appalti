@@ -335,7 +335,7 @@ export default function ClientEditPage() {
             onDragOver={(e) => { e.preventDefault(); }}
             onDrop={handleDrop}
             style={{
-              border: '2px dashed #c084fc', background: '#faf5ff', borderRadius: 12, padding: '1rem',
+              border: '2px dashed #d8b4fe', background: '#faf5ff', borderRadius: 12, padding: '1rem',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem'
             }}
           >

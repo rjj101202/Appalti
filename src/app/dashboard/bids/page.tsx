@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
+import { formatDateNL } from '@/lib/date-utils';
 
 type BidItem = {
   id: string;
@@ -24,6 +25,7 @@ export default function BidsPage() {
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({ q: '', cpv: '', deadlineBefore: '', newSince: '' });
   const [total, setTotal] = useState<number | undefined>(undefined);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const load = async (p = 0, append = false) => {
     setLoading(true);
@@ -64,6 +66,18 @@ export default function BidsPage() {
     window.location.href = `/dashboard/bids/${encodeURIComponent(id)}?${params.toString()}`;
   };
 
+  const toggleRow = (id: string) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
   return (
     <DashboardLayout>
       <div className="page-container">
@@ -101,6 +115,7 @@ export default function BidsPage() {
           <table style={{ tableLayout: 'fixed', width: '100%' }}>
             <thead>
               <tr>
+                <th style={{ width: 40 }}></th>
                 <th>Opdrachtgever</th>
                 <th>Vraag/Titel</th>
                 <th>Publicatie</th>
@@ -110,27 +125,69 @@ export default function BidsPage() {
               </tr>
             </thead>
             <tbody>
-              {items.map((b) => (
-                <tr key={b.id}>
-                  <td style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(b as any).buyer || '-'}</td>
-                  <td>
-                    <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 'min(50vw, 520px)' }}>
-                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(b as any).title || '-'}</span>
-                    </div>
-                  </td>
-                  <td style={{ whiteSpace: 'nowrap' }}>{b.publicationDate ? new Date(b.publicationDate).toLocaleDateString('nl-NL') : '-'}</td>
-                  <td style={{ whiteSpace: 'nowrap' }}>{b.submissionDeadline ? new Date(b.submissionDeadline).toLocaleDateString('nl-NL') : '-'}</td>
-                  <td style={{ whiteSpace: 'nowrap' }}>{(b as any).city || '-'}</td>
-                  <td style={{ whiteSpace: 'nowrap', width: 200 }}>
-                    <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
-                      <button className="btn btn-secondary" onClick={() => openDetail(b.id)}>Details</button>
-                      {b.sourceUrl && (
-                        <a className="btn btn-secondary" href={b.sourceUrl} target="_blank" rel="noreferrer">TenderNed</a>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {items.map((b) => {
+                const isExpanded = expandedRows.has(b.id);
+                return (
+                  <>
+                    <tr key={b.id} style={{ cursor: 'pointer' }}>
+                      <td style={{ textAlign: 'center', padding: '0.5rem' }} onClick={() => toggleRow(b.id)}>
+                        <span style={{ fontSize: '1.2em', userSelect: 'none' }}>
+                          {isExpanded ? '▼' : '▶'}
+                        </span>
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(b as any).buyer || '-'}</td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 'min(50vw, 520px)' }}>
+                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(b as any).title || '-'}</span>
+                        </div>
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{formatDateNL(b.publicationDate)}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{formatDateNL(b.submissionDeadline)}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{(b as any).city || '-'}</td>
+                      <td style={{ whiteSpace: 'nowrap', width: 200 }}>
+                        <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
+                          <button className="btn btn-secondary" onClick={() => openDetail(b.id)}>Details</button>
+                          {b.sourceUrl && (
+                            <a className="btn btn-secondary" href={b.sourceUrl} target="_blank" rel="noreferrer">TenderNed</a>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr key={`${b.id}-expanded`}>
+                        <td colSpan={7} style={{ backgroundColor: '#f9fafb', padding: '1rem', borderTop: '1px solid #e5e7eb' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                            <div>
+                              <div style={{ fontWeight: 600, fontSize: '0.85em', color: '#6b7280', marginBottom: '0.25rem' }}>CPV Codes</div>
+                              <div style={{ fontSize: '0.95em' }}>
+                                {b.cpvCodes && b.cpvCodes.length > 0 ? (
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                                    {b.cpvCodes.map((code, i) => (
+                                      <span key={i} style={{ backgroundColor: '#f3e8ff', color: '#8b1c6d', padding: '0.125rem 0.5rem', borderRadius: 4, fontSize: '0.85em' }}>
+                                        {code}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : '–'}
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 600, fontSize: '0.85em', color: '#6b7280', marginBottom: '0.25rem' }}>Sector</div>
+                              <div style={{ fontSize: '0.95em' }}>{b.sector || '–'}</div>
+                            </div>
+                            {b.shortDescription && (
+                              <div style={{ gridColumn: '1 / -1' }}>
+                                <div style={{ fontWeight: 600, fontSize: '0.85em', color: '#6b7280', marginBottom: '0.25rem' }}>Korte beschrijving</div>
+                                <div style={{ fontSize: '0.95em', color: '#374151' }}>{b.shortDescription}</div>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                );
+              })}
             </tbody>
           </table>
         </div>

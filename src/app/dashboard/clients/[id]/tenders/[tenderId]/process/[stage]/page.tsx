@@ -526,7 +526,7 @@ export default function StageEditorPage() {
               {inspector.content && (
                 <div style={{ display:'grid', gridTemplateColumns:'1fr', gap:8 }}>
                   {inspector.content.prev && <div style={{ fontSize:'0.9em', whiteSpace:'pre-wrap', background:'#f9fafb', padding:8, borderRadius:6 }}>… {inspector.content.prev}</div>}
-                  {inspector.content.focus && <div style={{ whiteSpace:'pre-wrap', background:'#eef2ff', padding:10, borderRadius:6 }}>{inspector.content.focus}</div>}
+                  {inspector.content.focus && <div style={{ whiteSpace:'pre-wrap', background:'#f3e8ff', padding:10, borderRadius:6 }}>{inspector.content.focus}</div>}
                   {inspector.content.next && <div style={{ fontSize:'0.9em', whiteSpace:'pre-wrap', background:'#f9fafb', padding:8, borderRadius:6 }}>{inspector.content.next} …</div>}
                 </div>
               )}
