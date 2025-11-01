@@ -91,7 +91,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 width: '32px',
                 height: '32px',
                 borderRadius: '50%',
-                backgroundColor: userAvatar ? 'transparent' : '#8b1c6d',
+                backgroundColor: userAvatar ? 'transparent' : '#701c74',
                 backgroundImage: userAvatar ? `url(${userAvatar})` : 'none',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',

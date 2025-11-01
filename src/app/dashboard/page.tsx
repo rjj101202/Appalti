@@ -133,7 +133,7 @@ export default function Dashboard() {
                     className="card"
                     style={{
                       padding: '1rem',
-                      borderLeft: `4px solid ${isUrgent ? '#dc2626' : isWarning ? '#f59e0b' : '#8b1c6d'}`,
+                      borderLeft: `4px solid ${isUrgent ? '#dc2626' : isWarning ? '#f59e0b' : '#701c74'}`,
                       cursor: 'pointer',
                       transition: 'box-shadow 0.2s'
                     }}
@@ -157,7 +157,7 @@ export default function Dashboard() {
                       Client: {tender.clientName}
                     </p>
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <span className="badge" style={{ backgroundColor: '#f3e8ff', color: '#8b1c6d' }}>
+                      <span className="badge" style={{ backgroundColor: '#f3e8ff', color: '#701c74' }}>
                         {tender.currentStage}
                       </span>
                       {deadline && (

@@ -294,7 +294,7 @@ export default function ProfilePage() {
                   width: 80,
                   height: 80,
                   borderRadius: '50%',
-                  backgroundColor: avatar ? 'transparent' : '#8b1c6d',
+                  backgroundColor: avatar ? 'transparent' : '#701c74',
                   backgroundImage: avatar ? `url(${avatar})` : 'none',
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
@@ -410,7 +410,7 @@ export default function ProfilePage() {
                 <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Mijn Statistieken</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div style={{ textAlign: 'center', padding: '1rem', backgroundColor: '#f3e8ff', borderRadius: 8 }}>
-                    <div style={{ fontSize: '2em', fontWeight: '700', color: '#8b1c6d' }}>{stats.activeBids || 0}</div>
+                    <div style={{ fontSize: '2em', fontWeight: '700', color: '#701c74' }}>{stats.activeBids || 0}</div>
                     <div style={{ fontSize: '0.85em', color: '#6b7280' }}>Actieve Bids</div>
                   </div>
                   <div style={{ textAlign: 'center', padding: '1rem', backgroundColor: '#dcfce7', borderRadius: 8 }}>
@@ -547,7 +547,7 @@ export default function ProfilePage() {
                           border: '1px solid #e5e7eb',
                           borderRadius: 8,
                           borderLeftWidth: 4,
-                          borderLeftColor: isUrgent ? '#dc2626' : isWarning ? '#f59e0b' : '#8b1c6d',
+                          borderLeftColor: isUrgent ? '#dc2626' : isWarning ? '#f59e0b' : '#701c74',
                           backgroundColor: 'white',
                           transition: 'box-shadow 0.2s',
                           cursor: 'pointer'
@@ -577,7 +577,7 @@ export default function ProfilePage() {
                             fontSize: '0.75em', 
                             padding: '0.25rem 0.5rem', 
                             backgroundColor: '#f3e8ff', 
-                            color: '#8b1c6d',
+                            color: '#701c74',
                             borderRadius: 4,
                             fontWeight: 600
                           }}>

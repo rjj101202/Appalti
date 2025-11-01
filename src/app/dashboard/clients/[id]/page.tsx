@@ -141,7 +141,7 @@ export default function ClientDetailPage() {
                   <div>
                     <dt style={{ fontSize: '0.875rem', color: '#6b7280' }}>Website:</dt>
                     <dd>
-                      <a href={client.website} target="_blank" rel="noopener noreferrer" style={{ color: '#8b1c6d' }}>
+                      <a href={client.website} target="_blank" rel="noopener noreferrer" style={{ color: '#701c74' }}>
                         {client.website}
                       </a>
                     </dd>

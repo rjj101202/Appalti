@@ -275,7 +275,7 @@ export default function TeamPage() {
                   {members.map((m) => (
                     <tr key={m.membershipId}>
                       <td>
-                        <Link href={`/dashboard/team/${m.userId}`} style={{ color: '#8b1c6d', textDecoration: 'none' }}>
+                        <Link href={`/dashboard/team/${m.userId}`} style={{ color: '#701c74', textDecoration: 'none' }}>
                           {m.name || '-'}
                         </Link>
                       </td>

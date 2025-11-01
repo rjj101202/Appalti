@@ -50,7 +50,7 @@ nav {
 }
 
 .logo span {
-  color: #8b1c6d;
+  color: #701c74;
 }
 
 /* Buttons */
@@ -67,12 +67,12 @@ nav {
 }
 
 .btn-primary {
-  background-color: #8b1c6d;
+  background-color: #701c74;
   color: white;
 }
 
 .btn-primary:hover {
-  background-color: #6b1557;
+  background-color: #5a1560;
 }
 
 .btn-secondary {
@@ -195,7 +195,7 @@ nav {
 
 .sidebar-link.active {
   background-color: #f3e8ff;
-  color: #8b1c6d;
+  color: #701c74;
 }
 
 /* Main Content */
@@ -230,7 +230,7 @@ nav {
 }
 
 .welcome-card {
-  background: linear-gradient(to right, #8b1c6d, #6b1557);
+  background: linear-gradient(to right, #701c74, #5a1560);
   color: white;
   padding: 2rem;
   border-radius: 0.5rem;
@@ -350,7 +350,7 @@ input:focus,
 textarea:focus,
 select:focus {
   outline: none;
-  border-color: #8b1c6d;
+  border-color: #701c74;
   box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
 }
 
@@ -374,7 +374,7 @@ select:focus {
 
 .ikp-progress-fill {
   height: 100%;
-  background-color: #8b1c6d;
+  background-color: #701c74;
   transition: width 0.3s ease;
 }
 
@@ -473,7 +473,7 @@ select:focus {
 
 .chip {
   background-color: #f3e8ff;
-  color: #8b1c6d;
+  color: #701c74;
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
   font-size: 0.875rem;
@@ -485,7 +485,7 @@ select:focus {
 .chip button {
   background: none;
   border: none;
-  color: #8b1c6d;
+  color: #701c74;
   cursor: pointer;
   padding: 0;
   font-size: 1rem;
@@ -493,7 +493,7 @@ select:focus {
 }
 
 .chip button:hover {
-  color: #8b1c6d;
+  color: #701c74;
 }
 
 /* Mobile Styles */
@@ -711,7 +711,7 @@ select:focus {
   width: 16px;
   height: 16px;
   border: 2px solid #e5e7eb;
-  border-top-color: #8b1c6d;
+  border-top-color: #701c74;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
