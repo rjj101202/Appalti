@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
-import { formatDateNL } from '@/lib/date-utils';
 
 export default function ClientBidsOverviewPage() {
   const { id } = useParams<{ id: string }>();
@@ -114,7 +113,7 @@ export default function ClientBidsOverviewPage() {
                   {items.map((t) => (
                     <tr key={t.id}>
                       <td style={{ maxWidth: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</td>
-                      <td style={{ whiteSpace: 'nowrap' }}>{formatDateNL(t.deadline)}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{t.deadline ? new Date(t.deadline).toLocaleDateString('nl-NL') : '-'}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>{t.bid?.currentStage || '-'}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'inline-flex', gap: '0.5rem', flexWrap: 'wrap' }}>

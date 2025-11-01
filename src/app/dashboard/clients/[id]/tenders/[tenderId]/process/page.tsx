@@ -77,7 +77,7 @@ export default function BidProcessPage() {
   return (
     <DashboardLayout>
       <div className="page-container">
-        <button className="btn btn-secondary" onClick={() => router.push(`/dashboard/clients/${clientId}/bids`)}>← Terug</button>
+        <button className="btn btn-secondary" onClick={() => router.push(`/dashboard/clients/${clientId}`)}>← Terug</button>
         <h1 style={{ marginTop: '1rem' }}>Bid proces</h1>
         {loading && <p>Laden...</p>}
         {error && <p className="error-message">{error}</p>}
@@ -91,41 +91,15 @@ export default function BidProcessPage() {
                   <div>
                     <div style={{ fontSize:12, color:'#6b7280' }}>Inschrijfdeadline</div>
                     <div>
-                      {(() => {
-                        const dateStr = tenderMeta.summary?.deadlineDate || tenderMeta.deadline;
-                        if (!dateStr) return '–';
-                        try {
-                          // Extract only the date part (YYYY-MM-DD) from ISO strings
-                          const match = String(dateStr).match(/^(\d{4}-\d{2}-\d{2})/);
-                          if (match) return match[1];
-                          // Fallback: parse and format
-                          const d = new Date(dateStr);
-                          if (isNaN(d.getTime())) return '–';
-                          return d.toISOString().split('T')[0];
-                        } catch {
-                          return '–';
-                        }
-                      })()}
+                      {tenderMeta.summary?.deadlineDate || tenderMeta.deadline || '–'}
+                      {tenderMeta.summary?.deadlineTime ? ` ${tenderMeta.summary.deadlineTime}` : ''}
                     </div>
                   </div>
                   <div>
                     <div style={{ fontSize:12, color:'#6b7280' }}>Publicatie</div>
                     <div>
-                      {(() => {
-                        const dateStr = tenderMeta.summary?.publicationIssueDate;
-                        if (!dateStr) return '–';
-                        try {
-                          // Extract only the date part (YYYY-MM-DD) from ISO strings
-                          const match = String(dateStr).match(/^(\d{4}-\d{2}-\d{2})/);
-                          if (match) return match[1];
-                          // Fallback: parse and format
-                          const d = new Date(dateStr);
-                          if (isNaN(d.getTime())) return '–';
-                          return d.toISOString().split('T')[0];
-                        } catch {
-                          return '–';
-                        }
-                      })()}
+                      {tenderMeta.summary?.publicationIssueDate || '–'}
+                      {tenderMeta.summary?.publicationIssueTime ? ` ${tenderMeta.summary.publicationIssueTime}` : ''}
                     </div>
                   </div>
                   {tenderMeta.summary?.buyer && (

@@ -89,30 +89,12 @@ export default function NewClientCompany() {
     setSaveError('');
 
     try {
-      // Clean up the data before sending - remove null values and empty strings
-      const cleanData = {
-        name: companyData.name || undefined,
-        kvkNumber: companyData.kvkNumber || undefined,
-        legalForm: companyData.legalForm || undefined,
-        sbiCode: companyData.sbiCode || undefined,
-        sbiDescription: companyData.sbiDescription || undefined,
-        address: companyData.address || undefined,
-        employees: companyData.employees || undefined,
-      };
-
-      // Remove undefined values
-      const payload = Object.fromEntries(
-        Object.entries(cleanData).filter(([_, v]) => v !== undefined)
-      );
-
-      console.log('[NewClient] Sending payload:', payload);
-
       const response = await fetch('/api/clients', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(companyData)
       });
 
       const result = await response.json();
@@ -121,11 +103,7 @@ export default function NewClientCompany() {
         // Navigate to the client detail page
         router.push(`/dashboard/clients/${result.data._id}`);
       } else {
-        console.error('[NewClient] API error:', result);
         setSaveError(result.error || 'Er ging iets mis bij het opslaan');
-        if (result.details) {
-          console.error('[NewClient] Validation details:', result.details);
-        }
       }
     } catch (error) {
       console.error('Save error:', error);

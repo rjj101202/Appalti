@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   keywords: ["aanbestedingen", "AI", "sales", "tenders", "bids"],
   authors: [{ name: "Appalti" }],
   viewport: "width=device-width, initial-scale=1",
-  themeColor: "#8b1c6d",
+  themeColor: "#9333ea",
 };
 
 export default function RootLayout({

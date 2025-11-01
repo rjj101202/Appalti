@@ -8,8 +8,8 @@ import { z } from 'zod';
 import { writeAudit } from '@/lib/audit';
 
 const createClientSchema = z.object({
-	name: z.string().min(1).optional().or(z.literal('')),
-	kvkNumber: z.string().regex(/^[0-9]{8}$/).optional().or(z.literal('')),
+	name: z.string().min(1).optional(),
+	kvkNumber: z.string().regex(/^[0-9]{8}$/).optional(),
 	isOwnCompany: z.boolean().optional(),
 	legalForm: z.string().optional(),
 	address: z.object({
@@ -26,7 +26,7 @@ const createClientSchema = z.object({
 		city: z.string().optional(),
 		country: z.string().optional()
 	})).optional(),
-	website: z.string().url().optional().or(z.literal('')),
+	website: z.string().url().optional(),
 	websites: z.array(z.string().url()).optional(),
 	sbiCode: z.string().optional(),
 	sbiDescription: z.string().optional(),
@@ -34,12 +34,7 @@ const createClientSchema = z.object({
 	handelsnamen: z.array(z.string()).optional(),
 	kvkData: z.any().optional(),
 	enrich: z.union([z.boolean(), z.string()]).optional()
-}).refine(d => {
-	// At least name or valid kvkNumber must be provided
-	const hasName = d.name && d.name.trim().length > 0;
-	const hasValidKvk = d.kvkNumber && /^[0-9]{8}$/.test(d.kvkNumber);
-	return hasName || hasValidKvk;
-}, { message: 'Company name or valid 8-digit KVK number is required' });
+}).refine(d => !!(d.name || d.kvkNumber), { message: 'Company name or kvkNumber is required' });
 
 // GET /api/clients - Get all client companies (paginated)
 export async function GET(request: NextRequest) {

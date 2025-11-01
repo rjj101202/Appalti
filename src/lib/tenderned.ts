@@ -57,19 +57,8 @@ export async function fetchTenderNed(request: Request, opts: FetchTenderNedOptio
   url.searchParams.set('size', String(pageSize));
   if (opts.q) url.searchParams.set('q', opts.q);
   if (opts.cpv) {
-    // CPV codes must be 8 digits (main code) or 9 digits with hyphen (e.g., 45214200 or 45214200-8)
-    // TenderNed accepts format: 12345678 or 12345678-9
     const codes = String(opts.cpv).split(/[ ,;]+/).filter(Boolean);
-    for (const code of codes) {
-      // Clean and validate CPV code
-      const cleaned = code.trim().replace(/[^\d-]/g, '');
-      // Valid formats: 8 digits, or 8 digits + dash + 1 digit
-      if (/^\d{8}$/.test(cleaned) || /^\d{8}-\d$/.test(cleaned)) {
-        url.searchParams.append('cpvCodes', cleaned);
-      } else {
-        console.warn(`[TenderNed] Invalid CPV code format: ${code} (expected 8 digits or 8-1 format)`);
-      }
-    }
+    for (const code of codes) url.searchParams.append('cpvCodes', code);
   }
   // Map onze generieke namen naar TenderNed TNS filters
   if (opts.newSince) url.searchParams.set('publicatieDatumVanaf', opts.newSince);

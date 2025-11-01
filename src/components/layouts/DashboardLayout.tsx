@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import FeedbackWidget from '@/components/FeedbackWidget';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -15,6 +14,7 @@ const navigation = [
   { name: 'Client Companies', href: '/dashboard/clients', key: 'clients' },
   { name: 'Bids', href: '/dashboard/bids', key: 'bids' },
   { name: 'Team', href: '/dashboard/team', key: 'team' },
+  { name: 'Instellingen', href: '/dashboard/settings', key: 'settings' },
 ];
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
@@ -25,7 +25,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const displayName = session?.user?.name || session?.user?.email || 'User';
   const displayEmail = session?.user?.email || '';
   const initial = (displayName?.charAt(0) || 'U').toUpperCase();
-  const userAvatar = (session?.user as any)?.image;
 
   return (
     <div className="dashboard-container">
@@ -91,18 +90,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 width: '32px',
                 height: '32px',
                 borderRadius: '50%',
-                backgroundColor: userAvatar ? 'transparent' : '#8b1c6d',
-                backgroundImage: userAvatar ? `url(${userAvatar})` : 'none',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
+                backgroundColor: '#9333ea',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
-                fontWeight: '500',
-                overflow: 'hidden'
+                fontWeight: '500'
               }}>
-                {!userAvatar && initial}
+                {initial}
               </div>
               <div style={{ marginLeft: '12px' }}>
                 <p style={{ margin: 0, fontSize: '14px', fontWeight: '500', color: '#374151' }}>
@@ -147,9 +142,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {children}
         </main>
       </div>
-
-      {/* Feedback Widget */}
-      <FeedbackWidget />
     </div>
   );
 }

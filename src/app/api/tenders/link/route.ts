@@ -6,8 +6,6 @@ import { getTenderRepository } from '@/lib/db/repositories/tenderRepository';
 import { getBidRepository } from '@/lib/db/repositories/bidRepository';
 import { getDatabase } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
-import { fetchTenderNedXml } from '@/lib/tenderned';
-import { parseEformsSummary } from '@/lib/tenderned-parse';
 
 const bodySchema = z.object({
   source: z.enum(['tenderned']),
@@ -29,32 +27,6 @@ export async function POST(request: NextRequest) {
     const parsed = bodySchema.safeParse(json);
     if (!parsed.success) return NextResponse.json({ error: 'Invalid body', details: parsed.error.issues }, { status: 400 });
 
-    // For TenderNed tenders, fetch the real deadline from XML if not provided or invalid
-    let finalDeadline = parsed.data.deadline ? new Date(parsed.data.deadline as any) : undefined;
-    
-    if (parsed.data.source === 'tenderned' && parsed.data.externalId) {
-      try {
-        const xml = await fetchTenderNedXml(parsed.data.externalId);
-        const summary = parseEformsSummary(xml);
-        
-        if (summary?.deadlineDate) {
-          // Parse deadline correctly (handle timezone offsets)
-          const dateStr = String(summary.deadlineDate);
-          const match = dateStr.match(/^(\d{4}-\d{2}-\d{2})/);
-          if (match) {
-            finalDeadline = new Date(match[1] + 'T00:00:00.000Z');
-            console.log(`[Tender Link] Fetched deadline from TenderNed: ${finalDeadline.toISOString()}`);
-          }
-        } else {
-          finalDeadline = undefined;
-          console.log(`[Tender Link] No deadline found in TenderNed XML`);
-        }
-      } catch (e) {
-        console.warn(`[Tender Link] Failed to fetch TenderNed deadline, using provided:`, e);
-        // Fall back to provided deadline
-      }
-    }
-
     const repo = await getTenderRepository();
     const tender = await repo.upsertByExternalId(auth.tenantId, {
       source: parsed.data.source,
@@ -63,7 +35,7 @@ export async function POST(request: NextRequest) {
       title: parsed.data.title,
       description: parsed.data.description,
       cpvCodes: parsed.data.cpvCodes,
-      deadline: finalDeadline,
+      deadline: parsed.data.deadline ? new Date(parsed.data.deadline as any) : undefined,
       status: 'draft' as any,
     });
 
