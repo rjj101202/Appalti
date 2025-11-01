@@ -25,6 +25,7 @@ export default function BidsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({ q: '', cpv: '', deadlineBefore: '', newSince: '', sector: '', city: '', buyer: '' });
+  const [selectedCPVCodes, setSelectedCPVCodes] = useState<string[]>([]);
   const [total, setTotal] = useState<number | undefined>(undefined);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -37,7 +38,12 @@ export default function BidsPage() {
       params.set('page', String(p));
       params.set('size', '20');
       if (filters.q) params.set('q', filters.q);
-      if (filters.cpv) params.set('cpv', filters.cpv);
+      // Use selectedCPVCodes instead of filters.cpv
+      if (selectedCPVCodes.length > 0) {
+        params.set('cpv', selectedCPVCodes.join(','));
+      } else if (filters.cpv) {
+        params.set('cpv', filters.cpv);
+      }
       if (filters.deadlineBefore) params.set('deadlineBefore', filters.deadlineBefore);
       if (filters.newSince) params.set('newSince', filters.newSince);
       const res = await fetch(`/api/bids/sources/tenderned?${params.toString()}`);
@@ -261,14 +267,13 @@ export default function BidsPage() {
 
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>CPV Codes</label>
-                  <input 
-                    type="text"
-                    placeholder="45214200, 48000000"
-                    value={filters.cpv} 
-                    onChange={e => setFilters({ ...filters, cpv: e.target.value })}
-                    style={{ width: '100%' }}
+                  <CPVCodeSelector 
+                    selectedCodes={selectedCPVCodes} 
+                    onChange={setSelectedCPVCodes}
                   />
-                  <p style={{ fontSize: '0.85em', color: '#6b7280', marginTop: '0.25rem' }}>Meerdere codes scheiden met komma</p>
+                  <p style={{ fontSize: '0.85em', color: '#6b7280', marginTop: '0.5rem' }}>
+                    💡 Typ 'landbouw', 'bouw', 'IT' etc. om CPV codes te vinden
+                  </p>
                 </div>
 
                 <div>
