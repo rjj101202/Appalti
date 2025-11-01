@@ -63,11 +63,15 @@ export async function fetchTenderNed(request: Request, opts: FetchTenderNedOptio
     for (const code of codes) {
       // Clean and validate CPV code
       const cleaned = code.trim().replace(/[^\d-]/g, '');
-      // Valid formats: 8 digits, or 8 digits + dash + 1 digit
-      if (/^\d{8}$/.test(cleaned) || /^\d{8}-\d$/.test(cleaned)) {
-        url.searchParams.append('cpvCodes', cleaned);
+      // Valid formats: 7-8 digits, or 8 digits + dash + 1 digit
+      // Note: Some CPV codes have leading zeros or are 7 digits
+      if (/^\d{7,8}$/.test(cleaned) || /^\d{8}-\d$/.test(cleaned)) {
+        // Pad to 8 digits if needed
+        const paddedCode = cleaned.length === 7 ? '0' + cleaned : cleaned;
+        url.searchParams.append('cpvCodes', paddedCode);
+        console.log(`[TenderNed] Adding CPV code: ${paddedCode}`);
       } else {
-        console.warn(`[TenderNed] Invalid CPV code format: ${code} (expected 8 digits or 8-1 format)`);
+        console.warn(`[TenderNed] Invalid CPV code format: ${code} (expected 7-8 digits or 8-1 format, got: ${cleaned})`);
       }
     }
   }
