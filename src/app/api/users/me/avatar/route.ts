@@ -29,23 +29,25 @@ export async function POST(request: NextRequest) {
 		const blob = await put(filename, file, { access: 'public' });
 		console.log('[Avatar Upload] Blob URL:', blob.url);
 		
-		// Update our custom users collection
-		const userRepo = await getUserRepository();
-		const updateResult = await userRepo.update(auth.userId, { avatar: blob.url });
-		console.log('[Avatar Upload] Custom users update:', updateResult ? 'SUCCESS' : 'FAILED');
-		
-		if (!updateResult) {
-			console.error('[Avatar Upload] Database update returned null');
-			return NextResponse.json({ error: 'Failed to save avatar to database' }, { status: 500 });
-		}
-		
-		// CRITICAL: Also update NextAuth adapter users table so session.user.image updates immediately
 		const db = await getDatabase();
-		await db.collection('users').updateOne(
-			{ _id: new ObjectId(auth.userId) },
-			{ $set: { image: blob.url } }
+		
+		// CRITICAL FIX: Update BOTH possible user records
+		// There's a known issue where some users have 2 records
+		const email = auth.email;
+		
+		// Update ALL users with this email (covers both c8 and cb cases)
+		const bulkResult = await db.collection('users').updateMany(
+			{ email: email },
+			{ 
+				$set: { 
+					avatar: blob.url,
+					image: blob.url, // NextAuth uses 'image' field
+					updatedAt: new Date()
+				} 
+			}
 		);
-		console.log('[Avatar Upload] NextAuth users table updated with image');
+		
+		console.log('[Avatar Upload] Updated', bulkResult.modifiedCount, 'user record(s) for', email);
 		
 		console.log('[Avatar Upload] Final avatar:', blob.url);
 		return NextResponse.json({ success: true, url: blob.url });
