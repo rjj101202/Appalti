@@ -38,7 +38,6 @@ export const {
   adapter: MongoDBAdapter(clientPromise),
   callbacks: {
     async session({ session, token, user }) {
-      console.log('[NextAuth] Session callback - user.id:', user?.id, 'user._id:', (user as any)?._id);
       if (NEXTAUTH_DEBUG) console.log('[NextAuth] Session callback in', { hasSession: !!session, userId: user?.id });
       // Add custom fields to session
       if (session?.user) {
@@ -59,18 +58,6 @@ export const {
           (session as any).companyId = active?.companyId?.toString();
           (session as any).companyRole = active?.companyRole;
           (session as any).platformRole = active?.platformRole;
-          
-          // Add avatar from user profile
-          const userRepo = await getUserRepository();
-          const userProfile = await userRepo.findById(user.id);
-          console.log('[NextAuth] User profile avatar:', userProfile?.avatar || 'NONE');
-          if (userProfile?.avatar) {
-            session.user.image = userProfile.avatar;
-            (session.user as any).avatar = userProfile.avatar;
-            console.log('[NextAuth] ✓ Avatar added to session:', userProfile.avatar);
-          } else {
-            console.log('[NextAuth] ✗ No avatar found in user profile');
-          }
         } catch (e) {
           if (NEXTAUTH_DEBUG) console.warn('[NextAuth] Session enrichment failed:', e);
         }
@@ -100,31 +87,25 @@ export const {
         const auth0Sub = account?.providerAccountId || '';
         const emailVerifiedFromProvider = (profile as any)?.email_verified === true;
         
-        // Ensure custom user exists and is synced
-        const { user: dbUser, isNew } = await userRepo.findOrCreate({
-          auth0Id: auth0Sub || `auth0|${user.email}`,
-          email: user.email,
-          name: user.name || user.email,
-          avatar: user.image || undefined,
-          emailVerified: emailVerifiedFromProvider,
-          metadata: {
-            source: 'auth0',
-            originalAuth0Data: { sub: auth0Sub }
-          }
-        });
-
-        // Update existing user's verification status/name on subsequent logins
-        // NOTE: We do NOT update avatar here to preserve custom uploaded avatars
-        if (!isNew) {
-          try {
-            await userRepo.updateByAuth0Id(auth0Sub || `auth0|${user.email}`, {
+        // NOTE: We do NOT create a separate custom user anymore!
+        // NextAuth Adapter already creates the user in the users collection.
+        // Creating a duplicate user caused the avatar persistence issues.
+        
+        // Just update metadata on the NextAuth user if needed
+        try {
+          const userRepo = await getUserRepository();
+          const existingUser = await userRepo.findById(user.id);
+          
+          if (existingUser) {
+            // Update verification status and login time
+            await userRepo.update(user.id, {
               emailVerified: emailVerifiedFromProvider,
-              name: user.name || undefined,
-              // avatar: user.image || undefined, // REMOVED - don't overwrite custom avatars
+              lastLogin: new Date(),
+              // DO NOT update avatar - preserve custom uploaded avatars
             });
-          } catch (e) {
-            if (NEXTAUTH_DEBUG) console.warn('[NextAuth] User update post-login failed:', e);
           }
+        } catch (e) {
+          if (NEXTAUTH_DEBUG) console.warn('[NextAuth] User metadata update failed:', e);
         }
 
         // Optionally block unverified emails in production
@@ -136,12 +117,12 @@ export const {
         // Auto-add Appalti users to Appalti company (if present)
         if (user.email.endsWith('@appalti.nl')) {
           const appaltiCompany = await companyRepo.getAppaltiCompany();
-          if (appaltiCompany && appaltiCompany._id && dbUser._id) {
-            const existingMemberships = await membershipRepo.findByUser(dbUser._id.toString(), true);
+          if (appaltiCompany && appaltiCompany._id && user.id) {
+            const existingMemberships = await membershipRepo.findByUser(user.id, true);
             const alreadyMember = existingMemberships.some(m => m.companyId.toString() === appaltiCompany._id!.toString());
             if (!alreadyMember) {
               await membershipRepo.create({
-                userId: dbUser._id.toString(),
+                userId: user.id, // Use NextAuth user.id, not dbUser._id
                 companyId: appaltiCompany._id.toString(),
                 tenantId: appaltiCompany.tenantId,
                 companyRole: CompanyRole.MEMBER,
