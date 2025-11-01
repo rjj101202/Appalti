@@ -89,21 +89,23 @@ export const {
         
         // NOTE: We do NOT create a separate custom user anymore!
         // NextAuth Adapter already creates the user in the users collection.
-        // Creating a duplicate user caused the avatar persistence issues.
+        // We find the user by email (since user.id might be UUID format)
         
-        // Just update metadata on the NextAuth user if needed
+        const userRepo = await getUserRepository();
+        const dbUser = await userRepo.findByEmail(user.email);
+        
+        if (!dbUser) {
+          console.error('[NextAuth] User not found in database after adapter created it:', user.email);
+          return false; // Deny login if user doesn't exist
+        }
+        
+        // Update metadata on the NextAuth user
         try {
-          const userRepo = await getUserRepository();
-          const existingUser = await userRepo.findById(user.id);
-          
-          if (existingUser) {
-            // Update verification status and login time
-            await userRepo.update(user.id, {
-              emailVerified: emailVerifiedFromProvider,
-              lastLogin: new Date(),
-              // DO NOT update avatar - preserve custom uploaded avatars
-            });
-          }
+          await userRepo.update(dbUser._id!.toString(), {
+            emailVerified: emailVerifiedFromProvider,
+            lastLogin: new Date(),
+            // DO NOT update avatar - preserve custom uploaded avatars
+          });
         } catch (e) {
           if (NEXTAUTH_DEBUG) console.warn('[NextAuth] User metadata update failed:', e);
         }
@@ -117,12 +119,12 @@ export const {
         // Auto-add Appalti users to Appalti company (if present)
         if (user.email.endsWith('@appalti.nl')) {
           const appaltiCompany = await companyRepo.getAppaltiCompany();
-          if (appaltiCompany && appaltiCompany._id && user.id) {
-            const existingMemberships = await membershipRepo.findByUser(user.id, true);
+          if (appaltiCompany && appaltiCompany._id && dbUser._id) {
+            const existingMemberships = await membershipRepo.findByUser(dbUser._id.toString(), true);
             const alreadyMember = existingMemberships.some(m => m.companyId.toString() === appaltiCompany._id!.toString());
             if (!alreadyMember) {
               await membershipRepo.create({
-                userId: user.id, // Use NextAuth user.id, not dbUser._id
+                userId: dbUser._id.toString(), // Use MongoDB ObjectId from dbUser
                 companyId: appaltiCompany._id.toString(),
                 tenantId: appaltiCompany.tenantId,
                 companyRole: CompanyRole.MEMBER,
