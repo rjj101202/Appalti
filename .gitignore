@@ -51,6 +51,7 @@ logs/
 # Test files
 TEST_FILE.txt
 
-# Large data files
+# Large data files (exclude from git, but allow public/cpv-codes.json)
 data/cpv-codes-processed.json
 data/*.json
+!public/cpv-codes.json
