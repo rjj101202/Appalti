@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { CPV_CODES, searchCPVCodes } from '@/lib/cpv-codes';
+import { CPV_CODES_TOP, searchCPVCodes } from '@/lib/cpv-codes-ui';
 
 export default function CPVCodeSelector({ selectedCodes, onChange }: { selectedCodes: string[]; onChange: (codes: string[]) => void }) {
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
-  // Toon standaard alleen Klasse-niveau codes (meest gebruikt)
-  const results = search.length >= 2 ? searchCPVCodes(search) : CPV_CODES.filter(c => c.level === 'Klasse').slice(0, 15);
+  // Toon TenderNed-compatible codes (Klasse & Categorie niveau)
+  const results = search.length >= 2 ? searchCPVCodes(search) : CPV_CODES_TOP.slice(0, 20);
 
   return (
     <div style={{ position: 'relative' }}>
