@@ -500,9 +500,9 @@ export default function ClientEditPage() {
                           e.currentTarget.style.borderColor = '#e5e7eb';
                         }}
                         onClick={() => {
-                          if (tender.sourceUrl) {
-                            window.open(tender.sourceUrl, '_blank');
-                          }
+                          // Ga naar interne tender detail pagina met pre-selected client
+                          const url = `/dashboard/bids/${encodeURIComponent(tender.id)}?clientId=${encodeURIComponent(params.id as string)}&autoLink=true`;
+                          router.push(url);
                         }}
                       >
                         <h4 style={{ margin: '0 0 0.5rem 0', color: '#111827', fontSize: '1em' }}>
