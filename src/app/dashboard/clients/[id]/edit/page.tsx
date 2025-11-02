@@ -48,6 +48,7 @@ export default function ClientEditPage() {
               sbiCode: res.data.sbiCode || '',
               sbiDescription: res.data.sbiDescription || '',
               cpvCodes: res.data.cpvCodes || [],
+              emailDomain: res.data.emailDomain || '',
               address: res.data.address || { street: '', postalCode: '', city: '', country: 'NL' },
               addresses: res.data.addresses || []
             });
@@ -386,7 +387,35 @@ export default function ClientEditPage() {
           
           {openSections.teamleden && (
             <div>
-          <p style={{ color: '#6b7280', marginBottom: '1rem' }}>Bekijk teamleden en nodig nieuwe gebruikers uit voor dit bedrijf.</p>
+          <p style={{ color: '#6b7280', marginBottom: '1rem' }}>Beheer toegang voor medewerkers van dit bedrijf.</p>
+          
+          {/* Email Domein Instelling */}
+          <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+            <label className="form-label" style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'block' }}>
+              Email Domein voor Team Uitnodigingen
+            </label>
+            <input 
+              className="form-input" 
+              placeholder="bijv. jagerproducties.nl (zonder @)"
+              value={form.emailDomain || ''} 
+              onChange={e => updateField('emailDomain', e.target.value.toLowerCase().replace('@', ''))}
+              style={{ marginBottom: '0.5rem' }}
+            />
+            <p style={{ fontSize: '0.85em', color: '#6b7280', margin: 0 }}>
+              Alleen gebruikers met dit email domein kunnen worden uitgenodigd voor dit bedrijf.
+              {form.emailDomain && (
+                <span style={{ display: 'block', marginTop: '0.25rem', color: '#701c74', fontWeight: 500 }}>
+                  Toegestaan: *@{form.emailDomain}
+                </span>
+              )}
+            </p>
+            <div style={{ marginTop: '0.75rem' }}>
+              <button className="btn btn-primary" onClick={save} disabled={saving} style={{ fontSize: '0.9em' }}>
+                {saving ? 'Opslaan...' : 'Domein Opslaan'}
+              </button>
+            </div>
+          </div>
+          
           <div style={{ display:'flex', gap:'0.5rem', marginBottom:'1rem' }}>
             <button
               className="btn btn-secondary"
@@ -407,20 +436,35 @@ export default function ClientEditPage() {
             <button
               className="btn btn-primary"
               onClick={async () => {
-                const email = prompt('E‑mail adres van de uit te nodigen gebruiker');
+                if (!form.emailDomain) {
+                  alert('Stel eerst een email domein in voordat je gebruikers kunt uitnodigen.');
+                  return;
+                }
+                
+                const email = prompt(`E-mail adres (moet eindigen op @${form.emailDomain})`);
                 if (!email) return;
+                
+                // Valideer email domein
+                const emailDomain = email.toLowerCase().split('@')[1];
+                if (emailDomain !== form.emailDomain.toLowerCase()) {
+                  alert(`Fout: Email moet eindigen op @${form.emailDomain}\n\nJe probeerde: ${email}\nToegestaan: *@${form.emailDomain}`);
+                  return;
+                }
+                
                 const role = prompt('Rol (owner/admin/member/viewer)', 'member') || 'member';
+                
                 try {
                   const res = await fetch(`/api/clients/${params.id}/invite`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, role })
+                    body: JSON.stringify({ email: email.toLowerCase(), role })
                   });
                   const data = await res.json();
                   if (!res.ok) throw new Error(data.error || 'Uitnodigen mislukt');
-                  alert(`Uitnodiging aangemaakt. Token (tijdelijk): ${data.inviteToken}`);
+                  
+                  setMessage(`Uitnodiging verstuurd naar ${email}! De gebruiker ontvangt een email met registratielink.`);
                 } catch (e: any) {
-                  alert(e?.message || 'Uitnodigen mislukt');
+                  setError(e?.message || 'Uitnodigen mislukt');
                 }
               }}
             >

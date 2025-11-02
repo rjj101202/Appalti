@@ -30,10 +30,29 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const client = await clientRepo.findById(params.id, auth.tenantId);
     if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 });
 
+    // Valideer email domein VOOR provisioning
+    if (client.emailDomain) {
+      const emailDomain = parsed.data.email.toLowerCase().split('@')[1];
+      if (emailDomain !== client.emailDomain.toLowerCase()) {
+        return NextResponse.json({ 
+          error: `Alleen emails met domein @${client.emailDomain} zijn toegestaan voor dit bedrijf`,
+          code: 'INVALID_EMAIL_DOMAIN'
+        }, { status: 403 });
+      }
+    }
+
     // Provisioneren indien nodig
     let linkedCompanyId = client.linkedCompanyId?.toString();
     if (!linkedCompanyId) {
-      const company = await companyRepo.create({ name: client.name, kvkNumber: client.kvkNumber, createdBy: auth.userId });
+      const company = await companyRepo.create({ 
+        name: client.name, 
+        kvkNumber: client.kvkNumber, 
+        createdBy: auth.userId,
+        // Zet email domain in company settings
+        settings: client.emailDomain ? {
+          allowedEmailDomains: [client.emailDomain]
+        } : undefined
+      });
       linkedCompanyId = company._id!.toString();
       await clientRepo.update(params.id, auth.tenantId, { linkedCompanyId: company._id as any }, auth.userId);
     }
@@ -41,12 +60,25 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const company = await companyRepo.findById(linkedCompanyId!);
     if (!company) return NextResponse.json({ error: 'Linked company not found' }, { status: 500 });
 
-    // Domain whitelist (optioneel)
+    // Sync email domain to company settings if changed
+    if (client.emailDomain && !company.settings?.allowedEmailDomains?.includes(client.emailDomain)) {
+      await companyRepo.update(linkedCompanyId!, {
+        settings: {
+          ...company.settings,
+          allowedEmailDomains: [client.emailDomain]
+        }
+      } as any, auth.userId);
+    }
+
+    // Domain whitelist check (dubbele check)
     const allowedDomains = company.settings?.allowedEmailDomains as string[] | undefined;
     if (allowedDomains && allowedDomains.length > 0) {
       const domain = parsed.data.email.toLowerCase().split('@')[1];
       const allowed = allowedDomains.some(d => d.toLowerCase() === domain);
-      if (!allowed) return NextResponse.json({ error: 'Email domain not allowed for this company' }, { status: 403 });
+      if (!allowed) return NextResponse.json({ 
+        error: `Email domein @${domain} is niet toegestaan. Gebruik een email met @${allowedDomains[0]}`,
+        code: 'INVALID_EMAIL_DOMAIN'
+      }, { status: 403 });
     }
 
     const invite = await membershipRepo.createInvite(

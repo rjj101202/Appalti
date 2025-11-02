@@ -24,6 +24,7 @@ export interface ClientCompany {
 	email?: string;
 	phone?: string;
 	contacts?: ClientCompanyContact[]; // Team van client
+	emailDomain?: string; // Email domein voor team uitnodigingen (bijv. "jagerproducties.nl")
 	
 	// Address (primary)
 	address?: {

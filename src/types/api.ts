@@ -64,6 +64,7 @@ export interface ClientCompanyData {
   websites?: string[];
   email?: string;
   phone?: string;
+  emailDomain?: string; // Email domein voor team uitnodigingen
   
   // Address
   address?: {

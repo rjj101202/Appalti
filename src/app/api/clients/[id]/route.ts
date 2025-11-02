@@ -32,6 +32,7 @@ const updateClientSchema = z.object({
     employees: z.string().optional(),
     handelsnamen: z.union([z.array(z.string()), z.string()]).optional(),
     cpvCodes: z.array(z.string()).optional(), // CPV codes voor tender matching
+    emailDomain: z.string().optional(), // Email domein voor team invites
     kvkData: z.any().optional()
 }).passthrough();
 
