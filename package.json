@@ -68,7 +68,7 @@
     "@tailwindcss/postcss": "^4",
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/jest-dom": "^6.1.5",
-    "@testing-library/react": "^14.1.2",
+    "@testing-library/react": "^15.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^29.5.11",
     "@types/jsonwebtoken": "^9.0.10",
