@@ -6,6 +6,20 @@ import { kvkAPI } from '@/lib/kvk-api';
 import { CompanyRole } from '@/lib/db/models/Membership';
 import { z } from 'zod';
 import { writeAudit } from '@/lib/audit';
+import { handleApiError, validateRequiredFields } from '@/lib/error-handler';
+import { 
+	UnauthorizedError, 
+	ForbiddenError, 
+	DuplicateError,
+	KVKValidationError,
+	ValidationError 
+} from '@/lib/errors';
+import type { 
+	ClientCompanyListResponse, 
+	ClientCompanyResponse,
+	PaginatedResponse,
+	ClientCompanyData 
+} from '@/types/api';
 
 const createClientSchema = z.object({
 	name: z.string().min(1).optional().or(z.literal('')),
@@ -42,15 +56,12 @@ const createClientSchema = z.object({
 }, { message: 'Company name or valid 8-digit KVK number is required' });
 
 // GET /api/clients - Get all client companies (paginated)
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<NextResponse<PaginatedResponse<ClientCompanyData>>> {
 	try {
 		const auth = await requireAuth(request);
 		
 		if (!auth.tenantId) {
-			return NextResponse.json(
-				{ error: 'No active tenant' },
-				{ status: 400 }
-			);
+			throw new UnauthorizedError('No active tenant');
 		}
 		
 		const { searchParams } = new URL(request.url);
@@ -86,50 +97,55 @@ export async function GET(request: NextRequest) {
 		
 		return NextResponse.json({
 			success: true,
-			data: items,
-			nextCursor
+			data: items as ClientCompanyData[],
+			pagination: {
+				hasMore: !!nextCursor,
+				nextCursor: nextCursor || null
+			}
 		});
 	} catch (error) {
-		console.error('Error fetching clients:', error);
-		return NextResponse.json(
-			{ error: 'Failed to fetch client companies' },
-			{ status: 500 }
-		);
+		return handleApiError(error, {
+			endpoint: 'GET /api/clients',
+			userId: (await requireAuth(request).catch(() => ({ userId: 'unknown' }))).userId,
+			tenantId: (await requireAuth(request).catch(() => ({ tenantId: 'unknown' }))).tenantId
+		}) as any;
 	}
 }
 
 // POST /api/clients - Create new client company
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse<ClientCompanyResponse>> {
 	try {
 		const body = await request.json();
 		const parse = createClientSchema.safeParse(body);
 		if (!parse.success) {
-			return NextResponse.json({ error: 'Invalid request body', details: parse.error.issues }, { status: 400 });
+			throw new ValidationError('Invalid request body', undefined, { issues: parse.error.issues });
 		}
 		const data = parse.data;
 		
 		const auth = await requireAuth(request);
 		
 		if (!auth.tenantId) {
-			return NextResponse.json(
-				{ error: 'No active tenant' },
-				{ status: 400 }
-			);
+			throw new UnauthorizedError('No active tenant');
 		}
+		
 		// Only admins/owners can create
-		await requireCompanyRole(request, auth.companyId || '', CompanyRole.ADMIN).catch(() => {
-			throw new Error('Forbidden');
-		});
+		try {
+			await requireCompanyRole(request, auth.companyId || '', CompanyRole.ADMIN);
+		} catch {
+			throw new ForbiddenError('Requires admin role or higher');
+		}
+		
+		// Validate KVK number if provided
+		if (data.kvkNumber && !/^[0-9]{8}$/.test(data.kvkNumber)) {
+			throw new KVKValidationError('Invalid KVK number format. Must be 8 digits', data.kvkNumber);
+		}
 		
 		// Prevent duplicates on kvk
 		if (data.kvkNumber) {
 			const repository = await getClientCompanyRepository();
 			const existing = await repository.findByKvkNumber(data.kvkNumber, auth.tenantId);
 			if (existing) {
-				return NextResponse.json(
-					{ error: 'A company with this KVK number already exists' },
-					{ status: 409 }
-				);
+				throw new DuplicateError('kvkNumber', data.kvkNumber);
 			}
 		}
 		
@@ -167,7 +183,13 @@ export async function POST(request: NextRequest) {
 				}
 			} catch (e) {
 				console.warn('KVK enrichment failed:', e);
+				// KVK enrichment failure is not critical - continue without it
 			}
+		}
+		
+		// Validate: either name or enriched name must be present
+		if (!data.name && !enriched.name) {
+			throw new ValidationError('Company name is required', 'name');
 		}
 		
 		// Create the client company
@@ -201,16 +223,13 @@ export async function POST(request: NextRequest) {
 		
 		return NextResponse.json({
 			success: true,
-			data: clientCompany
+			data: clientCompany as ClientCompanyData
 		}, { status: 201 });
-	} catch (error: any) {
-		console.error('Error creating client:', error);
-		if (error.message === 'Forbidden') {
-			return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-		}
-		return NextResponse.json(
-			{ error: 'Failed to create client company' },
-			{ status: 500 }
-		);
+	} catch (error) {
+		return handleApiError(error, {
+			endpoint: 'POST /api/clients',
+			userId: (await requireAuth(request).catch(() => ({ userId: 'unknown' }))).userId,
+			tenantId: (await requireAuth(request).catch(() => ({ tenantId: 'unknown' }))).tenantId
+		}) as any;
 	}
 }
