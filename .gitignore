@@ -50,3 +50,7 @@ logs/
 
 # Test files
 TEST_FILE.txt
+
+# Large data files
+data/cpv-codes-processed.json
+data/*.json
