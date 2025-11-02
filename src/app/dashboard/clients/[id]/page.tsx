@@ -122,6 +122,32 @@ export default function ClientDetailPage() {
                     <dd>{client.employees}</dd>
                   </div>
                 )}
+                {client.cpvCodes && client.cpvCodes.length > 0 && (
+                  <div>
+                    <dt style={{ fontSize: '0.875rem', color: '#6b7280' }}>CPV Codes:</dt>
+                    <dd>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.25rem' }}>
+                        {client.cpvCodes.slice(0, 5).map((code: string) => (
+                          <span key={code} style={{ 
+                            backgroundColor: '#f3e8ff', 
+                            color: '#701c74', 
+                            padding: '0.25rem 0.5rem', 
+                            borderRadius: 4, 
+                            fontSize: '0.75em',
+                            fontWeight: 500
+                          }}>
+                            {code}
+                          </span>
+                        ))}
+                        {client.cpvCodes.length > 5 && (
+                          <span style={{ fontSize: '0.75em', color: '#6b7280', padding: '0.25rem' }}>
+                            +{client.cpvCodes.length - 5} meer
+                          </span>
+                        )}
+                      </div>
+                    </dd>
+                  </div>
+                )}
               </dl>
             </div>
             

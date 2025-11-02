@@ -48,6 +48,7 @@ export interface ClientCompany {
 	employees?: string;
 	revenue?: number;
 	handelsnamen?: string[];
+	cpvCodes?: string[]; // CPV codes voor tender matching
 	
 	// Status
 	status: 'active' | 'inactive' | 'archived';
@@ -96,5 +97,6 @@ export interface CreateClientCompanyInput {
 	sbiDescription?: string;
 	employees?: string;
 	handelsnamen?: string[];
+	cpvCodes?: string[];
 	kvkData?: any;
 }

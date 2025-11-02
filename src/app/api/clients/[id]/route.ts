@@ -31,6 +31,7 @@ const updateClientSchema = z.object({
     sbiDescription: z.string().optional(),
     employees: z.string().optional(),
     handelsnamen: z.union([z.array(z.string()), z.string()]).optional(),
+    cpvCodes: z.array(z.string()).optional(), // CPV codes voor tender matching
     kvkData: z.any().optional()
 }).passthrough();
 
@@ -110,6 +111,11 @@ export async function PUT(
     // Handelsnamen tolerant
     if (data.handelsnamen !== undefined) {
       data.handelsnamen = ensureArray(data.handelsnamen) || [];
+    }
+    
+    // CPV Codes: ensure array of strings
+    if (data.cpvCodes !== undefined) {
+      data.cpvCodes = ensureArray(data.cpvCodes) || [];
     }
 
     const auth = await requireAuth(request);

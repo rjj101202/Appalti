@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
+import CPVCodeSelector from '@/components/CPVCodeSelector';
 
 export default function ClientEditPage() {
   const params = useParams();
@@ -34,6 +35,7 @@ export default function ClientEditPage() {
               handelsnamen: res.data.handelsnamen || [],
               sbiCode: res.data.sbiCode || '',
               sbiDescription: res.data.sbiDescription || '',
+              cpvCodes: res.data.cpvCodes || [],
               address: res.data.address || { street: '', postalCode: '', city: '', country: 'NL' },
               addresses: res.data.addresses || []
             });
@@ -230,6 +232,37 @@ export default function ClientEditPage() {
             <div className="form-item" style={{ gridColumn: 'span 2' }}>
               <label className="form-label">SBI Omschrijving</label>
               <input className="form-input" value={form.sbiDescription || ''} onChange={e => updateField('sbiDescription', e.target.value)} />
+            </div>
+          </div>
+
+          {/* CPV Codes Sectie */}
+          <div style={{ 
+            marginTop: '2rem', 
+            padding: '1.5rem', 
+            background: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)',
+            borderRadius: '12px',
+            border: '2px solid #d8b4fe'
+          }}>
+            <h2 style={{ margin: '0 0 0.5rem 0', color: '#701c74', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '1.5em' }}>🏷️</span>
+              CPV Codes (Aanbestedingscategorieën)
+            </h2>
+            <p style={{ margin: '0 0 1rem 0', color: '#6b7280', fontSize: '0.9em' }}>
+              Selecteer de CPV codes die van toepassing zijn op dit bedrijf. Dit helpt bij het matchen met relevante aanbestedingen.
+            </p>
+            
+            <div className="form-item">
+              <label className="form-label" style={{ fontWeight: 600 }}>Geselecteerde CPV Codes</label>
+              <CPVCodeSelector 
+                selectedCodes={form.cpvCodes || []} 
+                onChange={(codes) => updateField('cpvCodes', codes)} 
+              />
+              
+              {(form.cpvCodes || []).length > 0 && (
+                <div style={{ marginTop: '0.75rem', fontSize: '0.85em', color: '#581c87', background: '#fff', padding: '0.75rem', borderRadius: '6px' }}>
+                  <strong>💡 Tip:</strong> Deze codes worden gebruikt om automatisch passende TenderNed aanbestedingen te vinden voor dit bedrijf.
+                </div>
+              )}
             </div>
           </div>
 

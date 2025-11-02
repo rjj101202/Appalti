@@ -77,6 +77,7 @@ export interface ClientCompanyData {
   sbiCode?: string;
   sbiDescription?: string;
   employees?: string;
+  cpvCodes?: string[]; // CPV codes voor tender matching
   
   // Status
   status: 'active' | 'inactive' | 'archived';
