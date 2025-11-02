@@ -57,21 +57,32 @@ export async function fetchTenderNed(request: Request, opts: FetchTenderNedOptio
   url.searchParams.set('size', String(pageSize));
   if (opts.q) url.searchParams.set('q', opts.q);
   if (opts.cpv) {
-    // CPV codes must be 8 digits (main code) or 9 digits with hyphen (e.g., 45214200 or 45214200-8)
-    // TenderNed accepts format: 12345678 or 12345678-9
+    // CPV codes must be 8 digits + check digit: XXXXXXXX-X (e.g., 45214200-8)
+    // TenderNed accepts format: 12345678-9
     const codes = String(opts.cpv).split(/[ ,;]+/).filter(Boolean);
     for (const code of codes) {
       // Clean and validate CPV code
-      const cleaned = code.trim().replace(/[^\d-]/g, '');
-      // Valid formats: 7-8 digits, or 8 digits + dash + 1 digit
-      // Note: Some CPV codes have leading zeros or are 7 digits
-      if (/^\d{7,8}$/.test(cleaned) || /^\d{8}-\d$/.test(cleaned)) {
-        // Pad to 8 digits if needed
-        const paddedCode = cleaned.length === 7 ? '0' + cleaned : cleaned;
-        url.searchParams.append('cpvCodes', paddedCode);
-        console.log(`[TenderNed] Adding CPV code: ${paddedCode}`);
+      const cleaned = code.trim();
+      
+      // Valid formats: 
+      // - XXXXXXXX-X (with check digit) - preferred
+      // - XXXXXXXX (without check digit) - we'll add it
+      const match = cleaned.match(/^(\d{8})(?:-(\d))?$/);
+      
+      if (match) {
+        const coreCode = match[1];
+        const checkDigit = match[2];
+        
+        // If check digit provided, use as-is
+        // Otherwise TenderNed might auto-add it, but better to be explicit
+        const formattedCode = checkDigit 
+          ? `${coreCode}-${checkDigit}`
+          : coreCode; // Let TenderNed handle it
+        
+        url.searchParams.append('cpvCodes', formattedCode);
+        console.log(`[TenderNed] Adding CPV code: ${formattedCode}`);
       } else {
-        console.warn(`[TenderNed] Invalid CPV code format: ${code} (expected 7-8 digits or 8-1 format, got: ${cleaned})`);
+        console.warn(`[TenderNed] Invalid CPV code format: ${code} (expected XXXXXXXX or XXXXXXXX-X)`);
       }
     }
   }

@@ -1,7 +1,9 @@
 export interface CPVCode {
-  code: string;
+  code: string; // Format: XXXXXXXX-X (with check digit)
+  coreCode: string; // Format: XXXXXXXX (without check digit)
   description: string;
   level: 'Divisie' | 'Groep' | 'Klasse' | 'Categorie';
+  checkDigit: number;
 }
 
 export const CPV_CODES: CPVCode[] = [
@@ -10,20 +12,21 @@ export const CPV_CODES: CPVCode[] = [
   // Gebruik codes op Klasse-niveau (eindigt op 00) of Categorie-niveau (8 cijfers)
   
   // Bouw
-  { code: '45110000', description: 'Sloopwerkzaamheden', level: 'Klasse' },
-  { code: '45111000', description: 'Ontmantelingswerkzaamheden', level: 'Categorie' },
-  { code: '45210000', description: 'Gebouwen', level: 'Klasse' },
-  { code: '45211000', description: 'Flatgebouwen', level: 'Categorie' },
-  { code: '45212000', description: 'Gebouwen voor gebruik in recreatie, ontspanning, sport en cultuur', level: 'Categorie' },
-  { code: '45214000', description: 'Bouwwerkzaamheden voor gebouwen met betrekking tot gezondheidszorg', level: 'Categorie' },
-  { code: '45220000', description: 'Ingenieurswerken en bouwwerkzaamheden', level: 'Klasse' },
-  { code: '45230000', description: 'Wegenbouwwerken', level: 'Klasse' },
-  { code: '45231000', description: 'Aanleg van pijpleidingen, communicatielijnen en elektriciteitsleidingen', level: 'Categorie' },
-  { code: '45232000', description: 'Nevenwerken voor pijpleidingen en kabels', level: 'Categorie' },
-  { code: '45310000', description: 'Aanleg van elektrische bedrading en fittings', level: 'Klasse' },
-  { code: '45320000', description: 'Isolatiewerkzaamheden', level: 'Klasse' },
-  { code: '45330000', description: 'Loodgieterswerk en sanitaire installaties', level: 'Klasse' },
-  { code: '45400000', description: 'Afwerkingswerkzaamheden in gebouwen', level: 'Klasse' },
+  { code: '45000000-7', coreCode: '45000000', checkDigit: 7, description: 'Bouwwerkzaamheden', level: 'Divisie' },
+  { code: '45110000-8', coreCode: '45110000', checkDigit: 8, description: 'Sloopwerkzaamheden', level: 'Klasse' },
+  { code: '45111000-9', coreCode: '45111000', checkDigit: 9, description: 'Ontmantelingswerkzaamheden', level: 'Categorie' },
+  { code: '45210000-9', coreCode: '45210000', checkDigit: 9, description: 'Gebouwen', level: 'Klasse' },
+  { code: '45211000-0', coreCode: '45211000', checkDigit: 0, description: 'Flatgebouwen', level: 'Categorie' },
+  { code: '45212000-1', coreCode: '45212000', checkDigit: 1, description: 'Gebouwen voor gebruik in recreatie, ontspanning, sport en cultuur', level: 'Categorie' },
+  { code: '45214000-3', coreCode: '45214000', checkDigit: 3, description: 'Bouwwerkzaamheden voor gebouwen met betrekking tot gezondheidszorg', level: 'Categorie' },
+  { code: '45220000-5', coreCode: '45220000', checkDigit: 5, description: 'Ingenieurswerken en bouwwerkzaamheden', level: 'Klasse' },
+  { code: '45230000-8', coreCode: '45230000', checkDigit: 8, description: 'Wegenbouwwerken', level: 'Klasse' },
+  { code: '45231000-9', coreCode: '45231000', checkDigit: 9, description: 'Aanleg van pijpleidingen, communicatielijnen en elektriciteitsleidingen', level: 'Categorie' },
+  { code: '45232000-0', coreCode: '45232000', checkDigit: 0, description: 'Nevenwerken voor pijpleidingen en kabels', level: 'Categorie' },
+  { code: '45310000-1', coreCode: '45310000', checkDigit: 1, description: 'Aanleg van elektrische bedrading en fittings', level: 'Klasse' },
+  { code: '45320000-7', coreCode: '45320000', checkDigit: 7, description: 'Isolatiewerkzaamheden', level: 'Klasse' },
+  { code: '45330000-3', coreCode: '45330000', checkDigit: 3, description: 'Loodgieterswerk en sanitaire installaties', level: 'Klasse' },
+  { code: '45400000-1', coreCode: '45400000', checkDigit: 1, description: 'Afwerkingswerkzaamheden in gebouwen', level: 'Klasse' },
   
   // IT & Software
   { code: '48110000', description: 'Softwarepakketten voor bedrijfsbeheer', level: 'Klasse' },
