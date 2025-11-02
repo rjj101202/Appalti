@@ -121,7 +121,7 @@ export default function BidsPage() {
             <input placeholder="Zoekterm" value={filters.q} onChange={e => setFilters({ ...filters, q: e.target.value })} />
             <input placeholder="CPV" value={filters.cpv} onChange={e => setFilters({ ...filters, cpv: e.target.value })} />
             <button className="btn btn-primary" onClick={() => setShowFilterModal(true)}>
-              🔍 Geavanceerd Filteren
+              Geavanceerd Filteren
             </button>
           </div>
           {(filters.sector || filters.city || filters.buyer || filters.deadlineBefore || filters.newSince) && (
@@ -132,7 +132,7 @@ export default function BidsPage() {
               {filters.deadlineBefore && <span className="badge" style={{ backgroundColor: '#f3e8ff', color: '#701c74' }}>Deadline voor: {filters.deadlineBefore}</span>}
               {filters.newSince && <span className="badge" style={{ backgroundColor: '#f3e8ff', color: '#701c74' }}>Nieuw sinds: {filters.newSince}</span>}
               <button className="btn btn-secondary" onClick={() => setFilters({ q: '', cpv: '', deadlineBefore: '', newSince: '', sector: '', city: '', buyer: '' })} style={{ fontSize: '0.85em' }}>
-                ✕ Wis filters
+                Wis filters
               </button>
             </div>
           )}
@@ -272,7 +272,7 @@ export default function BidsPage() {
                     onChange={setSelectedCPVCodes}
                   />
                   <p style={{ fontSize: '0.85em', color: '#6b7280', marginTop: '0.5rem' }}>
-                    💡 Typ 'landbouw', 'bouw', 'IT' etc. om CPV codes te vinden
+                    Typ 'landbouw', 'bouw', 'IT' etc. om CPV codes te vinden
                   </p>
                 </div>
 

@@ -19,10 +19,10 @@ export default function ClientEditPage() {
   const [searchResults, setSearchResults] = useState<Array<any>>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   
-  // Accordion state - standaard allemaal open
+  // Accordion state - standaard allemaal dicht voor professionele look
   const [openSections, setOpenSections] = useState({
-    bedrijfsgegevens: true,
-    cpvCodes: true,
+    bedrijfsgegevens: false,
+    cpvCodes: false,
     teamleden: false,
     documenten: false
   });
@@ -229,7 +229,6 @@ export default function ClientEditPage() {
             }}
           >
             <h2 style={{ margin: 0, color: '#701c74', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '1.2em' }}>🏢</span>
               Algemene Bedrijfsgegevens
             </h2>
             <span style={{ fontSize: '1.5em', color: '#701c74', transition: 'transform 0.2s', transform: openSections.bedrijfsgegevens ? 'rotate(180deg)' : 'rotate(0deg)' }}>
@@ -317,7 +316,6 @@ export default function ClientEditPage() {
             }}
           >
             <h2 style={{ margin: 0, color: '#701c74', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '1.2em' }}>🏷️</span>
               CPV Codes (Aanbestedingscategorieën)
               {(form.cpvCodes || []).length > 0 && (
                 <span style={{ 
@@ -352,7 +350,7 @@ export default function ClientEditPage() {
                 
                 {(form.cpvCodes || []).length > 0 && (
                   <div style={{ marginTop: '0.75rem', fontSize: '0.85em', color: '#581c87', background: '#f3e8ff', padding: '0.75rem', borderRadius: '6px' }}>
-                    <strong>💡 Tip:</strong> Deze codes worden gebruikt om automatisch passende TenderNed aanbestedingen te vinden voor dit bedrijf.
+                    <strong>Tip:</strong> Deze codes worden gebruikt om automatisch passende TenderNed aanbestedingen te vinden voor dit bedrijf.
                   </div>
                 )}
               </div>
@@ -379,7 +377,6 @@ export default function ClientEditPage() {
             }}
           >
             <h2 style={{ margin: 0, color: '#701c74', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '1.2em' }}>👥</span>
               Teamleden
             </h2>
             <span style={{ fontSize: '1.5em', color: '#701c74', transition: 'transform 0.2s', transform: openSections.teamleden ? 'rotate(180deg)' : 'rotate(0deg)' }}>
@@ -464,7 +461,6 @@ export default function ClientEditPage() {
             }}
           >
             <h2 style={{ margin: 0, color: '#701c74', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '1.2em' }}>📄</span>
               Documenten
               {docs.length > 0 && (
                 <span style={{ 
