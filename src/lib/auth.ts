@@ -91,12 +91,29 @@ export const {
         // NextAuth Adapter already creates the user in the users collection.
         // We find the user by email (since user.id might be UUID format)
         
-        const dbUser = await userRepo.findByEmail(user.email);
+        let dbUser = await userRepo.findByEmail(user.email);
+        
+        // RETRY: Adapter might be creating user async, wait a bit and retry
+        if (!dbUser) {
+          console.log('[NextAuth] User not found immediately, retrying in 500ms...');
+          await new Promise(resolve => setTimeout(resolve, 500));
+          dbUser = await userRepo.findByEmail(user.email);
+        }
+        
+        // Still not found? Try one more time with longer wait
+        if (!dbUser) {
+          console.log('[NextAuth] User still not found, retrying in 1000ms...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          dbUser = await userRepo.findByEmail(user.email);
+        }
         
         if (!dbUser) {
           console.error('[NextAuth] User not found in database after adapter created it:', user.email);
+          console.error('[NextAuth] This might be a timing issue. Check MongoDB connection.');
           return false; // Deny login if user doesn't exist
         }
+        
+        console.log('[NextAuth] User found:', dbUser._id?.toString());
         
         // Update metadata on the NextAuth user
         try {
