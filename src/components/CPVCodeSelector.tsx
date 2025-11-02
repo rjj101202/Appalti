@@ -6,7 +6,8 @@ import { CPV_CODES, searchCPVCodes } from '@/lib/cpv-codes';
 export default function CPVCodeSelector({ selectedCodes, onChange }: { selectedCodes: string[]; onChange: (codes: string[]) => void }) {
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
-  const results = search.length >= 2 ? searchCPVCodes(search) : CPV_CODES.filter(c => c.level === 'Divisie').slice(0, 10);
+  // Toon standaard alleen Klasse-niveau codes (meest gebruikt)
+  const results = search.length >= 2 ? searchCPVCodes(search) : CPV_CODES.filter(c => c.level === 'Klasse').slice(0, 15);
 
   return (
     <div style={{ position: 'relative' }}>
