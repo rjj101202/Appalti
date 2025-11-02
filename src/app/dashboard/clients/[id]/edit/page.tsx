@@ -19,16 +19,59 @@ export default function ClientEditPage() {
   const [searchResults, setSearchResults] = useState<Array<any>>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   
+  // Relevante Tenders
+  const [relevantTenders, setRelevantTenders] = useState<Array<any>>([]);
+  const [loadingTenders, setLoadingTenders] = useState(false);
+  const [tendersError, setTendersError] = useState('');
+  
   // Accordion state - standaard allemaal dicht voor professionele look
   const [openSections, setOpenSections] = useState({
     bedrijfsgegevens: false,
     cpvCodes: false,
+    relevanteTenders: false,
     teamleden: false,
     documenten: false
   });
   
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+    
+    // Als relevante tenders wordt geopend en nog niet geladen, laad ze
+    if (section === 'relevanteTenders' && !openSections.relevanteTenders && relevantTenders.length === 0) {
+      loadRelevantTenders();
+    }
+  };
+  
+  const loadRelevantTenders = async () => {
+    setLoadingTenders(true);
+    setTendersError('');
+    try {
+      const cpvCodes = form.cpvCodes || [];
+      
+      if (cpvCodes.length === 0) {
+        setTendersError('Selecteer eerst CPV codes om relevante tenders te vinden');
+        setLoadingTenders(false);
+        return;
+      }
+      
+      // Zoek tenders met deze CPV codes
+      const params = new URLSearchParams();
+      params.set('cpv', cpvCodes.join(','));
+      params.set('size', '20');
+      
+      const res = await fetch(`/api/bids/sources/tenderned?${params.toString()}`);
+      const data = await res.json();
+      
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Laden mislukt');
+      }
+      
+      setRelevantTenders(data.items || []);
+    } catch (e: any) {
+      setTendersError(e?.message || 'Kon tenders niet laden');
+    } finally {
+      setLoadingTenders(false);
+    }
   };
 
   useEffect(() => {
@@ -363,7 +406,156 @@ export default function ClientEditPage() {
           )}
         </div>
 
-        {/* Accordion Sectie 3: Teamleden */}
+        {/* Accordion Sectie 3: Relevante Tenders */}
+        <div className="card" style={{ marginTop: '1rem' }}>
+          <div 
+            onClick={() => toggleSection('relevanteTenders')}
+            style={{ 
+              cursor: 'pointer', 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              padding: '0.5rem 0',
+              borderBottom: openSections.relevanteTenders ? '2px solid #f3e8ff' : 'none',
+              marginBottom: openSections.relevanteTenders ? '1rem' : 0
+            }}
+          >
+            <h2 style={{ margin: 0, color: '#701c74', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              Relevante Tenders
+              {relevantTenders.length > 0 && (
+                <span style={{ 
+                  fontSize: '0.7em', 
+                  backgroundColor: '#f3e8ff', 
+                  color: '#701c74', 
+                  padding: '0.25rem 0.5rem', 
+                  borderRadius: '12px',
+                  fontWeight: 600
+                }}>
+                  {relevantTenders.length}
+                </span>
+              )}
+            </h2>
+            <span style={{ fontSize: '1.5em', color: '#701c74', transition: 'transform 0.2s', transform: openSections.relevanteTenders ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+              ▼
+            </span>
+          </div>
+          
+          {openSections.relevanteTenders && (
+            <div>
+              <p style={{ color: '#6b7280', marginBottom: '1rem', fontSize: '0.9em' }}>
+                Tenders die matchen met de CPV codes van dit bedrijf. Later wordt dit uitgebreid met IKP matching.
+              </p>
+              
+              {loadingTenders && (
+                <div style={{ textAlign: 'center', padding: '2rem' }}>
+                  <div className="spinner-small" style={{ margin: '0 auto' }}></div>
+                  <p style={{ marginTop: '0.5rem', color: '#6b7280', fontSize: '0.9em' }}>Tenders laden...</p>
+                </div>
+              )}
+              
+              {tendersError && (
+                <div style={{ padding: '1rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', color: '#991b1b' }}>
+                  {tendersError}
+                </div>
+              )}
+              
+              {!loadingTenders && !tendersError && relevantTenders.length === 0 && (
+                <div style={{ padding: '2rem', textAlign: 'center', background: '#f9fafb', borderRadius: '6px', border: '1px dashed #d1d5db' }}>
+                  <p style={{ margin: 0, color: '#6b7280' }}>Geen tenders gevonden.</p>
+                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85em', color: '#9ca3af' }}>
+                    Voeg CPV codes toe en open deze sectie opnieuw.
+                  </p>
+                </div>
+              )}
+              
+              {relevantTenders.length > 0 && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <p style={{ margin: 0, fontSize: '0.9em', color: '#6b7280' }}>
+                      <strong>{relevantTenders.length}</strong> tenders gevonden op basis van CPV codes
+                    </p>
+                    <button className="btn btn-secondary" onClick={loadRelevantTenders} disabled={loadingTenders} style={{ fontSize: '0.85em' }}>
+                      Ververs
+                    </button>
+                  </div>
+                  
+                  <div style={{ display: 'grid', gap: '0.75rem' }}>
+                    {relevantTenders.map((tender: any, idx: number) => (
+                      <div 
+                        key={tender.id || idx}
+                        style={{ 
+                          padding: '1rem', 
+                          border: '1px solid #e5e7eb', 
+                          borderRadius: '8px',
+                          background: '#fff',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(112, 28, 116, 0.1)';
+                          e.currentTarget.style.borderColor = '#d8b4fe';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.boxShadow = 'none';
+                          e.currentTarget.style.borderColor = '#e5e7eb';
+                        }}
+                        onClick={() => {
+                          if (tender.sourceUrl) {
+                            window.open(tender.sourceUrl, '_blank');
+                          }
+                        }}
+                      >
+                        <h4 style={{ margin: '0 0 0.5rem 0', color: '#111827', fontSize: '1em' }}>
+                          {tender.title}
+                        </h4>
+                        
+                        <div style={{ display: 'grid', gap: '0.25rem', fontSize: '0.85em', color: '#6b7280' }}>
+                          {tender.buyer && (
+                            <div>
+                              <strong>Opdrachtgever:</strong> {tender.buyer}
+                            </div>
+                          )}
+                          {tender.submissionDeadline && (
+                            <div>
+                              <strong>Deadline:</strong> {new Date(tender.submissionDeadline).toLocaleDateString('nl-NL')}
+                            </div>
+                          )}
+                          {tender.cpvCodes && tender.cpvCodes.length > 0 && (
+                            <div style={{ marginTop: '0.25rem' }}>
+                              <strong>CPV Codes:</strong>{' '}
+                              {tender.cpvCodes.slice(0, 3).map((code: string, i: number) => (
+                                <span key={i} style={{ 
+                                  display: 'inline-block',
+                                  backgroundColor: '#f3e8ff', 
+                                  color: '#701c74', 
+                                  padding: '0.125rem 0.375rem', 
+                                  borderRadius: '4px',
+                                  fontSize: '0.9em',
+                                  marginRight: '0.25rem'
+                                }}>
+                                  {code}
+                                </span>
+                              ))}
+                              {tender.cpvCodes.length > 3 && (
+                                <span style={{ fontSize: '0.9em' }}>+{tender.cpvCodes.length - 3}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#f9fafb', borderRadius: '6px', fontSize: '0.85em', color: '#6b7280' }}>
+                    <strong>Toekomstige verbetering:</strong> Matching wordt uitgebreid met IKP scores voor betere relevantie.
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Accordion Sectie 4: Teamleden */}
         <div className="card" style={{ marginTop: '1rem' }}>
           <div 
             onClick={() => toggleSection('teamleden')}
