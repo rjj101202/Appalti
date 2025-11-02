@@ -18,6 +18,18 @@ export default function ClientEditPage() {
   const [searchQ, setSearchQ] = useState('');
   const [searchResults, setSearchResults] = useState<Array<any>>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  
+  // Accordion state - standaard allemaal open
+  const [openSections, setOpenSections] = useState({
+    bedrijfsgegevens: true,
+    cpvCodes: true,
+    teamleden: false,
+    documenten: false
+  });
+  
+  const toggleSection = (section: keyof typeof openSections) => {
+    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   useEffect(() => {
     if (params.id) {
@@ -198,12 +210,35 @@ export default function ClientEditPage() {
           <h1 style={{ margin: 0 }}>Bedrijfsgegevens bewerken</h1>
         </div>
 
-        <div className="card" style={{ marginTop: '1rem', paddingBottom: '5rem' }}>
-          {message && <div className="success-message" style={{ marginBottom: '1rem' }}>{message}</div>}
-          {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
+        {/* Messages */}
+        {message && <div className="success-message" style={{ marginTop: '1rem' }}>{message}</div>}
+        {error && <div className="error-message" style={{ marginTop: '1rem' }}>{error}</div>}
 
-          {/* Blok 1: Algemene bedrijfsgegevens */}
-          <h2 style={{ margin: '0 0 1rem 0' }}>Algemene bedrijfsgegevens</h2>
+        {/* Accordion Sectie 1: Bedrijfsgegevens */}
+        <div className="card" style={{ marginTop: '1rem' }}>
+          <div 
+            onClick={() => toggleSection('bedrijfsgegevens')}
+            style={{ 
+              cursor: 'pointer', 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              padding: '0.5rem 0',
+              borderBottom: openSections.bedrijfsgegevens ? '2px solid #f3e8ff' : 'none',
+              marginBottom: openSections.bedrijfsgegevens ? '1rem' : 0
+            }}
+          >
+            <h2 style={{ margin: 0, color: '#701c74', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '1.2em' }}>🏢</span>
+              Algemene Bedrijfsgegevens
+            </h2>
+            <span style={{ fontSize: '1.5em', color: '#701c74', transition: 'transform 0.2s', transform: openSections.bedrijfsgegevens ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+              ▼
+            </span>
+          </div>
+          
+          {openSections.bedrijfsgegevens && (
+            <div>
           <div className="form-grid">
             <div className="form-item">
               <label className="form-label" style={{ whiteSpace: 'nowrap' }}>Naam</label>
@@ -235,37 +270,6 @@ export default function ClientEditPage() {
             </div>
           </div>
 
-          {/* CPV Codes Sectie */}
-          <div style={{ 
-            marginTop: '2rem', 
-            padding: '1.5rem', 
-            background: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)',
-            borderRadius: '12px',
-            border: '2px solid #d8b4fe'
-          }}>
-            <h2 style={{ margin: '0 0 0.5rem 0', color: '#701c74', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '1.5em' }}>🏷️</span>
-              CPV Codes (Aanbestedingscategorieën)
-            </h2>
-            <p style={{ margin: '0 0 1rem 0', color: '#6b7280', fontSize: '0.9em' }}>
-              Selecteer de CPV codes die van toepassing zijn op dit bedrijf. Dit helpt bij het matchen met relevante aanbestedingen.
-            </p>
-            
-            <div className="form-item">
-              <label className="form-label" style={{ fontWeight: 600 }}>Geselecteerde CPV Codes</label>
-              <CPVCodeSelector 
-                selectedCodes={form.cpvCodes || []} 
-                onChange={(codes) => updateField('cpvCodes', codes)} 
-              />
-              
-              {(form.cpvCodes || []).length > 0 && (
-                <div style={{ marginTop: '0.75rem', fontSize: '0.85em', color: '#581c87', background: '#fff', padding: '0.75rem', borderRadius: '6px' }}>
-                  <strong>💡 Tip:</strong> Deze codes worden gebruikt om automatisch passende TenderNed aanbestedingen te vinden voor dit bedrijf.
-                </div>
-              )}
-            </div>
-          </div>
-
           <h3 style={{ marginTop: '1.5rem' }}>Primair Adres</h3>
           <div className="form-grid address-grid">
             <div className="form-item">
@@ -286,9 +290,7 @@ export default function ClientEditPage() {
             </div>
           </div>
 
-          {/* Einde Blok 1 */}
-
-          {/* Sticky action bar */}
+          {/* Sticky action bar voor bedrijfsgegevens */}
           <div style={{
             position: 'sticky', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #eee',
             padding: '0.75rem 1rem', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem'
@@ -296,11 +298,97 @@ export default function ClientEditPage() {
             <button className="btn btn-secondary" onClick={reEnrich} disabled={saving || !form.kvkNumber}>Verrijk via KVK</button>
             <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Opslaan...' : 'Opslaan'}</button>
           </div>
+            </div>
+          )}
         </div>
 
-        {/* Blok 2: Teamleden */}
-        <div className="card" style={{ marginTop: '2rem' }}>
-          <h2 style={{ marginBottom: '1rem' }}>Teamleden</h2>
+        {/* Accordion Sectie 2: CPV Codes */}
+        <div className="card" style={{ marginTop: '1rem' }}>
+          <div 
+            onClick={() => toggleSection('cpvCodes')}
+            style={{ 
+              cursor: 'pointer', 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              padding: '0.5rem 0',
+              borderBottom: openSections.cpvCodes ? '2px solid #f3e8ff' : 'none',
+              marginBottom: openSections.cpvCodes ? '1rem' : 0
+            }}
+          >
+            <h2 style={{ margin: 0, color: '#701c74', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '1.2em' }}>🏷️</span>
+              CPV Codes (Aanbestedingscategorieën)
+              {(form.cpvCodes || []).length > 0 && (
+                <span style={{ 
+                  fontSize: '0.7em', 
+                  backgroundColor: '#f3e8ff', 
+                  color: '#701c74', 
+                  padding: '0.25rem 0.5rem', 
+                  borderRadius: '12px',
+                  fontWeight: 600
+                }}>
+                  {form.cpvCodes.length}
+                </span>
+              )}
+            </h2>
+            <span style={{ fontSize: '1.5em', color: '#701c74', transition: 'transform 0.2s', transform: openSections.cpvCodes ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+              ▼
+            </span>
+          </div>
+          
+          {openSections.cpvCodes && (
+            <div>
+              <p style={{ margin: '0 0 1rem 0', color: '#6b7280', fontSize: '0.9em' }}>
+                Selecteer de CPV codes die van toepassing zijn op dit bedrijf. Dit helpt bij het matchen met relevante aanbestedingen.
+              </p>
+              
+              <div className="form-item">
+                <label className="form-label" style={{ fontWeight: 600 }}>Geselecteerde CPV Codes</label>
+                <CPVCodeSelector 
+                  selectedCodes={form.cpvCodes || []} 
+                  onChange={(codes) => updateField('cpvCodes', codes)} 
+                />
+                
+                {(form.cpvCodes || []).length > 0 && (
+                  <div style={{ marginTop: '0.75rem', fontSize: '0.85em', color: '#581c87', background: '#f3e8ff', padding: '0.75rem', borderRadius: '6px' }}>
+                    <strong>💡 Tip:</strong> Deze codes worden gebruikt om automatisch passende TenderNed aanbestedingen te vinden voor dit bedrijf.
+                  </div>
+                )}
+              </div>
+              
+              <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', borderTop: '1px solid #eee' }}>
+                <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Opslaan...' : 'Opslaan'}</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Accordion Sectie 3: Teamleden */}
+        <div className="card" style={{ marginTop: '1rem' }}>
+          <div 
+            onClick={() => toggleSection('teamleden')}
+            style={{ 
+              cursor: 'pointer', 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              padding: '0.5rem 0',
+              borderBottom: openSections.teamleden ? '2px solid #f3e8ff' : 'none',
+              marginBottom: openSections.teamleden ? '1rem' : 0
+            }}
+          >
+            <h2 style={{ margin: 0, color: '#701c74', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '1.2em' }}>👥</span>
+              Teamleden
+            </h2>
+            <span style={{ fontSize: '1.5em', color: '#701c74', transition: 'transform 0.2s', transform: openSections.teamleden ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+              ▼
+            </span>
+          </div>
+          
+          {openSections.teamleden && (
+            <div>
           <p style={{ color: '#6b7280', marginBottom: '1rem' }}>Bekijk teamleden en nodig nieuwe gebruikers uit voor dit bedrijf.</p>
           <div style={{ display:'flex', gap:'0.5rem', marginBottom:'1rem' }}>
             <button
@@ -357,11 +445,47 @@ export default function ClientEditPage() {
               Client‑omgeving aanmaken
             </button>
           </div>
+            </div>
+          )}
         </div>
 
-        {/* Blok 3: Documenten */}
-        <div className="card" style={{ marginTop: '2rem' }}>
-          <h2 style={{ marginTop: 0 }}>Documenten</h2>
+        {/* Accordion Sectie 4: Documenten */}
+        <div className="card" style={{ marginTop: '1rem' }}>
+          <div 
+            onClick={() => toggleSection('documenten')}
+            style={{ 
+              cursor: 'pointer', 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              padding: '0.5rem 0',
+              borderBottom: openSections.documenten ? '2px solid #f3e8ff' : 'none',
+              marginBottom: openSections.documenten ? '1rem' : 0
+            }}
+          >
+            <h2 style={{ margin: 0, color: '#701c74', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '1.2em' }}>📄</span>
+              Documenten
+              {docs.length > 0 && (
+                <span style={{ 
+                  fontSize: '0.7em', 
+                  backgroundColor: '#f3e8ff', 
+                  color: '#701c74', 
+                  padding: '0.25rem 0.5rem', 
+                  borderRadius: '12px',
+                  fontWeight: 600
+                }}>
+                  {docs.length}
+                </span>
+              )}
+            </h2>
+            <span style={{ fontSize: '1.5em', color: '#701c74', transition: 'transform 0.2s', transform: openSections.documenten ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+              ▼
+            </span>
+          </div>
+          
+          {openSections.documenten && (
+            <div>
           <p className="text-gray-600" style={{ margin: '0 0 0.75rem 0' }}>Upload documenten (pdf, docx, txt, md, html). Deze worden geïndexeerd voor AI en zoeken. Binaire bestanden worden niet opgeslagen.</p>
 
           <div
@@ -442,6 +566,8 @@ export default function ClientEditPage() {
               </table>
             )}
           </div>
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>
