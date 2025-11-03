@@ -41,19 +41,11 @@ export default function BidDetailPage() {
           const clientList = json.items || json.data || [];
           setClients(clientList);
           
-          // Pre-select client from URL parameter
+          // Pre-select client from URL parameter (maar NIET auto-linken)
           const clientId = search.get('clientId');
           if (clientId) {
             setSelectedClient(clientId);
-            
-            // Auto-link if requested
-            const autoLink = search.get('autoLink');
-            if (autoLink === 'true') {
-              // Wait for data to load, then auto-link
-              setTimeout(() => {
-                linkTenderWithClient(clientId);
-              }, 1000);
-            }
+            // User kan nu zelf beslissen om te koppelen of terug te gaan
           }
         }
       } catch {}

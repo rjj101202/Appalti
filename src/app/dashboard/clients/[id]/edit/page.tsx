@@ -500,8 +500,8 @@ export default function ClientEditPage() {
                           e.currentTarget.style.borderColor = '#e5e7eb';
                         }}
                         onClick={() => {
-                          // Ga naar interne tender detail pagina met pre-selected client
-                          const url = `/dashboard/bids/${encodeURIComponent(tender.id)}?clientId=${encodeURIComponent(params.id as string)}&autoLink=true`;
+                          // Ga naar interne tender detail pagina met pre-selected client (GEEN auto-link)
+                          const url = `/dashboard/bids/${encodeURIComponent(tender.id)}?clientId=${encodeURIComponent(params.id as string)}`;
                           router.push(url);
                         }}
                       >
