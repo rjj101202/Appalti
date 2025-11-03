@@ -62,9 +62,13 @@ export default function Home() {
             Transformeer uw aanbestedingsproces met intelligente matching, 
             geautomatiseerde documentgeneratie en 16 jaar expertise.
           </p>
-          <a href="/dashboard" className="btn btn-primary" style={{ fontSize: '1.125rem', padding: '0.75rem 2rem' }}>
-            Start Nu →
-          </a>
+          <button 
+            onClick={() => signIn('auth0', { callbackUrl: '/dashboard' })}
+            className="btn btn-primary" 
+            style={{ fontSize: '1.125rem', padding: '0.75rem 2rem' }}
+          >
+            Login
+          </button>
         </div>
         
         <div className="features">
