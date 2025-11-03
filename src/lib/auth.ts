@@ -87,43 +87,32 @@ export const {
         const auth0Sub = account?.providerAccountId || '';
         const emailVerifiedFromProvider = (profile as any)?.email_verified === true;
         
-        // NOTE: We do NOT create a separate custom user anymore!
-        // NextAuth Adapter already creates the user in the users collection.
-        // We find the user by email (since user.id might be UUID format)
+        // GEBRUIK FINDORCREATE: MongoDB Adapter is unreliable, we maken zelf user aan
+        const { user: dbUser, isNew } = await userRepo.findOrCreate({
+          auth0Id: auth0Sub,
+          email: user.email,
+          name: user.name || user.email,
+          avatar: user.image,
+          emailVerified: emailVerifiedFromProvider,
+          metadata: {
+            source: 'auth0',
+            originalAuth0Data: profile
+          }
+        });
         
-        let dbUser = await userRepo.findByEmail(user.email);
+        console.log(`[NextAuth] User ${isNew ? 'CREATED' : 'FOUND'}:`, dbUser._id?.toString(), user.email);
         
-        // RETRY: Adapter might be creating user async, wait a bit and retry
-        if (!dbUser) {
-          console.log('[NextAuth] User not found immediately, retrying in 500ms...');
-          await new Promise(resolve => setTimeout(resolve, 500));
-          dbUser = await userRepo.findByEmail(user.email);
-        }
-        
-        // Still not found? Try one more time with longer wait
-        if (!dbUser) {
-          console.log('[NextAuth] User still not found, retrying in 1000ms...');
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          dbUser = await userRepo.findByEmail(user.email);
-        }
-        
-        if (!dbUser) {
-          console.error('[NextAuth] User not found in database after adapter created it:', user.email);
-          console.error('[NextAuth] This might be a timing issue. Check MongoDB connection.');
-          return false; // Deny login if user doesn't exist
-        }
-        
-        console.log('[NextAuth] User found:', dbUser._id?.toString());
-        
-        // Update metadata on the NextAuth user
-        try {
-          await userRepo.update(dbUser._id!.toString(), {
-            emailVerified: emailVerifiedFromProvider,
-            lastLogin: new Date(),
-            // DO NOT update avatar - preserve custom uploaded avatars
-          });
-        } catch (e) {
-          if (NEXTAUTH_DEBUG) console.warn('[NextAuth] User metadata update failed:', e);
+        // Update metadata if user already existed (findOrCreate handles new users)
+        if (!isNew) {
+          try {
+            await userRepo.update(dbUser._id!.toString(), {
+              emailVerified: emailVerifiedFromProvider,
+              lastLogin: new Date(),
+              // DO NOT update avatar - preserve custom uploaded avatars
+            });
+          } catch (e) {
+            if (NEXTAUTH_DEBUG) console.warn('[NextAuth] User metadata update failed:', e);
+          }
         }
 
         // Optionally block unverified emails in production

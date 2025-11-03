@@ -4,12 +4,13 @@ Dit document bevat bekende problemen die nog opgelost moeten worden.
 
 ---
 
-## 🔴 CRITICAL: Auth0 Signup Timing Issue
+## ✅ FIXED: Auth0 Signup Timing Issue
 
-**Status**: NIET OPGELOST  
+**Status**: OPGELOST  
 **Priority**: HIGH  
 **Datum**: 2025-11-02  
-**Toegevoegd door**: Cursor AI Agent  
+**Opgelost**: 2025-11-03  
+**Fix**: Gebruik `findOrCreate` in plaats van `findByEmail`  
 
 ### **Probleem**
 
@@ -131,9 +132,9 @@ callbacks: {
 **Voordeel**: Volledige controle  
 **Nadeel**: Moeten sessions zelf beheren  
 
-### **Recommended Fix** ⭐
+### **Implemented Fix** ✅
 
-**Optie B** lijkt het beste. Implementeer `findOrCreate` in userRepository:
+**Optie B** is geïmplementeerd. De `findOrCreate` functie in userRepository is nu actief:
 
 ```typescript
 // src/lib/db/repositories/userRepository.ts
@@ -176,16 +177,26 @@ async findOrCreate(input: {
 }
 ```
 
-Dan in `src/lib/auth.ts`:
+**Geïmplementeerd in `src/lib/auth.ts`** (regel 91-103):
 ```typescript
-const dbUser = await userRepo.findOrCreate({
+const { user: dbUser, isNew } = await userRepo.findOrCreate({
+  auth0Id: auth0Sub,
   email: user.email,
-  name: user.name,
-  auth0Id: account.providerAccountId,
-  emailVerified: profile.email_verified
+  name: user.name || user.email,
+  avatar: user.image,
+  emailVerified: emailVerifiedFromProvider,
+  metadata: { source: 'auth0', originalAuth0Data: profile }
 });
-// Nu altijd gevonden! ✅
+
+console.log(`[NextAuth] User ${isNew ? 'CREATED' : 'FOUND'}:`, dbUser._id, user.email);
+// Nu altijd gevonden of aangemaakt! ✅
 ```
+
+**Resultaat**:
+- ✅ Geen race conditions meer
+- ✅ User wordt ALTIJD aangemaakt als die niet bestaat
+- ✅ Idempotent (veilig om meerdere keren aan te roepen)
+- ✅ Works voor nieuwe EN bestaande users
 
 ### **Workaround (Tijdelijk)**
 
