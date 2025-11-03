@@ -102,6 +102,40 @@ export const {
         
         console.log(`[NextAuth] User ${isNew ? 'CREATED' : 'FOUND'}:`, dbUser._id?.toString(), user.email);
         
+        // CRITICAL: Als user nieuw is, maak ook de account link aan voor NextAuth Adapter
+        if (isNew && account) {
+          try {
+            const client = await clientPromise;
+            const db = client.db();
+            const accountsCollection = db.collection('accounts');
+            
+            // Check if account link already exists
+            const existingAccount = await accountsCollection.findOne({
+              provider: account.provider,
+              providerAccountId: account.providerAccountId
+            });
+            
+            if (!existingAccount) {
+              await accountsCollection.insertOne({
+                userId: dbUser._id,
+                type: account.type,
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                access_token: account.access_token,
+                expires_at: account.expires_at,
+                id_token: account.id_token,
+                refresh_token: account.refresh_token,
+                scope: account.scope,
+                token_type: account.token_type
+              });
+              console.log('[NextAuth] Account link created for:', user.email);
+            }
+          } catch (e) {
+            console.warn('[NextAuth] Failed to create account link:', e);
+            // Continue anyway, not critical for first login
+          }
+        }
+        
         // Update metadata if user already existed (findOrCreate handles new users)
         if (!isNew) {
           try {
