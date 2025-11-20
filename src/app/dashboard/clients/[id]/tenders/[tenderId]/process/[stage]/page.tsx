@@ -124,14 +124,22 @@ export default function StageEditorPage() {
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || 'Laden mislukt');
       
-      // Backwards compatible: gebruik criteria[0].content als die bestaat, anders oude content
+      // Backwards compatible: gebruik de langste content (oude of nieuwe structuur)
       let html = '';
-      if (json.data?.criteria && json.data.criteria.length > 0) {
-        // Nieuwe structuur: gebruik eerste criterium (voorlopig, later tabbladen)
-        html = String(json.data.criteria[0].content || '');
+      const oldContent = String(json.data?.content || '');
+      const newContent = (json.data?.criteria && json.data.criteria.length > 0) 
+        ? String(json.data.criteria[0].content || '') 
+        : '';
+      
+      // Gebruik de langste (meest recente) content
+      if (newContent.length > oldContent.length) {
+        html = newContent;
+      } else if (oldContent.length > 0) {
+        html = oldContent;
+        // Als oude content langer is, migreer deze naar criteria
+        console.log('[MIGRATION] Old content is longer, will migrate on next save');
       } else {
-        // Oude structuur
-        html = String(json.data?.content || '');
+        html = newContent || oldContent;
       }
       
       setAttachments(json.data?.attachments || []);
