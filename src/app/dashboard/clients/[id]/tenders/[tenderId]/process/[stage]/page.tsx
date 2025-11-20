@@ -148,9 +148,26 @@ export default function StageEditorPage() {
       setClientName(meta.clientName || '');
       setSourceLinks(json.data?.sourceLinks || []);
       setSources(json.data?.sources || []);
-      // assigned reviewer/status ophalen uit server data als beschikbaar
-      // (deze endpoint retourneert dit nog niet; we houden UI reactief na toewijzen)
-      if (editor) editor.commands.setContent(decorateCitationsInHtml(html || '<p></p>'));
+      
+      // Log voor debugging
+      console.log('[LOAD] Content length:', html.length);
+      console.log('[LOAD] Editor ready:', !!editor);
+      console.log('[LOAD] First 200 chars:', html.slice(0, 200));
+      
+      // Zet content in editor
+      if (editor) {
+        try {
+          const decoratedHtml = decorateCitationsInHtml(html || '<p></p>');
+          editor.commands.setContent(decoratedHtml);
+          console.log('[LOAD] Content set successfully');
+        } catch (e) {
+          console.error('[LOAD] Failed to set content:', e);
+          // Fallback: probeer zonder decoratie
+          editor.commands.setContent(html || '<p></p>');
+        }
+      } else {
+        console.warn('[LOAD] Editor not ready yet');
+      }
     } catch (e: any) {
       setError(e?.message || 'Laden mislukt');
     } finally {
@@ -158,7 +175,12 @@ export default function StageEditorPage() {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [clientId, tenderId, stage]);
+  useEffect(() => { 
+    if (editor) {
+      load(); 
+    }
+    /* eslint-disable-next-line */ 
+  }, [clientId, tenderId, stage, editor]);
 
   const save = async () => {
     try {
