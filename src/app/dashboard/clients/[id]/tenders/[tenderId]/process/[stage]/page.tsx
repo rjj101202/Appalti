@@ -123,7 +123,17 @@ export default function StageEditorPage() {
       const res = await fetch(`/api/bids/${bidId}/stages/${stage}`, { cache: 'no-store' });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || 'Laden mislukt');
-      const html = String(json.data?.content || '');
+      
+      // Backwards compatible: gebruik criteria[0].content als die bestaat, anders oude content
+      let html = '';
+      if (json.data?.criteria && json.data.criteria.length > 0) {
+        // Nieuwe structuur: gebruik eerste criterium (voorlopig, later tabbladen)
+        html = String(json.data.criteria[0].content || '');
+      } else {
+        // Oude structuur
+        html = String(json.data?.content || '');
+      }
+      
       setAttachments(json.data?.attachments || []);
       setStageStatus(json.data?.status || '');
       setTenderExternalId(meta.externalId || '');
@@ -148,9 +158,32 @@ export default function StageEditorPage() {
       const bidId = await bidIdFromQuery();
       if (!bidId) throw new Error('Bid niet gevonden');
       const html = editor?.getHTML() || '';
-      const res = await fetch(`/api/bids/${bidId}/stages/${stage}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: html }) });
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || 'Opslaan mislukt');
+      
+      // Haal eerst criteria op om te zien of er al een "Algemeen" criterium bestaat
+      const criteriaRes = await fetch(`/api/bids/${bidId}/stages/${stage}/criteria`, { cache: 'no-store' });
+      const criteriaJson = await criteriaRes.json();
+      
+      if (criteriaRes.ok && criteriaJson.success && criteriaJson.data?.criteria?.length > 0) {
+        // Er zijn al criteria: update het eerste criterium
+        const firstCriterion = criteriaJson.data.criteria[0];
+        const res = await fetch(`/api/bids/${bidId}/stages/${stage}/criteria/${firstCriterion.id}`, { 
+          method: 'PUT', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ content: html }) 
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.error || 'Opslaan mislukt');
+      } else {
+        // Nog geen criteria: maak een "Algemeen" criterium aan
+        const res = await fetch(`/api/bids/${bidId}/stages/${stage}/criteria`, { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ title: 'Algemeen', content: html, order: 0 }) 
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.error || 'Opslaan mislukt');
+      }
+      
       alert('Opgeslagen');
     } catch (e: any) { alert(e?.message || 'Opslaan mislukt'); }
     finally { setSaving(false); }
