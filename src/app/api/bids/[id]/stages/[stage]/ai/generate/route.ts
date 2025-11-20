@@ -292,10 +292,17 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         for (const a of atts) sourcesDetailed.push({ label: `S${labelIndex++}`, type: 'attachment', title: a.name, url: a.url });
       } catch {}
 
-      await db.collection('bids').updateOne(
+      const updateRes = await db.collection('bids').updateOne(
         { _id: new ObjectId(parsedParams.data.id), tenantId: auth.tenantId, 'stages.key': stage },
         { $set: { 'stages.$.citations': contextSnippets.map(s => s.source).slice(0, 12), 'stages.$.sourceLinks': allLinks, 'stages.$.sources': sourcesDetailed, updatedAt: new Date(), updatedBy: new ObjectId(auth.userId) } }
       );
+      // If stage missing, push it
+      if (updateRes.matchedCount === 0) {
+         await db.collection('bids').updateOne(
+          { _id: new ObjectId(parsedParams.data.id), tenantId: auth.tenantId },
+          { $push: { stages: { key: stage, citations: contextSnippets.map(s => s.source).slice(0, 12), sourceLinks: allLinks, sources: sourcesDetailed, updatedAt: new Date(), status:'draft' } as any } }
+        );
+      }
     } catch {}
 
     const citations = contextSnippets.map(s => s.source);

@@ -51,8 +51,45 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const body = await request.json();
     const input = bodySchema.parse(body);
     const db = await getDatabase();
-    const res = await db.collection('bids').updateOne({ _id: new ObjectId(parsed.data.id), tenantId: auth.tenantId, 'stages.key': parsed.data.stage }, { $set: { 'stages.$.content': input.content, updatedAt: new Date(), updatedBy: new ObjectId(auth.userId) } });
-    if (!res.matchedCount) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    const filter = { _id: new ObjectId(parsed.data.id), tenantId: auth.tenantId };
+    
+    // 1. Try to update existing stage
+    const updateRes = await db.collection('bids').updateOne(
+      { ...filter, 'stages.key': parsed.data.stage }, 
+      { 
+        $set: { 
+          'stages.$.content': input.content, 
+          updatedAt: new Date(), 
+          updatedBy: new ObjectId(auth.userId) 
+        } 
+      }
+    );
+
+    // 2. If no match, it might be that the stage object doesn't exist in the array yet
+    if (updateRes.matchedCount === 0) {
+      // Check if bid exists at all
+      const bidExists = await db.collection('bids').countDocuments(filter);
+      if (!bidExists) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+      // Push new stage
+      await db.collection('bids').updateOne(
+        filter,
+        {
+          $push: {
+            stages: {
+              key: parsed.data.stage,
+              content: input.content,
+              status: 'draft',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              updatedBy: new ObjectId(auth.userId)
+            } as any
+          }
+        }
+      );
+    }
+
+    console.log(`[PUT] Saved stage ${parsed.data.stage} for bid ${parsed.data.id}. Content len: ${input.content.length}`);
     return NextResponse.json({ success: true });
   } catch (e) {
     console.error('Stage PUT error', e);
