@@ -105,13 +105,27 @@ export type ClientCompanyListResponse = PaginatedResponse<ClientCompanyData>;
 export type BidStageKey = 'storyline' | 'version_65' | 'version_95' | 'final';
 export type StageStatus = 'draft' | 'submitted' | 'pending_review' | 'approved' | 'rejected';
 
+/**
+ * Gunningscriterium voor API responses
+ */
+export interface BidCriterionData {
+  id: string;
+  title: string;
+  content: string;
+  order: number;
+  createdAt?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
 export interface BidStageData {
   key: BidStageKey;
   status: StageStatus;
   submittedAt?: string;
   approvedAt?: string;
   approvedBy?: string;
-  content?: string;
+  content?: string; // DEPRECATED: gebruik 'criteria'
+  criteria?: BidCriterionData[]; // Nieuwe structuur
   attachments?: Array<{
     name: string;
     url: string;

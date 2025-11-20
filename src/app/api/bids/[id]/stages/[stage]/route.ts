@@ -25,7 +25,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({
       success: true,
       data: {
-        content: stage?.content || '',
+        content: stage?.content || '', // DEPRECATED: gebruik criteria
+        criteria: stage?.criteria || [], // Nieuwe structuur
         attachments: stage?.attachments || [],
         status: stage?.status,
         assignedReviewer: stage?.assignedReviewer || null,
