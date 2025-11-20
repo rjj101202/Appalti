@@ -47,6 +47,11 @@ export default function StageEditorPage() {
   const [sourceLinks, setSourceLinks] = useState<string[]>([]);
   const [sources, setSources] = useState<Array<{ label: string; type: 'client'|'tender'|'xai'|'attachment'; title?: string; url?: string; snippet?: string; documentId?: any; chunks?: Array<{ index: number; pageNumber?: number }> }>>([]);
 
+  // Criteria state (nieuwe structuur)
+  const [criteria, setCriteria] = useState<Array<{ id: string; title: string; content: string; order: number }>>([]);
+  const [selectedCriterionId, setSelectedCriterionId] = useState<string | null>(null);
+  const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
+
   // Hover preview tooltip state
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [hoverText, setHoverText] = useState<string>('');
@@ -124,23 +129,38 @@ export default function StageEditorPage() {
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || 'Laden mislukt');
       
-      // Backwards compatible: gebruik de langste content (oude of nieuwe structuur)
-      let html = '';
-      const oldContent = String(json.data?.content || '');
-      const newContent = (json.data?.criteria && json.data.criteria.length > 0) 
-        ? String(json.data.criteria[0].content || '') 
-        : '';
+      // Laad criteria
+      const loadedCriteria = json.data?.criteria || [];
       
-      // Gebruik de langste (meest recente) content
-      if (newContent.length > oldContent.length) {
-        html = newContent;
-      } else if (oldContent.length > 0) {
-        html = oldContent;
-        // Als oude content langer is, migreer deze naar criteria
-        console.log('[MIGRATION] Old content is longer, will migrate on next save');
-      } else {
-        html = newContent || oldContent;
+      // Backwards compatible: als er geen criteria zijn maar wel oude content, maak een default criterium
+      if (loadedCriteria.length === 0 && json.data?.content) {
+        const oldContent = String(json.data.content || '');
+        if (oldContent.length > 0) {
+          console.log('[MIGRATION] Creating default criterion from old content');
+          loadedCriteria.push({
+            id: 'temp-' + Date.now(),
+            title: 'Algemeen',
+            content: oldContent,
+            order: 0
+          });
+        }
       }
+      
+      // Als er nog steeds geen criteria zijn, maak een leeg criterium
+      if (loadedCriteria.length === 0) {
+        loadedCriteria.push({
+          id: 'temp-' + Date.now(),
+          title: 'Algemeen',
+          content: '<p></p>',
+          order: 0
+        });
+      }
+      
+      setCriteria(loadedCriteria);
+      
+      // Selecteer het eerste criterium
+      const firstCriterion = loadedCriteria[0];
+      setSelectedCriterionId(firstCriterion.id);
       
       setAttachments(json.data?.attachments || []);
       setStageStatus(json.data?.status || '');
@@ -150,20 +170,18 @@ export default function StageEditorPage() {
       setSources(json.data?.sources || []);
       
       // Log voor debugging
-      console.log('[LOAD] Content length:', html.length);
-      console.log('[LOAD] Editor ready:', !!editor);
-      console.log('[LOAD] First 200 chars:', html.slice(0, 200));
+      console.log('[LOAD] Loaded', loadedCriteria.length, 'criteria');
+      console.log('[LOAD] Selected criterion:', firstCriterion.title);
       
-      // Zet content in editor
+      // Zet content van eerste criterium in editor
       if (editor) {
         try {
-          const decoratedHtml = decorateCitationsInHtml(html || '<p></p>');
+          const decoratedHtml = decorateCitationsInHtml(firstCriterion.content || '<p></p>');
           editor.commands.setContent(decoratedHtml);
           console.log('[LOAD] Content set successfully');
         } catch (e) {
           console.error('[LOAD] Failed to set content:', e);
-          // Fallback: probeer zonder decoratie
-          editor.commands.setContent(html || '<p></p>');
+          editor.commands.setContent(firstCriterion.content || '<p></p>');
         }
       } else {
         console.warn('[LOAD] Editor not ready yet');
@@ -187,28 +205,45 @@ export default function StageEditorPage() {
       setSaving(true);
       const bidId = await bidIdFromQuery();
       if (!bidId) throw new Error('Bid niet gevonden');
+      
+      if (!selectedCriterionId) throw new Error('Geen criterium geselecteerd');
+      
       const html = editor?.getHTML() || '';
+      const selectedCriterion = criteria.find(c => c.id === selectedCriterionId);
+      if (!selectedCriterion) throw new Error('Criterium niet gevonden');
       
-      // Haal eerst criteria op om te zien of er al een "Algemeen" criterium bestaat
-      const criteriaRes = await fetch(`/api/bids/${bidId}/stages/${stage}/criteria`, { cache: 'no-store' });
-      const criteriaJson = await criteriaRes.json();
+      // Update lokale state
+      setCriteria(prev => prev.map(c => 
+        c.id === selectedCriterionId ? { ...c, content: html } : c
+      ));
       
-      if (criteriaRes.ok && criteriaJson.success && criteriaJson.data?.criteria?.length > 0) {
-        // Er zijn al criteria: update het eerste criterium
-        const firstCriterion = criteriaJson.data.criteria[0];
-        const res = await fetch(`/api/bids/${bidId}/stages/${stage}/criteria/${firstCriterion.id}`, { 
-          method: 'PUT', 
-          headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ content: html }) 
-        });
-        const json = await res.json();
-        if (!res.ok || !json.success) throw new Error(json.error || 'Opslaan mislukt');
-      } else {
-        // Nog geen criteria: maak een "Algemeen" criterium aan
+      // Check of het een temp ID is (nog niet in database)
+      if (selectedCriterion.id.startsWith('temp-')) {
+        // Maak nieuw criterium aan
         const res = await fetch(`/api/bids/${bidId}/stages/${stage}/criteria`, { 
           method: 'POST', 
           headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ title: 'Algemeen', content: html, order: 0 }) 
+          body: JSON.stringify({ 
+            title: selectedCriterion.title, 
+            content: html, 
+            order: selectedCriterion.order 
+          }) 
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.error || 'Opslaan mislukt');
+        
+        // Update lokale state met echte ID
+        const newCriterion = json.data.criterion;
+        setCriteria(prev => prev.map(c => 
+          c.id === selectedCriterionId ? { ...newCriterion } : c
+        ));
+        setSelectedCriterionId(newCriterion.id);
+      } else {
+        // Update bestaand criterium
+        const res = await fetch(`/api/bids/${bidId}/stages/${stage}/criteria/${selectedCriterionId}`, { 
+          method: 'PUT', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ content: html }) 
         });
         const json = await res.json();
         if (!res.ok || !json.success) throw new Error(json.error || 'Opslaan mislukt');
@@ -220,6 +255,114 @@ export default function StageEditorPage() {
   };
 
   const toPlain = (html: string) => html.replace(/<[^>]+>/g, '').replace(/\n{3,}/g,'\n\n');
+
+  // Criterion management functions
+  const addNewCriterion = () => {
+    const newCriterion = {
+      id: 'temp-' + Date.now(),
+      title: `Criterium ${criteria.length + 1}`,
+      content: '<p></p>',
+      order: criteria.length
+    };
+    setCriteria(prev => [...prev, newCriterion]);
+    setSelectedCriterionId(newCriterion.id);
+    if (editor) editor.commands.setContent('<p></p>');
+  };
+
+  const deleteCriterion = async (criterionId: string) => {
+    if (criteria.length === 1) {
+      alert('Je moet minimaal 1 criterium hebben');
+      return;
+    }
+    
+    if (!confirm('Weet je zeker dat je dit criterium wilt verwijderen?')) return;
+    
+    try {
+      const bidId = await bidIdFromQuery();
+      if (!bidId) throw new Error('Bid niet gevonden');
+      
+      // Als het een temp ID is, gewoon uit state verwijderen
+      if (criterionId.startsWith('temp-')) {
+        setCriteria(prev => prev.filter(c => c.id !== criterionId));
+        if (selectedCriterionId === criterionId) {
+          const remaining = criteria.filter(c => c.id !== criterionId);
+          if (remaining.length > 0) {
+            setSelectedCriterionId(remaining[0].id);
+            if (editor) editor.commands.setContent(remaining[0].content);
+          }
+        }
+        return;
+      }
+      
+      // Anders verwijder uit database
+      const res = await fetch(`/api/bids/${bidId}/stages/${stage}/criteria/${criterionId}`, { 
+        method: 'DELETE' 
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Verwijderen mislukt');
+      
+      setCriteria(prev => prev.filter(c => c.id !== criterionId));
+      if (selectedCriterionId === criterionId) {
+        const remaining = criteria.filter(c => c.id !== criterionId);
+        if (remaining.length > 0) {
+          setSelectedCriterionId(remaining[0].id);
+          if (editor) editor.commands.setContent(remaining[0].content);
+        }
+      }
+    } catch (e: any) {
+      alert(e?.message || 'Verwijderen mislukt');
+    }
+  };
+
+  const updateCriterionTitle = async (criterionId: string, newTitle: string) => {
+    if (!newTitle.trim()) {
+      alert('Titel mag niet leeg zijn');
+      return;
+    }
+    
+    try {
+      const bidId = await bidIdFromQuery();
+      if (!bidId) throw new Error('Bid niet gevonden');
+      
+      // Update lokale state
+      setCriteria(prev => prev.map(c => 
+        c.id === criterionId ? { ...c, title: newTitle } : c
+      ));
+      
+      // Als het een temp ID is, alleen lokaal updaten
+      if (criterionId.startsWith('temp-')) {
+        return;
+      }
+      
+      // Anders update in database
+      const res = await fetch(`/api/bids/${bidId}/stages/${stage}/criteria/${criterionId}`, { 
+        method: 'PUT', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ title: newTitle }) 
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Titel wijzigen mislukt');
+    } catch (e: any) {
+      alert(e?.message || 'Titel wijzigen mislukt');
+    }
+  };
+
+  const switchToCriterion = (criterionId: string) => {
+    // Sla huidige content op in state (niet in database)
+    if (selectedCriterionId && editor) {
+      const currentHtml = editor.getHTML();
+      setCriteria(prev => prev.map(c => 
+        c.id === selectedCriterionId ? { ...c, content: currentHtml } : c
+      ));
+    }
+    
+    // Switch naar nieuw criterium
+    setSelectedCriterionId(criterionId);
+    const criterion = criteria.find(c => c.id === criterionId);
+    if (criterion && editor) {
+      editor.commands.setContent(decorateCitationsInHtml(criterion.content || '<p></p>'));
+    }
+  };
 
   const doSearch = async (q: string) => {
     try {
@@ -463,6 +606,121 @@ export default function StageEditorPage() {
         <h1 style={{ marginTop: '1rem' }}>Bewerken – {stageLabel(stage)}</h1>
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem', marginTop: '1rem' }}>
           <div>
+            {/* Criterion Management Panel */}
+            <div className="card" style={{ padding: '0.75rem', marginBottom: '0.75rem', background: '#f9fafb' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>Gunningscriteria ({criteria.length})</h3>
+                <button className="btn btn-secondary" onClick={addNewCriterion} style={{ fontSize: '0.85rem', padding: '0.35rem 0.75rem' }}>
+                  + Nieuw criterium
+                </button>
+              </div>
+              <p style={{ fontSize: '0.85rem', color: '#6b7280', margin: 0 }}>
+                Elk criterium is een apart tabblad met eigen content. Klik op een tab om te bewerken.
+              </p>
+            </div>
+
+            {/* Tabs for Criteria */}
+            <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '0.75rem', overflowX: 'auto', borderBottom: '2px solid #e5e7eb', paddingBottom: '0.25rem' }}>
+              {criteria.map((criterion, idx) => (
+                <div
+                  key={criterion.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.5rem 0.75rem',
+                    background: selectedCriterionId === criterion.id ? '#8b5cf6' : '#fff',
+                    color: selectedCriterionId === criterion.id ? '#fff' : '#374151',
+                    border: '1px solid ' + (selectedCriterionId === criterion.id ? '#8b5cf6' : '#e5e7eb'),
+                    borderRadius: '6px 6px 0 0',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: selectedCriterionId === criterion.id ? 600 : 400,
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => switchToCriterion(criterion.id)}
+                >
+                  {editingTitleId === criterion.id ? (
+                    <input
+                      type="text"
+                      value={criterion.title}
+                      onChange={(e) => {
+                        const newTitle = e.target.value;
+                        setCriteria(prev => prev.map(c => c.id === criterion.id ? { ...c, title: newTitle } : c));
+                      }}
+                      onBlur={() => {
+                        updateCriterionTitle(criterion.id, criterion.title);
+                        setEditingTitleId(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          updateCriterionTitle(criterion.id, criterion.title);
+                          setEditingTitleId(null);
+                        }
+                        if (e.key === 'Escape') {
+                          setEditingTitleId(null);
+                        }
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      autoFocus
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'inherit',
+                        fontSize: 'inherit',
+                        fontWeight: 'inherit',
+                        outline: 'none',
+                        width: '120px'
+                      }}
+                    />
+                  ) : (
+                    <span>{criterion.title}</span>
+                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingTitleId(criterion.id);
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '0.25rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      color: 'inherit',
+                      opacity: 0.7
+                    }}
+                    title="Titel bewerken"
+                  >
+                    ✎
+                  </button>
+                  {criteria.length > 1 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteCriterion(criterion.id);
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '0.25rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        color: 'inherit',
+                        opacity: 0.7
+                      }}
+                      title="Verwijderen"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
               <button className="btn btn-secondary" onClick={save} disabled={saving}>{saving ? 'Opslaan...' : 'Opslaan'}</button>
               <button className="btn btn-secondary" onClick={generateWithRag} disabled={genLoading}>{genLoading ? 'Genereren...' : 'Genereer met AI (RAG)'}</button>
