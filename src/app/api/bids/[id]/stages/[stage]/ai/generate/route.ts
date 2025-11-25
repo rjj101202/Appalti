@@ -18,7 +18,8 @@ const paramsSchema = z.object({
 const bodySchema = z.object({
   prompt: z.string().optional(),
   topK: z.number().min(1).max(12).optional(),
-  includeAppaltiBron: z.boolean().optional()
+  includeAppaltiBron: z.boolean().optional(),
+  criterionId: z.string().optional()
 });
 
 export async function POST(request: NextRequest, { params }: { params: { id: string; stage: string } }) {
@@ -188,6 +189,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const xApiKey = process.env.X_AI_API;
     if (!xApiKey) return NextResponse.json({ error: 'X_AI_API missing' }, { status: 400 });
 
+    // Fetch criterion aiContext if criterionId is provided
+    let aiContext = '';
+    if (parsedBody.data.criterionId) {
+      try {
+        const stageState = (bid.stages || []).find((s: any) => s.key === stage);
+        const criterion = (stageState?.criteria || []).find((c: any) => c.id === parsedBody.data.criterionId);
+        if (criterion?.aiContext) {
+          aiContext = criterion.aiContext;
+        }
+      } catch {}
+    }
+
     const system = 'Je bent een senior tenderschrijver (Grok) die voor de inschrijver schrijft. Schrijf professioneel, helder, overtuigend en strikt bedrijfsspecifiek. Gebruik bronnen en voeg inline citaties [S1], [S2] toe met een Referenties-sectie met URLs.';
 
     let user = `Schrijf de eerste versie voor de aanbesteding "${tender.title}" voor inschrijver: ${clientCompany?.name || 'onbekend bedrijf'}.\n`;
@@ -197,6 +210,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     if (buyerDocSummary) user += `Leidraad (samenvatting, max 4000 tekens): ${buyerDocSummary}\n`;
     if (tenderDocSummary) user += `Tender document (samenvatting): ${tenderDocSummary}\n`;
     if (Array.isArray(tender.cpvCodes) && tender.cpvCodes.length) user += `CPV: ${tender.cpvCodes.join(', ')}\n`;
+    if (aiContext) user += `\n=== SPECIFIEKE CONTEXT VOOR DIT CRITERIUM ===\n${aiContext}\n=== EINDE CONTEXT ===\n\n`;
     if (parsedBody.data.prompt) user += `Extra instructie: ${parsedBody.data.prompt}\n`;
 
     user += `\nEisen:\n- Schrijf bedrijfsspecifiek; neem GEEN claims op zonder bewijs/citatie.\n- Gebruik citaties [S1], [S2], ... in de tekst.\n- Voeg onderaan een sectie "Referenties" toe met dezelfde labels en URLs/titels.\n- Structuur: Inleiding, Begrip van doelstellingen, Oplossingsrichting, Waardepropositie, Ervaring/Referenties, Aanpak & Planning, Kwaliteit & Risico's, Governance & Communicatie, Conclusie.\n`;

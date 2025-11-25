@@ -48,9 +48,10 @@ export default function StageEditorPage() {
   const [sources, setSources] = useState<Array<{ label: string; type: 'client'|'tender'|'xai'|'attachment'; title?: string; url?: string; snippet?: string; documentId?: any; chunks?: Array<{ index: number; pageNumber?: number }> }>>([]);
 
   // Criteria state (nieuwe structuur)
-  const [criteria, setCriteria] = useState<Array<{ id: string; title: string; content: string; order: number }>>([]);
+  const [criteria, setCriteria] = useState<Array<{ id: string; title: string; content: string; aiContext?: string; order: number }>>([]);
   const [selectedCriterionId, setSelectedCriterionId] = useState<string | null>(null);
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Hover preview tooltip state
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -83,6 +84,9 @@ export default function StageEditorPage() {
       attributes: {
         class: 'prose max-w-none prose-headings:scroll-mt-24 prose-h1:mb-3 prose-h2:mt-6 prose-h2:mb-2 prose-p:leading-7 prose-li:my-1'
       }
+    },
+    onUpdate: () => {
+      setHasUnsavedChanges(true);
     }
   });
 
@@ -200,6 +204,19 @@ export default function StageEditorPage() {
     /* eslint-disable-next-line */ 
   }, [clientId, tenderId, stage, editor]);
 
+  // Warn before leaving with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   const save = async () => {
     try {
       setSaving(true);
@@ -225,7 +242,8 @@ export default function StageEditorPage() {
           headers: { 'Content-Type': 'application/json' }, 
           body: JSON.stringify({ 
             title: selectedCriterion.title, 
-            content: html, 
+            content: html,
+            aiContext: selectedCriterion.aiContext || '',
             order: selectedCriterion.order 
           }) 
         });
@@ -243,12 +261,13 @@ export default function StageEditorPage() {
         const res = await fetch(`/api/bids/${bidId}/stages/${stage}/criteria/${selectedCriterionId}`, { 
           method: 'PUT', 
           headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ content: html }) 
+          body: JSON.stringify({ content: html, aiContext: selectedCriterion.aiContext }) 
         });
         const json = await res.json();
         if (!res.ok || !json.success) throw new Error(json.error || 'Opslaan mislukt');
       }
       
+      setHasUnsavedChanges(false);
       alert('Opgeslagen');
     } catch (e: any) { alert(e?.message || 'Opslaan mislukt'); }
     finally { setSaving(false); }
@@ -381,11 +400,19 @@ export default function StageEditorPage() {
       setGenLoading(true);
       const bidId = await bidIdFromQuery();
       if (!bidId) throw new Error('Bid niet gevonden');
-      const res = await fetch(`/api/bids/${bidId}/stages/${stage}/ai/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ includeAppaltiBron: useAppaltiBron }) });
+      const res = await fetch(`/api/bids/${bidId}/stages/${stage}/ai/generate`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ 
+          includeAppaltiBron: useAppaltiBron,
+          criterionId: selectedCriterionId || undefined
+        }) 
+      });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || 'Genereren mislukt');
-      const next = (editor?.getHTML() || '') + `\n<p>\n</p>` + (json.data.generatedText || '').split('\n').map(l => `<p>${decorateCitationsInHtml(l)}</p>`).join('');
+      const next = (editor?.getHTML() || '') + `\n<p>\n</p>` + (json.data.generatedText || '').split('\n').map((l: string) => `<p>${decorateCitationsInHtml(l)}</p>`).join('');
       editor?.commands.setContent(next);
+      setHasUnsavedChanges(true);
     } catch (e: any) { alert(e?.message || 'Genereren mislukt'); }
     finally { setGenLoading(false); }
   };
@@ -725,6 +752,43 @@ export default function StageEditorPage() {
               <button className="btn btn-secondary" onClick={save} disabled={saving}>{saving ? 'Opslaan...' : 'Opslaan'}</button>
               <button className="btn btn-secondary" onClick={generateWithRag} disabled={genLoading}>{genLoading ? 'Genereren...' : 'Genereer met AI (RAG)'}</button>
             </div>
+
+            {/* AI Context Field */}
+            {selectedCriterionId && (() => {
+              const selectedCriterion = criteria.find(c => c.id === selectedCriterionId);
+              return selectedCriterion ? (
+                <div className="card" style={{ padding: '0.75rem', marginBottom: '0.75rem', background: '#fef3c7', border: '2px solid #f59e0b' }}>
+                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', fontWeight: 600, color: '#92400e' }}>
+                    🤖 AI Context voor GROK (per criterium)
+                  </h3>
+                  <p style={{ fontSize: '0.85rem', color: '#78350f', margin: '0 0 0.5rem 0' }}>
+                    Vul hier deelvragen en specifieke instructies in die GROK moet gebruiken bij het genereren van tekst voor dit criterium. Deze context wordt meegenomen bij het aanroepen van "Genereer met AI (RAG)".
+                  </p>
+                  <textarea
+                    value={selectedCriterion.aiContext || ''}
+                    onChange={(e) => {
+                      const newContext = e.target.value;
+                      setCriteria(prev => prev.map(c => 
+                        c.id === selectedCriterionId ? { ...c, aiContext: newContext } : c
+                      ));
+                      setHasUnsavedChanges(true);
+                    }}
+                    placeholder="Bijv: Beschrijf onze aanpak voor duurzaamheid. Wat zijn de concrete maatregelen? Hoe meten we resultaten?"
+                    style={{
+                      width: '100%',
+                      minHeight: '100px',
+                      padding: '0.5rem',
+                      border: '1px solid #d97706',
+                      borderRadius: '6px',
+                      fontSize: '0.9rem',
+                      fontFamily: 'inherit',
+                      resize: 'vertical'
+                    }}
+                  />
+                </div>
+              ) : null;
+            })()}
+
             {/* Rich editor */}
             <div className="card" style={{ padding: '0.5rem' }}>
               <Toolbar editor={editor} />
@@ -934,7 +998,6 @@ function Toolbar({ editor }: { editor: any }) {
       <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>H2</button>
       <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>H3</button>
       <button className="btn btn-secondary" onClick={() => editor.chain().focus().insertTable?.({ rows: 3, cols: 3, withHeaderRow: true }).run?.()}>Tabel</button>
-      <TemplateMenu onInsert={(html) => editor.chain().focus().insertContent(html).run()} />
       <button className="btn btn-secondary" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}>Clear</button>
     </div>
   );
@@ -963,21 +1026,6 @@ function ExportButtons({ clientId, tenderId, stage }: { clientId: string; tender
       <button className="btn btn-secondary" onClick={async()=>{ const id = await getBidId(); if (id) download(`/api/bids/${id}/stages/${stage}/export/docx`); }}>Export DOCX</button>
       <button className="btn btn-secondary" onClick={async()=>{ const id = await getBidId(); if (id) download(`/api/bids/${id}/stages/${stage}/export/pdf`); }}>Export PDF</button>
     </div>
-  );
-}
-
-function TemplateMenu({ onInsert }: { onInsert: (html: string) => void }) {
-  const templates: Array<{ name: string; html: string }> = [
-    { name: 'Inleiding', html: '<h2>Inleiding</h2><p>Samenvatting van doel en context.</p>' },
-    { name: 'Aanpak', html: '<h2>Aanpak</h2><ul><li>Stap 1</li><li>Stap 2</li><li>Stap 3</li></ul>' },
-    { name: 'Risico\'s & mitigatie', html: '<h2>Risico\'s &amp; mitigatie</h2><ul><li>Risico A – mitigatie</li><li>Risico B – mitigatie</li></ul>' },
-    { name: 'Referentiesectie', html: '<h2>Referenties</h2><p>Zie [S1], [S2], ...</p>' },
-  ];
-  return (
-    <select className="btn btn-secondary" onChange={(e)=>{ const t = templates.find(x=>x.name===e.target.value); if (t) onInsert(t.html); e.currentTarget.selectedIndex=0; }}>
-      <option>Templates…</option>
-      {templates.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
-    </select>
   );
 }
 

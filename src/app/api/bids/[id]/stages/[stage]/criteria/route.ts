@@ -65,6 +65,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 const createSchema = z.object({
   title: z.string().min(1).max(200),
   content: z.string().default(''),
+  aiContext: z.string().default(''),
   order: z.number().int().min(0).max(10).optional()
 });
 
@@ -100,6 +101,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       id: nanoid(),
       title: input.title,
       content: input.content,
+      aiContext: input.aiContext || '',
       order,
       createdAt: new Date(),
       updatedAt: new Date(),

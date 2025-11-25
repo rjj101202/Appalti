@@ -48,6 +48,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 const updateSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   content: z.string().optional(),
+  aiContext: z.string().optional(),
   order: z.number().int().min(0).max(10).optional()
 });
 
@@ -86,6 +87,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
     if (input.content !== undefined) {
       setFields['stages.$[stage].criteria.$[criterion].content'] = input.content;
+    }
+    if (input.aiContext !== undefined) {
+      setFields['stages.$[stage].criteria.$[criterion].aiContext'] = input.aiContext;
     }
     if (input.order !== undefined) {
       setFields['stages.$[stage].criteria.$[criterion].order'] = input.order;
