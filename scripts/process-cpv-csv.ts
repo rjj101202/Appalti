@@ -44,11 +44,12 @@ function getCPVLevel(code: string): 'Divisie' | 'Groep' | 'Klasse' | 'Categorie'
 
 /**
  * Check if code is TenderNed compatible
+ * 
+ * ALLE CPV codes zijn TenderNed compatible - TenderNed gebruikt zelf groepscodes in hun XML data
  */
 function isTenderNedCompatible(code: string): boolean {
-  const cleanCode = code.padStart(8, '0');
-  // TenderNed does NOT accept Divisie (XX000000) or Groep (XXXX0000) level codes
-  return !cleanCode.endsWith('0000');
+  // Alle EU CPV codes zijn compatible met TenderNed
+  return true;
 }
 
 interface CPVCode {

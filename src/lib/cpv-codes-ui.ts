@@ -16,6 +16,30 @@ export interface CPVCode {
 
 export const CPV_CODES_TOP: CPVCode[] = [
   {
+    "code": "45000000-7",
+    "coreCode": "45000000",
+    "checkDigit": 7,
+    "description": "Bouwwerkzaamheden",
+    "level": "Divisie",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "45100000-8",
+    "coreCode": "45100000",
+    "checkDigit": 8,
+    "description": "Bouwrijp maken van terreinen",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "45110000-1",
+    "coreCode": "45110000",
+    "checkDigit": 1,
+    "description": "Slopen en ontmantelen van gebouwen, en grondverzet",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
     "code": "45111000-8",
     "coreCode": "45111000",
     "checkDigit": 8,
@@ -112,27 +136,35 @@ export const CPV_CODES_TOP: CPVCode[] = [
     "tenderNedCompatible": true
   },
   {
-    "code": "45111260-8",
-    "coreCode": "45111260",
+    "code": "71000000-8",
+    "coreCode": "71000000",
     "checkDigit": 8,
-    "description": "Terreinvoorbereiding voor mijnbouw",
-    "level": "Categorie",
+    "description": "Dienstverlening op het gebied van architectuur, bouwkunde, civiele techniek en inspectie",
+    "level": "Divisie",
     "tenderNedCompatible": true
   },
   {
-    "code": "45111290-7",
-    "coreCode": "45111290",
-    "checkDigit": 7,
-    "description": "Voorbereidende werkzaamheden voor leidingen",
-    "level": "Categorie",
+    "code": "71200000-0",
+    "coreCode": "71200000",
+    "checkDigit": 0,
+    "description": "Dienstverlening op het gebied van architectuur en dergelijke",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
-    "code": "45111291-4",
-    "coreCode": "45111291",
-    "checkDigit": 4,
-    "description": "Inrichten van de bouwplaats",
-    "level": "Categorie",
+    "code": "71210000-3",
+    "coreCode": "71210000",
+    "checkDigit": 3,
+    "description": "Architectonische adviezen",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "71220000-6",
+    "coreCode": "71220000",
+    "checkDigit": 6,
+    "description": "Maken van bouwkundige ontwerpen",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
@@ -176,6 +208,22 @@ export const CPV_CODES_TOP: CPVCode[] = [
     "tenderNedCompatible": true
   },
   {
+    "code": "71230000-9",
+    "coreCode": "71230000",
+    "checkDigit": 9,
+    "description": "Organisatie van een architectenprijsvraag",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "71240000-2",
+    "coreCode": "71240000",
+    "checkDigit": 2,
+    "description": "Dienstverlening op het gebied van architectuur, bouwkunde en planning",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
     "code": "71241000-9",
     "coreCode": "71241000",
     "checkDigit": 9,
@@ -208,51 +256,75 @@ export const CPV_CODES_TOP: CPVCode[] = [
     "tenderNedCompatible": true
   },
   {
-    "code": "71245000-7",
-    "coreCode": "71245000",
-    "checkDigit": 7,
-    "description": "Plannen ter goedkeuring, werktekeningen en specificaties",
-    "level": "Klasse",
+    "code": "72000000-5",
+    "coreCode": "72000000",
+    "checkDigit": 5,
+    "description": "IT-diensten: adviezen, softwareontwikkeling, internet en ondersteuning",
+    "level": "Divisie",
     "tenderNedCompatible": true
   },
   {
-    "code": "71246000-4",
-    "coreCode": "71246000",
-    "checkDigit": 4,
-    "description": "Bepalen en opsommen van hoeveelheden in de bouw",
-    "level": "Klasse",
+    "code": "72100000-6",
+    "coreCode": "72100000",
+    "checkDigit": 6,
+    "description": "Advies inzake hardware",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
-    "code": "71247000-1",
-    "coreCode": "71247000",
-    "checkDigit": 1,
-    "description": "Toezicht op bouwwerkzaamheden",
-    "level": "Klasse",
+    "code": "72110000-9",
+    "coreCode": "72110000",
+    "checkDigit": 9,
+    "description": "Advies inzake hardwarekeuze",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
-    "code": "71248000-8",
-    "coreCode": "71248000",
-    "checkDigit": 8,
-    "description": "Toezicht op plannen en documentatie",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "71251000-2",
-    "coreCode": "71251000",
+    "code": "72120000-2",
+    "coreCode": "72120000",
     "checkDigit": 2,
-    "description": "Architecten- en bouwinspectiediensten",
-    "level": "Klasse",
+    "description": "Advies inzake calamiteitenherstel bij hardware",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
-    "code": "71311000-1",
-    "coreCode": "71311000",
+    "code": "72130000-5",
+    "coreCode": "72130000",
+    "checkDigit": 5,
+    "description": "Advies over planning computerlocatie",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "72140000-8",
+    "coreCode": "72140000",
+    "checkDigit": 8,
+    "description": "Advies over acceptatietest computerhardware",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "72150000-1",
+    "coreCode": "72150000",
     "checkDigit": 1,
-    "description": "Adviezen inzake bouwkunde",
-    "level": "Klasse",
+    "description": "Advies over computeraudit en -hardware",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "72200000-7",
+    "coreCode": "72200000",
+    "checkDigit": 7,
+    "description": "Softwareprogrammering en -advies",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "72210000-0",
+    "coreCode": "72210000",
+    "checkDigit": 0,
+    "description": "Programmering van softwarepakketten",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
@@ -304,75 +376,27 @@ export const CPV_CODES_TOP: CPVCode[] = [
     "tenderNedCompatible": true
   },
   {
-    "code": "72212130-9",
-    "coreCode": "72212130",
-    "checkDigit": 9,
-    "description": "Diensten voor ontwikkeling van software voor grondondersteuning in de luchtvaart en testsoftware",
-    "level": "Categorie",
+    "code": "77000000-0",
+    "coreCode": "77000000",
+    "checkDigit": 0,
+    "description": "Diensten voor land-, bos- en tuinbouw, aquicultuur en imkerij",
+    "level": "Divisie",
     "tenderNedCompatible": true
   },
   {
-    "code": "72212131-6",
-    "coreCode": "72212131",
-    "checkDigit": 6,
-    "description": "Diensten voor ontwikkeling van software voor grondondersteuning in de luchtvaart",
-    "level": "Categorie",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "72212132-3",
-    "coreCode": "72212132",
-    "checkDigit": 3,
-    "description": "Diensten voor ontwikkeling van testsoftware voor de luchtvaart",
-    "level": "Categorie",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "72212140-2",
-    "coreCode": "72212140",
-    "checkDigit": 2,
-    "description": "Diensten voor ontwikkeling van software voor spoorwegverkeersleiding",
-    "level": "Categorie",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "72212150-5",
-    "coreCode": "72212150",
-    "checkDigit": 5,
-    "description": "Diensten voor ontwikkeling van software voor industriële controle",
-    "level": "Categorie",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "72212160-8",
-    "coreCode": "72212160",
-    "checkDigit": 8,
-    "description": "Diensten voor ontwikkeling van bibliotheeksoftware",
-    "level": "Categorie",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "72212170-1",
-    "coreCode": "72212170",
+    "code": "77100000-1",
+    "coreCode": "77100000",
     "checkDigit": 1,
-    "description": "Diensten voor ontwikkeling van conformiteitssoftware",
-    "level": "Categorie",
+    "description": "Diensten voor de landbouw",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
-    "code": "72212180-4",
-    "coreCode": "72212180",
+    "code": "77110000-4",
+    "coreCode": "77110000",
     "checkDigit": 4,
-    "description": "Diensten voor ontwikkeling van medische software",
-    "level": "Categorie",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "72212190-7",
-    "coreCode": "72212190",
-    "checkDigit": 7,
-    "description": "Diensten voor ontwikkeling van onderwijssoftware",
-    "level": "Categorie",
+    "description": "Diensten in verband met landbouwproductie",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
@@ -389,6 +413,30 @@ export const CPV_CODES_TOP: CPVCode[] = [
     "checkDigit": 8,
     "description": "Verhuur van maaimachines of landbouwmaterieel met bedieningspersoneel",
     "level": "Klasse",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "77120000-7",
+    "coreCode": "77120000",
+    "checkDigit": 7,
+    "description": "Composteerdiensten",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "77200000-2",
+    "coreCode": "77200000",
+    "checkDigit": 2,
+    "description": "Bosbouwdiensten",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "77210000-5",
+    "coreCode": "77210000",
+    "checkDigit": 5,
+    "description": "Houtwinning",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
@@ -448,51 +496,27 @@ export const CPV_CODES_TOP: CPVCode[] = [
     "tenderNedCompatible": true
   },
   {
-    "code": "77231000-8",
-    "coreCode": "77231000",
+    "code": "79000000-4",
+    "coreCode": "79000000",
+    "checkDigit": 4,
+    "description": "Zakelijke dienstverlening: juridisch, marketing, consulting, drukkerij en beveiliging",
+    "level": "Divisie",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "79100000-5",
+    "coreCode": "79100000",
+    "checkDigit": 5,
+    "description": "Juridische dienstverlening",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "79110000-8",
+    "coreCode": "79110000",
     "checkDigit": 8,
-    "description": "Diensten voor bosbouwbeheer",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "77231100-9",
-    "coreCode": "77231100",
-    "checkDigit": 9,
-    "description": "Beheersdiensten van bosbestanden",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "77231200-0",
-    "coreCode": "77231200",
-    "checkDigit": 0,
-    "description": "Diensten voor ongediertebestrijding in bossen",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "77231300-1",
-    "coreCode": "77231300",
-    "checkDigit": 1,
-    "description": "Bosbeheersdiensten",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "77231400-2",
-    "coreCode": "77231400",
-    "checkDigit": 2,
-    "description": "Bosinventarisatiediensten",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "77231500-3",
-    "coreCode": "77231500",
-    "checkDigit": 3,
-    "description": "Diensten voor bosmonitoring en -beoordeling",
-    "level": "Klasse",
+    "description": "Juridisch advies en juridische vertegenwoordiging",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
@@ -520,6 +544,14 @@ export const CPV_CODES_TOP: CPVCode[] = [
     "tenderNedCompatible": true
   },
   {
+    "code": "79120000-1",
+    "coreCode": "79120000",
+    "checkDigit": 1,
+    "description": "Adviezen inzake octrooien en auteursrechten",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
     "code": "79121000-8",
     "coreCode": "79121000",
     "checkDigit": 8,
@@ -533,6 +565,14 @@ export const CPV_CODES_TOP: CPVCode[] = [
     "checkDigit": 9,
     "description": "Adviezen inzake auteursrechten voor software",
     "level": "Klasse",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "79130000-4",
+    "coreCode": "79130000",
+    "checkDigit": 4,
+    "description": "Juridische documentatie en certificering",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
@@ -560,59 +600,43 @@ export const CPV_CODES_TOP: CPVCode[] = [
     "tenderNedCompatible": true
   },
   {
-    "code": "79211000-6",
-    "coreCode": "79211000",
-    "checkDigit": 6,
-    "description": "Boekhoudingsdiensten",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "79211100-7",
-    "coreCode": "79211100",
+    "code": "79140000-7",
+    "coreCode": "79140000",
     "checkDigit": 7,
-    "description": "Boekhouddiensten",
-    "level": "Klasse",
+    "description": "Juridische adviezen en informatie",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
-    "code": "79211110-0",
-    "coreCode": "79211110",
+    "code": "79200000-6",
+    "coreCode": "79200000",
+    "checkDigit": 6,
+    "description": "Boekhoudkundige, audit- en fiscale diensten",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "85000000-9",
+    "coreCode": "85000000",
+    "checkDigit": 9,
+    "description": "Gezondheidszorg en maatschappelijk werk",
+    "level": "Divisie",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "85100000-0",
+    "coreCode": "85100000",
     "checkDigit": 0,
-    "description": "Loonadministratiediensten",
-    "level": "Categorie",
+    "description": "Gezondheidsdiensten",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
-    "code": "79211120-3",
-    "coreCode": "79211120",
+    "code": "85110000-3",
+    "coreCode": "85110000",
     "checkDigit": 3,
-    "description": "Registratie van aan- en verkoop",
-    "level": "Categorie",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "79211200-8",
-    "coreCode": "79211200",
-    "checkDigit": 8,
-    "description": "Opstellen van financiële verslagen",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "79212000-3",
-    "coreCode": "79212000",
-    "checkDigit": 3,
-    "description": "Auditdiensten",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "79212100-4",
-    "coreCode": "79212100",
-    "checkDigit": 4,
-    "description": "Uitvoeren van financiële audit",
-    "level": "Klasse",
+    "description": "Ziekenhuis- en aanverwante diensten",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
@@ -712,27 +736,83 @@ export const CPV_CODES_TOP: CPVCode[] = [
     "tenderNedCompatible": true
   },
   {
-    "code": "85111820-4",
-    "coreCode": "85111820",
-    "checkDigit": 4,
-    "description": "Bacteriologische analysediensten",
-    "level": "Categorie",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "85111900-9",
-    "coreCode": "85111900",
-    "checkDigit": 9,
-    "description": "Dialysediensten in ziekenhuis",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "85112000-7",
-    "coreCode": "85112000",
+    "code": "90000000-7",
+    "coreCode": "90000000",
     "checkDigit": 7,
-    "description": "Ondersteuningsdiensten voor ziekenhuis",
-    "level": "Klasse",
+    "description": "Diensten inzake afvalwater, afval, reiniging en milieu",
+    "level": "Divisie",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "90400000-1",
+    "coreCode": "90400000",
+    "checkDigit": 1,
+    "description": "Diensten in verband met afvalwater",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "90410000-4",
+    "coreCode": "90410000",
+    "checkDigit": 4,
+    "description": "Rioolwaterverwijderingsdiensten",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "90420000-7",
+    "coreCode": "90420000",
+    "checkDigit": 7,
+    "description": "Rioolwaterbehandelingsdiensten",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "90430000-0",
+    "coreCode": "90430000",
+    "checkDigit": 0,
+    "description": "Rioolwaterafvoerdiensten",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "90440000-3",
+    "coreCode": "90440000",
+    "checkDigit": 3,
+    "description": "Diensten voor behandeling van beerputten",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "90450000-6",
+    "coreCode": "90450000",
+    "checkDigit": 6,
+    "description": "Diensten voor behandeling van septische putten",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "90460000-9",
+    "coreCode": "90460000",
+    "checkDigit": 9,
+    "description": "Diensten voor het ledigen van beerputten of septische putten",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "90470000-2",
+    "coreCode": "90470000",
+    "checkDigit": 2,
+    "description": "Diensten voor rioolreiniging",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "90480000-5",
+    "coreCode": "90480000",
+    "checkDigit": 5,
+    "description": "Beheer van riolering",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
@@ -741,6 +821,14 @@ export const CPV_CODES_TOP: CPVCode[] = [
     "checkDigit": 2,
     "description": "Exploitatie van een afvalwaterzuiveringsinstallatie",
     "level": "Klasse",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "90490000-8",
+    "coreCode": "90490000",
+    "checkDigit": 8,
+    "description": "Adviesdiensten inzake rioolinspectie en rioolwaterbehandeling",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
@@ -760,99 +848,51 @@ export const CPV_CODES_TOP: CPVCode[] = [
     "tenderNedCompatible": true
   },
   {
-    "code": "90511000-2",
-    "coreCode": "90511000",
+    "code": "90500000-2",
+    "coreCode": "90500000",
     "checkDigit": 2,
-    "description": "Diensten voor ophalen van vuilnis",
-    "level": "Klasse",
+    "description": "Diensten op het gebied van vuilnis en afval",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
-    "code": "90511100-3",
-    "coreCode": "90511100",
-    "checkDigit": 3,
-    "description": "Ophalen van vast stadsafval",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "90511200-4",
-    "coreCode": "90511200",
+    "code": "80000000-4",
+    "coreCode": "80000000",
     "checkDigit": 4,
-    "description": "Ophalen van huisvuil",
-    "level": "Klasse",
+    "description": "Diensten voor onderwijs en opleiding",
+    "level": "Divisie",
     "tenderNedCompatible": true
   },
   {
-    "code": "90511300-5",
-    "coreCode": "90511300",
+    "code": "80100000-5",
+    "coreCode": "80100000",
     "checkDigit": 5,
-    "description": "Diensten voor het verzamelen van straatafval",
-    "level": "Klasse",
+    "description": "Diensten voor basisonderwijs",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
-    "code": "90511400-6",
-    "coreCode": "90511400",
-    "checkDigit": 6,
-    "description": "Diensten voor het verzamelen van oud papier",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "90512000-9",
-    "coreCode": "90512000",
-    "checkDigit": 9,
-    "description": "Diensten voor afvalvervoer",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "90513000-6",
-    "coreCode": "90513000",
-    "checkDigit": 6,
-    "description": "Diensten voor het verwerken en storten van ongevaarlijk afval en vuilnis",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "90513100-7",
-    "coreCode": "90513100",
-    "checkDigit": 7,
-    "description": "Verwijderen van huisvuil",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "90513200-8",
-    "coreCode": "90513200",
+    "code": "80110000-8",
+    "coreCode": "80110000",
     "checkDigit": 8,
-    "description": "Verwijderen van vast stadsafval",
-    "level": "Klasse",
+    "description": "Diensten voor kleuteronderwijs",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
-    "code": "90513300-9",
-    "coreCode": "90513300",
+    "code": "80200000-6",
+    "coreCode": "80200000",
+    "checkDigit": 6,
+    "description": "Diensten voor secundair onderwijs",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "80210000-9",
+    "coreCode": "80210000",
     "checkDigit": 9,
-    "description": "Diensten voor afvalverbranding",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "90513400-0",
-    "coreCode": "90513400",
-    "checkDigit": 0,
-    "description": "Diensten voor het verwerken van as",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "90513500-1",
-    "coreCode": "90513500",
-    "checkDigit": 1,
-    "description": "Behandeling en verwijdering van gevaarlijke vloeistoffen",
-    "level": "Klasse",
+    "description": "Diensten voor voortgezet technisch en beroepsonderwijs",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
@@ -872,6 +912,62 @@ export const CPV_CODES_TOP: CPVCode[] = [
     "tenderNedCompatible": true
   },
   {
+    "code": "80300000-7",
+    "coreCode": "80300000",
+    "checkDigit": 7,
+    "description": "Diensten voor hoger onderwijs",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "80310000-0",
+    "coreCode": "80310000",
+    "checkDigit": 0,
+    "description": "Diensten voor onderwijs voor jongeren",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "80320000-3",
+    "coreCode": "80320000",
+    "checkDigit": 3,
+    "description": "Diensten voor medisch onderwijs",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "80330000-6",
+    "coreCode": "80330000",
+    "checkDigit": 6,
+    "description": "Diensten voor veiligheidsonderricht",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "80340000-9",
+    "coreCode": "80340000",
+    "checkDigit": 9,
+    "description": "Diensten voor bijzonder onderwijs",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "80400000-8",
+    "coreCode": "80400000",
+    "checkDigit": 8,
+    "description": "Volwasseneneducatie en andere vormen van onderwijs",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "80410000-1",
+    "coreCode": "80410000",
+    "checkDigit": 1,
+    "description": "Diverse schooldiensten",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
     "code": "80411000-8",
     "coreCode": "80411000",
     "checkDigit": 8,
@@ -880,99 +976,19 @@ export const CPV_CODES_TOP: CPVCode[] = [
     "tenderNedCompatible": true
   },
   {
-    "code": "80411100-9",
-    "coreCode": "80411100",
+    "code": "60000000-8",
+    "coreCode": "60000000",
+    "checkDigit": 8,
+    "description": "Vervoersdiensten (uitg. vervoer van afval)",
+    "level": "Divisie",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "60100000-9",
+    "coreCode": "60100000",
     "checkDigit": 9,
-    "description": "Rijexamendiensten",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "80411200-0",
-    "coreCode": "80411200",
-    "checkDigit": 0,
-    "description": "Rijlessen",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "80412000-5",
-    "coreCode": "80412000",
-    "checkDigit": 5,
-    "description": "Vliegschooldiensten",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "80413000-2",
-    "coreCode": "80413000",
-    "checkDigit": 2,
-    "description": "Vaarschooldiensten",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "80414000-9",
-    "coreCode": "80414000",
-    "checkDigit": 9,
-    "description": "Duikschooldiensten",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "80415000-6",
-    "coreCode": "80415000",
-    "checkDigit": 6,
-    "description": "Skilesdiensten",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "80511000-9",
-    "coreCode": "80511000",
-    "checkDigit": 9,
-    "description": "Stafopleidingsdiensten",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "80512000-6",
-    "coreCode": "80512000",
-    "checkDigit": 6,
-    "description": "Hondentrainigsdiensten",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "80513000-3",
-    "coreCode": "80513000",
-    "checkDigit": 3,
-    "description": "Manegediensten",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "80521000-2",
-    "coreCode": "80521000",
-    "checkDigit": 2,
-    "description": "Diensten voor opleidingsprogramma",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "80522000-9",
-    "coreCode": "80522000",
-    "checkDigit": 9,
-    "description": "Opleidingsseminars",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "80531000-5",
-    "coreCode": "80531000",
-    "checkDigit": 5,
-    "description": "Diensten voor industriële en technische opleiding",
-    "level": "Klasse",
+    "description": "Wegvervoersdiensten",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
@@ -984,11 +1000,59 @@ export const CPV_CODES_TOP: CPVCode[] = [
     "tenderNedCompatible": true
   },
   {
+    "code": "60120000-5",
+    "coreCode": "60120000",
+    "checkDigit": 5,
+    "description": "Taxidiensten",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "60130000-8",
+    "coreCode": "60130000",
+    "checkDigit": 8,
+    "description": "Diensten voor speciaal personenvervoer over land",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "60140000-1",
+    "coreCode": "60140000",
+    "checkDigit": 1,
+    "description": "Personenvervoer zonder dienstregeling",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "60150000-4",
+    "coreCode": "60150000",
+    "checkDigit": 4,
+    "description": "Personenvervoer met door dieren getrokken voertuigen",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "60160000-7",
+    "coreCode": "60160000",
+    "checkDigit": 7,
+    "description": "Postvervoer over de weg",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
     "code": "60161000-4",
     "coreCode": "60161000",
     "checkDigit": 4,
     "description": "Pakketvervoer",
     "level": "Klasse",
+    "tenderNedCompatible": true
+  },
+  {
+    "code": "60170000-0",
+    "coreCode": "60170000",
+    "checkDigit": 0,
+    "description": "Verhuur van voertuigen voor personenvervoer met chauffeur",
+    "level": "Groep",
     "tenderNedCompatible": true
   },
   {
@@ -1008,6 +1072,14 @@ export const CPV_CODES_TOP: CPVCode[] = [
     "tenderNedCompatible": true
   },
   {
+    "code": "60180000-3",
+    "coreCode": "60180000",
+    "checkDigit": 3,
+    "description": "Verhuur van voertuigen voor goederenvervoer met chauffeur",
+    "level": "Groep",
+    "tenderNedCompatible": true
+  },
+  {
     "code": "60181000-0",
     "coreCode": "60181000",
     "checkDigit": 0,
@@ -1024,116 +1096,12 @@ export const CPV_CODES_TOP: CPVCode[] = [
     "tenderNedCompatible": true
   },
   {
-    "code": "60183000-4",
-    "coreCode": "60183000",
-    "checkDigit": 4,
-    "description": "Bestelwagenverhuur met chauffeur",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "60411000-2",
-    "coreCode": "60411000",
-    "checkDigit": 2,
-    "description": "Diensten voor luchtpostvervoer volgens dienstregeling",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "60421000-5",
-    "coreCode": "60421000",
-    "checkDigit": 5,
-    "description": "Diensten voor luchtpostvervoer zonder dienstregeling",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "60423000-9",
-    "coreCode": "60423000",
-    "checkDigit": 9,
-    "description": "Vliegtuigcharterdiensten",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "60424000-6",
-    "coreCode": "60424000",
-    "checkDigit": 6,
-    "description": "Verhuur van transportmiddelen voor luchtvervoer met bemanning",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "60424100-7",
-    "coreCode": "60424100",
-    "checkDigit": 7,
-    "description": "Verhuur van luchtvaartuigen met bemanning",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "60424110-0",
-    "coreCode": "60424110",
-    "checkDigit": 0,
-    "description": "Verhuur van vliegtuigen met bemanning",
-    "level": "Categorie",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "60424120-3",
-    "coreCode": "60424120",
-    "checkDigit": 3,
-    "description": "Verhuur van helikopters met bemanning",
-    "level": "Categorie",
-    "tenderNedCompatible": true
-  },
-  {
-    "code": "60441000-1",
-    "coreCode": "60441000",
-    "checkDigit": 1,
-    "description": "Sproeien vanuit vliegtuigen",
-    "level": "Klasse",
-    "tenderNedCompatible": true
-  },
-  {
     "code": "79620000-6",
     "coreCode": "79620000",
     "checkDigit": 6,
     "description": "Diensten voor de terbeschikkingstelling van personeel, met inbegrip van tijdelijk personeel",
     "level": "Groep",
-    "tenderNedCompatible": false
-  },
-  {
-    "code": "45000000-7",
-    "coreCode": "45000000",
-    "checkDigit": 7,
-    "description": "Bouwwerkzaamheden",
-    "level": "Divisie",
-    "tenderNedCompatible": false
-  },
-  {
-    "code": "72000000-5",
-    "coreCode": "72000000",
-    "checkDigit": 5,
-    "description": "IT-diensten: adviezen, softwareontwikkeling, internet en ondersteuning",
-    "level": "Divisie",
-    "tenderNedCompatible": false
-  },
-  {
-    "code": "77000000-0",
-    "coreCode": "77000000",
-    "checkDigit": 0,
-    "description": "Diensten voor land-, bos- en tuinbouw, aquicultuur en imkerij",
-    "level": "Divisie",
-    "tenderNedCompatible": false
-  },
-  {
-    "code": "71000000-8",
-    "coreCode": "71000000",
-    "checkDigit": 8,
-    "description": "Dienstverlening op het gebied van architectuur, bouwkunde, civiele techniek en inspectie",
-    "level": "Divisie",
-    "tenderNedCompatible": false
+    "tenderNedCompatible": true
   }
 ];
 

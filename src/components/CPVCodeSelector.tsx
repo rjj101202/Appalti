@@ -35,8 +35,8 @@ export default function CPVCodeSelector({ selectedCodes, onChange }: { selectedC
   // Zoek in ALLE codes
   const searchCodes = (query: string): CPVCode[] => {
     if (!query || query.length < 2) {
-      // Toon TenderNed compatible Klasse codes by default
-      return allCodes.filter(c => c.level === 'Klasse' && c.tenderNedCompatible).slice(0, 20);
+      // Toon Klasse codes by default (meest gebruikt)
+      return allCodes.filter(c => c.level === 'Klasse').slice(0, 20);
     }
     
     const lowerQuery = query.toLowerCase();
@@ -47,19 +47,15 @@ export default function CPVCodeSelector({ selectedCodes, onChange }: { selectedC
       return descMatch || codeMatch || coreCodeMatch;
     });
     
-    // Sorteer: TenderNed compatible codes eerst, daarna exact matches, dan rest
+    // Sorteer: exact matches eerst, dan description matches
     return matches.sort((a, b) => {
-      // Prioriteit 1: TenderNed compatible
-      if (a.tenderNedCompatible && !b.tenderNedCompatible) return -1;
-      if (!a.tenderNedCompatible && b.tenderNedCompatible) return 1;
-      
-      // Prioriteit 2: Exact code match
+      // Prioriteit 1: Exact code match
       const aCodeMatch = a.code === query || a.coreCode === query;
       const bCodeMatch = b.code === query || b.coreCode === query;
       if (aCodeMatch && !bCodeMatch) return -1;
       if (!aCodeMatch && bCodeMatch) return 1;
       
-      // Prioriteit 3: Description starts with query
+      // Prioriteit 2: Description starts with query
       const aStartsWith = a.description.toLowerCase().startsWith(lowerQuery);
       const bStartsWith = b.description.toLowerCase().startsWith(lowerQuery);
       if (aStartsWith && !bStartsWith) return -1;
@@ -110,37 +106,20 @@ export default function CPVCodeSelector({ selectedCodes, onChange }: { selectedC
                   padding: '0.75rem', 
                   cursor: 'pointer', 
                   borderBottom: '1px solid #f3f4f6',
-                  background: cpv.tenderNedCompatible ? 'white' : '#fef3c7',
-                  opacity: cpv.tenderNedCompatible ? 1 : 0.85
+                  background: 'white'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '0.9em', color: '#701c74' }}>{cpv.code}</div>
                       <div style={{ fontSize: '0.85em', color: '#6b7280' }}>{cpv.description}</div>
                     </div>
-                    {!cpv.tenderNedCompatible && (
-                      <div style={{ 
-                        fontSize: '0.7em', 
-                        padding: '0.2rem 0.4rem', 
-                        background: '#f59e0b', 
-                        color: 'white', 
-                        borderRadius: '3px',
-                        fontWeight: 500,
-                        marginLeft: '0.5rem'
-                      }}>
-                        Beperkt
-                      </div>
-                    )}
                   </div>
                 </div>
               ))
             )}
             {results.length > 0 && (
               <div style={{ padding: '0.5rem', textAlign: 'center', fontSize: '0.75em', color: '#9ca3af', borderTop: '1px solid #f3f4f6' }}>
-                {results.length} van {allCodes.length} codes • Zoekt in alle codes
-                <div style={{ marginTop: '0.25rem', fontSize: '0.9em' }}>
-                  Gele codes = beperkte TenderNed ondersteuning
-                </div>
+                {results.length} van {allCodes.length} codes • Alle EU CPV codes beschikbaar
               </div>
             )}
           </div>
