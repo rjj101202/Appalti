@@ -876,7 +876,7 @@ export default function StageEditorPage() {
                   </div>
                   <div style={{ padding: '0.75rem' }}>
                     <p style={{ fontSize: '0.85rem', color: '#6b7280', margin: '0 0 0.5rem 0' }}>
-                      Vul hier de onderwerpen en deelvragen in voor dit criterium. De AI gebruikt deze context bij het genereren van tekst.
+                      Vul hier de <strong>wensvraag</strong> (hoofdonderwerp) en <strong>deelvragen</strong> in. De AI beantwoordt deze vragen specifiek voor uw bedrijf met concrete voorbeelden en bewijs uit uw documenten.
                     </p>
                     <textarea
                       value={selectedCriterion.aiContext || ''}
@@ -887,16 +887,17 @@ export default function StageEditorPage() {
                         ));
                         setHasUnsavedChanges(true);
                       }}
-                      placeholder={"Onderwerp: Duurzaamheid\n\nDeelvragen:\n- Wat zijn de concrete duurzaamheidsmaatregelen?\n- Hoe worden resultaten gemeten?\n- Welke certificeringen hebben we?"}
+                      placeholder={"Wensvraag: Kwaliteit van de tekeningen\n\nDeelvraag 1.1: Beschrijving van het proces van het vervaardigen en bewerken van de tekeningen\n- Hoe beschrijft u het proces?\n- Welke stappen doorloopt u?\n- Welke kwaliteitscontroles voert u uit?\n\nDeelvraag 1.2: Uitleg over de communicatie en samenwerking met de opdrachtgever\n- Hoe communiceert u tijdens het proces?\n- Welke tools gebruikt u?\n- Hoe vaak zijn er contactmomenten?"}
                       style={{
                         width: '100%',
-                        minHeight: '120px',
+                        minHeight: '140px',
                         padding: '0.5rem',
                         border: '1px solid #e5e7eb',
                         borderRadius: '6px',
                         fontSize: '0.9rem',
                         fontFamily: 'monospace',
-                        resize: 'vertical'
+                        resize: 'vertical',
+                        lineHeight: '1.5'
                       }}
                     />
                     <div style={{ 
@@ -904,11 +905,11 @@ export default function StageEditorPage() {
                       color: '#6b7280', 
                       marginTop: '0.5rem',
                       padding: '0.5rem',
-                      background: '#f9fafb',
+                      background: '#fef3c7',
                       borderRadius: '4px',
                       borderLeft: '3px solid #f59e0b'
                     }}>
-                      <strong>Tip:</strong> Gebruik de automatisch geëxtraheerde criteria uit het leidraad document!
+                      <strong>Let op:</strong> De AI genereert geen algemene tekst, maar beantwoordt elke deelvraag met concrete voorbeelden van HOE uw bedrijf dit aanpakt. Gebruik de geëxtraheerde criteria uit het leidraad!
                     </div>
                   </div>
                 </div>
@@ -1301,19 +1302,47 @@ export default function StageEditorPage() {
 
                                 {/* Assessment points (expanded) */}
                                 {isExpanded && subCrit.assessmentPoints && subCrit.assessmentPoints.length > 0 && (
-                                  <div style={{ 
-                                    marginTop: '0.25rem', 
-                                    marginLeft: '1rem',
-                                    padding: '0.5rem',
-                                    background: '#faf5ff',
-                                    borderLeft: '3px solid #c084fc',
-                                    borderRadius: '4px'
-                                  }}>
-                                    <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.85rem', color: '#4b5563' }}>
-                                      {subCrit.assessmentPoints.map((point, pIdx) => (
-                                        <li key={pIdx} style={{ marginBottom: '0.25rem' }}>{point}</li>
-                                      ))}
-                                    </ul>
+                                  <div style={{ marginTop: '0.25rem', marginLeft: '1rem' }}>
+                                    <div style={{ 
+                                      padding: '0.5rem',
+                                      background: '#faf5ff',
+                                      borderLeft: '3px solid #c084fc',
+                                      borderRadius: '4px'
+                                    }}>
+                                      <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.85rem', color: '#4b5563' }}>
+                                        {subCrit.assessmentPoints.map((point, pIdx) => (
+                                          <li key={pIdx} style={{ marginBottom: '0.25rem' }}>{point}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                    <button
+                                      className="btn btn-secondary"
+                                      style={{ 
+                                        fontSize: '0.8rem', 
+                                        padding: '0.35rem 0.6rem', 
+                                        marginTop: '0.5rem',
+                                        width: '100%'
+                                      }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        // Kopieer naar AI Context veld
+                                        const questionText = `${criterion.title}\n\n${subCrit.title}\n\nBeoordelingspunten:\n${subCrit.assessmentPoints.map(p => `- ${p}`).join('\n')}`;
+                                        
+                                        if (selectedCriterionId) {
+                                          const currentCriterion = criteria.find(c => c.id === selectedCriterionId);
+                                          const newContext = (currentCriterion?.aiContext || '') + '\n\n' + questionText;
+                                          setCriteria(prev => prev.map(c => 
+                                            c.id === selectedCriterionId ? { ...c, aiContext: newContext.trim() } : c
+                                          ));
+                                          setHasUnsavedChanges(true);
+                                          alert('Toegevoegd aan AI Instructies!');
+                                        } else {
+                                          alert('Selecteer eerst een criterium tab om dit toe te voegen');
+                                        }
+                                      }}
+                                    >
+                                      ↓ Kopieer naar AI Instructies
+                                    </button>
                                   </div>
                                 )}
                               </div>

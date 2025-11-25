@@ -201,23 +201,71 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       } catch {}
     }
 
-    const system = 'Je bent een senior tenderschrijver (Grok) die voor de inschrijver schrijft. Schrijf professioneel, helder, overtuigend en strikt bedrijfsspecifiek. Gebruik bronnen en voeg inline citaties [S1], [S2] toe met een Referenties-sectie met URLs.';
+    // Check if aiContext contains structured questions (wensvraag + deelvragen)
+    const hasStructuredQuestions = aiContext && (
+      aiContext.toLowerCase().includes('wensvraag') || 
+      aiContext.toLowerCase().includes('deelvraag') ||
+      aiContext.toLowerCase().includes('onderwerp:') ||
+      /\n\s*-\s+/.test(aiContext) // bevat bullets
+    );
 
-    let user = `Schrijf de eerste versie voor de aanbesteding "${tender.title}" voor inschrijver: ${clientCompany?.name || 'onbekend bedrijf'}.\n`;
-    if (clientCompany?.website) user += `Website inschrijver: ${clientCompany.website}.\n`;
-    if (clientCompany?.address?.city) user += `Locatie: ${clientCompany.address.city}.\n`;
-    if (tender.description) user += `Tender omschrijving (kort): ${tender.description}\n`;
-    if (buyerDocSummary) user += `Leidraad (samenvatting, max 4000 tekens): ${buyerDocSummary}\n`;
-    if (tenderDocSummary) user += `Tender document (samenvatting): ${tenderDocSummary}\n`;
-    if (Array.isArray(tender.cpvCodes) && tender.cpvCodes.length) user += `CPV: ${tender.cpvCodes.join(', ')}\n`;
-    if (aiContext) user += `\n=== SPECIFIEKE CONTEXT VOOR DIT CRITERIUM ===\n${aiContext}\n=== EINDE CONTEXT ===\n\n`;
-    if (parsedBody.data.prompt) user += `Extra instructie: ${parsedBody.data.prompt}\n`;
+    let system = 'Je bent een senior tenderschrijver (Grok) die voor de inschrijver schrijft. Schrijf professioneel, helder, overtuigend en strikt bedrijfsspecifiek. Gebruik bronnen en voeg inline citaties [S1], [S2] toe.';
+    
+    let user = '';
 
-    user += `\nEisen:\n- Schrijf bedrijfsspecifiek; neem GEEN claims op zonder bewijs/citatie.\n- Gebruik citaties [S1], [S2], ... in de tekst.\n- Voeg onderaan een sectie "Referenties" toe met dezelfde labels en URLs/titels.\n- Structuur: Inleiding, Begrip van doelstellingen, Oplossingsrichting, Waardepropositie, Ervaring/Referenties, Aanpak & Planning, Kwaliteit & Risico's, Governance & Communicatie, Conclusie.\n`;
+    if (hasStructuredQuestions && aiContext) {
+      // NIEUWE AANPAK: Beantwoord specifieke vragen
+      system = 'Je bent een senior tenderschrijver die concrete antwoorden geeft op gunningscriteria-vragen. Schrijf vanuit het perspectief van de inschrijver en beantwoord elke vraag specifiek met bewijs uit hun documenten. Gebruik citaties [S1], [S2] voor elk feit.';
+      
+      user = `OPDRACHT: Beantwoord de onderstaande vragen voor de inschrijving op "${tender.title}" namens ${clientCompany?.name || 'het bedrijf'}.\n\n`;
+      user += `BELANGRIJK: Dit is GEEN introductie of algemene tekst. Geef CONCRETE ANTWOORDEN op elke vraag.\n\n`;
+      
+      user += `=== VRAGEN DIE BEANTWOORD MOETEN WORDEN ===\n${aiContext}\n=== EINDE VRAGEN ===\n\n`;
+      
+      user += `INSTRUCTIES:\n`;
+      user += `1. Lees de vragen (wensvraag en deelvragen) hierboven zorgvuldig\n`;
+      user += `2. Beantwoord elke deelvraag in een aparte sectie met H2 of H3 heading\n`;
+      user += `3. Geef CONCRETE antwoorden over HOE ${clientCompany?.name || 'het bedrijf'} dit aanpakt\n`;
+      user += `4. Gebruik ALLEEN feiten uit de bronfragmenten hieronder - geen algemene claims\n`;
+      user += `5. Voeg bij elk feit een citatie toe [S1], [S2], etc.\n`;
+      user += `6. Beschrijf specifieke processen, methodieken, tools, ervaring van DIT bedrijf\n`;
+      user += `7. Als informatie ontbreekt, schrijf dan: "[Te specificeren: concrete voorbeelden van...]"\n\n`;
+      
+      if (clientCompany?.website) user += `Bedrijf website: ${clientCompany.website}\n`;
+      if (clientCompany?.address?.city) user += `Locatie: ${clientCompany.address.city}\n`;
+      if (buyerDocSummary) user += `\nLeidraad context: ${buyerDocSummary.slice(0, 1000)}\n`;
+      
+      user += `\n=== BRONFRAGMENTEN (Gebruik deze voor concrete antwoorden) ===\n`;
+      for (const s of contextSnippets) {
+        user += `\n---\n${s.text.slice(0, 1500)}\nBron: ${s.source}\n`;
+      }
+      
+      user += `\n\nSTRUCTUUR VAN JE ANTWOORD:\n`;
+      user += `- Begin met een korte inleiding (2-3 zinnen) die de wensvraag benoemt\n`;
+      user += `- Daarna voor elke deelvraag:\n`;
+      user += `  ## [Deelvraag]\n`;
+      user += `  [Concreet antwoord met feiten en citaties]\n`;
+      user += `- Sluit af met een korte conclusie\n`;
+      user += `- Voeg onderaan een Referenties sectie toe\n`;
+      
+    } else {
+      // OUDE AANPAK: Algemene tekst genereren
+      user = `Schrijf de eerste versie voor de aanbesteding "${tender.title}" voor inschrijver: ${clientCompany?.name || 'onbekend bedrijf'}.\n`;
+      if (clientCompany?.website) user += `Website inschrijver: ${clientCompany.website}.\n`;
+      if (clientCompany?.address?.city) user += `Locatie: ${clientCompany.address.city}.\n`;
+      if (tender.description) user += `Tender omschrijving (kort): ${tender.description}\n`;
+      if (buyerDocSummary) user += `Leidraad (samenvatting, max 4000 tekens): ${buyerDocSummary}\n`;
+      if (tenderDocSummary) user += `Tender document (samenvatting): ${tenderDocSummary}\n`;
+      if (Array.isArray(tender.cpvCodes) && tender.cpvCodes.length) user += `CPV: ${tender.cpvCodes.join(', ')}\n`;
+      if (aiContext) user += `\n=== SPECIFIEKE CONTEXT ===\n${aiContext}\n=== EINDE CONTEXT ===\n\n`;
+      if (parsedBody.data.prompt) user += `Extra instructie: ${parsedBody.data.prompt}\n`;
 
-    user += `\nBronfragmenten (max 12):\n`;
-    for (const s of contextSnippets) {
-      user += `---\n${s.text.slice(0, 1500)}\nBron: ${s.source}\n`;
+      user += `\nEisen:\n- Schrijf bedrijfsspecifiek; neem GEEN claims op zonder bewijs/citatie.\n- Gebruik citaties [S1], [S2], ... in de tekst.\n- Voeg onderaan een sectie "Referenties" toe met dezelfde labels en URLs/titels.\n- Structuur: Inleiding, Begrip van doelstellingen, Oplossingsrichting, Waardepropositie, Ervaring/Referenties, Aanpak & Planning, Kwaliteit & Risico's, Governance & Communicatie, Conclusie.\n`;
+
+      user += `\nBronfragmenten (max 12):\n`;
+      for (const s of contextSnippets) {
+        user += `---\n${s.text.slice(0, 1500)}\nBron: ${s.source}\n`;
+      }
     }
 
     // Bouw referentielijst met labels S1..Sn
