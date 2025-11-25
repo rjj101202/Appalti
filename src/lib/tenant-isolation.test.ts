@@ -84,7 +84,7 @@ describe('Tenant Isolation - Critical Security', () => {
   });
 
   describe('Data Access Scenarios', () => {
-    test('should prevent cross-tenant data access in repositories', () => {
+    test('should prevent cross-tenant data access in repositories', async () => {
       // Simulate repository pattern
       class SecureRepository {
         private tenantId: string;
@@ -107,8 +107,8 @@ describe('Tenant Isolation - Critical Security', () => {
       const tenantARepo = new SecureRepository('tenant-A');
       const tenantBRepo = new SecureRepository('tenant-B');
 
-      const queryA = tenantARepo.find({ name: 'Client 1' }) as any;
-      const queryB = tenantBRepo.find({ name: 'Client 1' }) as any;
+      const queryA = await tenantARepo.find({ name: 'Client 1' });
+      const queryB = await tenantBRepo.find({ name: 'Client 1' });
 
       // Same search, but different tenants should query different data
       expect(queryA.tenantId).toBe('tenant-A');
