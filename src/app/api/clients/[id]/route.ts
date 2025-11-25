@@ -32,6 +32,15 @@ const updateClientSchema = z.object({
     employees: z.string().optional(),
     handelsnamen: z.union([z.array(z.string()), z.string()]).optional(),
     cpvCodes: z.array(z.string()).optional(), // CPV codes voor tender matching
+    savedTenders: z.array(z.object({
+        id: z.string(),
+        title: z.string(),
+        buyer: z.string().optional(),
+        submissionDeadline: z.string().optional(),
+        cpvCodes: z.array(z.string()).optional(),
+        tenderNoticeType: z.enum(['ContractNotice', 'ContractAwardNotice', 'PriorInformationNotice', 'Unknown']).optional(),
+        savedAt: z.string()
+    })).optional(), // Opgeslagen relevante tenders
     emailDomain: z.string().optional(), // Email domein voor team invites
     kvkData: z.any().optional()
 }).passthrough();

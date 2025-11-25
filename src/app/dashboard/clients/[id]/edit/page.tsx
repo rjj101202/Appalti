@@ -23,6 +23,7 @@ export default function ClientEditPage() {
   const [relevantTenders, setRelevantTenders] = useState<Array<any>>([]);
   const [loadingTenders, setLoadingTenders] = useState(false);
   const [tendersError, setTendersError] = useState('');
+  const [savingTenders, setSavingTenders] = useState(false);
   
   // Accordion state - standaard allemaal dicht voor professionele look
   const [openSections, setOpenSections] = useState({
@@ -74,6 +75,25 @@ export default function ClientEditPage() {
     }
   };
 
+  const saveRelevantTenders = async () => {
+    setSavingTenders(true);
+    try {
+      const res = await fetch(`/api/clients/${params.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ savedTenders: relevantTenders.map((t: any) => ({ id: t.id, title: t.title, buyer: t.buyer, submissionDeadline: t.submissionDeadline, cpvCodes: t.cpvCodes, tenderNoticeType: t.tenderNoticeType, savedAt: new Date().toISOString() })) })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Opslaan mislukt');
+      setMessage('Relevante tenders opgeslagen!');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (e: any) {
+      setError(e?.message || 'Kon tenders niet opslaan');
+    } finally {
+      setSavingTenders(false);
+    }
+  };
+
   useEffect(() => {
     if (params.id) {
       fetch(`/api/clients/${params.id}`)
@@ -95,6 +115,10 @@ export default function ClientEditPage() {
               address: res.data.address || { street: '', postalCode: '', city: '', country: 'NL' },
               addresses: res.data.addresses || []
             });
+            // Laad opgeslagen tenders indien aanwezig
+            if (res.data.savedTenders && res.data.savedTenders.length > 0) {
+              setRelevantTenders(res.data.savedTenders);
+            }
             refreshDocs();
           } else {
             setError('Client niet gevonden');
@@ -470,13 +494,18 @@ export default function ClientEditPage() {
               
               {relevantTenders.length > 0 && (
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', gap: '0.5rem' }}>
                     <p style={{ margin: 0, fontSize: '0.9em', color: '#6b7280' }}>
                       <strong>{relevantTenders.length}</strong> tenders gevonden op basis van CPV codes
                     </p>
-                    <button className="btn btn-secondary" onClick={loadRelevantTenders} disabled={loadingTenders} style={{ fontSize: '0.85em' }}>
-                      Ververs
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button className="btn btn-primary" onClick={saveRelevantTenders} disabled={savingTenders} style={{ fontSize: '0.85em' }}>
+                        {savingTenders ? 'Opslaan...' : 'Opslaan selectie'}
+                      </button>
+                      <button className="btn btn-secondary" onClick={loadRelevantTenders} disabled={loadingTenders} style={{ fontSize: '0.85em' }}>
+                        Ververs
+                      </button>
+                    </div>
                   </div>
                   
                   <div style={{ display: 'grid', gap: '0.75rem' }}>
@@ -505,9 +534,36 @@ export default function ClientEditPage() {
                           router.push(url);
                         }}
                       >
-                        <h4 style={{ margin: '0 0 0.5rem 0', color: '#111827', fontSize: '1em' }}>
-                          {tender.title}
-                        </h4>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                          <h4 style={{ margin: 0, color: '#111827', fontSize: '1em', flex: 1 }}>
+                            {tender.title}
+                          </h4>
+                          {(() => {
+                            const type = tender.tenderNoticeType;
+                            let label = null;
+                            if (type === 'ContractAwardNotice') {
+                              label = { text: 'Al gegund', bg: '#fee2e2', color: '#991b1b' };
+                            } else if (type === 'PriorInformationNotice') {
+                              label = { text: 'Voorafgaande mededeling', bg: '#fef3c7', color: '#92400e' };
+                            } else if (type === 'ContractNotice') {
+                              label = { text: 'Actief', bg: '#d1fae5', color: '#065f46' };
+                            }
+                            if (!label) return null;
+                            return (
+                              <span style={{
+                                backgroundColor: label.bg,
+                                color: label.color,
+                                padding: '0.125rem 0.5rem',
+                                borderRadius: '4px',
+                                fontSize: '0.7em',
+                                fontWeight: 600,
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {label.text}
+                              </span>
+                            );
+                          })()}
+                        </div>
                         
                         <div style={{ display: 'grid', gap: '0.25rem', fontSize: '0.85em', color: '#6b7280' }}>
                           {tender.buyer && (

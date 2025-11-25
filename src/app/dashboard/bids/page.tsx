@@ -5,6 +5,8 @@ import DashboardLayout from '@/components/layouts/DashboardLayout';
 import CPVCodeSelector from '@/components/CPVCodeSelector';
 import { formatDateNL } from '@/lib/date-utils';
 
+type TenderNoticeType = 'ContractNotice' | 'ContractAwardNotice' | 'PriorInformationNotice' | 'Unknown';
+
 type BidItem = {
   id: string;
   title: string;
@@ -16,6 +18,20 @@ type BidItem = {
   sourceUrl?: string;
   shortDescription?: string;
   city?: string;
+  tenderNoticeType?: TenderNoticeType;
+};
+
+const getTenderTypeLabel = (type?: TenderNoticeType) => {
+  switch (type) {
+    case 'ContractAwardNotice':
+      return { text: 'Al gegund', bg: '#fee2e2', color: '#991b1b' };
+    case 'PriorInformationNotice':
+      return { text: 'Voorafgaande mededeling', bg: '#fef3c7', color: '#92400e' };
+    case 'ContractNotice':
+      return { text: 'Actief', bg: '#d1fae5', color: '#065f46' };
+    default:
+      return null;
+  }
 };
 
 export default function BidsPage() {
@@ -178,8 +194,28 @@ export default function BidsPage() {
                       </td>
                       <td style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(b as any).buyer || '-'}</td>
                       <td>
-                        <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 'min(50vw, 520px)' }}>
-                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(b as any).title || '-'}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 'min(50vw, 520px)', gap: '0.25rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{(b as any).title || '-'}</span>
+                            {(() => {
+                              const label = getTenderTypeLabel(b.tenderNoticeType);
+                              if (!label) return null;
+                              return (
+                                <span style={{
+                                  backgroundColor: label.bg,
+                                  color: label.color,
+                                  padding: '0.125rem 0.5rem',
+                                  borderRadius: '4px',
+                                  fontSize: '0.75em',
+                                  fontWeight: 600,
+                                  whiteSpace: 'nowrap',
+                                  flexShrink: 0
+                                }}>
+                                  {label.text}
+                                </span>
+                              );
+                            })()}
+                          </div>
                         </div>
                       </td>
                       <td style={{ whiteSpace: 'nowrap' }}>{formatDateNL(b.publicationDate)}</td>

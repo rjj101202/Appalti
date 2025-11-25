@@ -61,7 +61,18 @@ export async function GET(request: NextRequest) {
     }
     await Promise.all(Array.from({ length: Math.min(poolSize, data.items.length) }, worker));
 
-    const result = { success: true, items, page: data.page, nextPage: data.nextPage, total: data.totalElements, totalPages: data.totalPages, filters: { page, size: pageSize, publicatieType, publicatieDatumVanaf, publicatieDatumTot, cpvCodes } };
+    // Filter ContractAwardNotice uit CPV zoekresultaten (deze zijn al gegund)
+    let filteredItems = items;
+    const hasCPVFilter = cpvCodes.length > 0;
+    if (hasCPVFilter) {
+      filteredItems = items.filter((item: any) => {
+        // ContractAwardNotice = al gegund, niet tonen in CPV zoekresultaten
+        return item.tenderNoticeType !== 'ContractAwardNotice';
+      });
+      console.log(`[TenderNed] CPV filter active: Filtered out ${items.length - filteredItems.length} ContractAwardNotice items (already awarded)`);
+    }
+
+    const result = { success: true, items: filteredItems, page: data.page, nextPage: data.nextPage, total: data.totalElements, totalPages: data.totalPages, filters: { page, size: pageSize, publicatieType, publicatieDatumVanaf, publicatieDatumTot, cpvCodes } };
     return NextResponse.json(result);
   } catch (e: any) {
     console.error('TenderNed API error:', e);

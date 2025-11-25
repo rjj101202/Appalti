@@ -31,6 +31,8 @@ function pathIncludes(path: string[], needles: string[]): boolean {
   return needles.some(n => lowerPath.includes(n.toLowerCase()));
 }
 
+export type TenderNoticeType = 'ContractNotice' | 'ContractAwardNotice' | 'PriorInformationNotice' | 'Unknown';
+
 export function parseEformsSummary(xmlText: string): {
   title?: string;
   shortDescription?: string;
@@ -82,10 +84,29 @@ export function parseEformsSummary(xmlText: string): {
   touchPointCity?: string;
   // docs
   documentLinks?: string[];
+  // tender type classification
+  tenderNoticeType?: TenderNoticeType;
 } {
   try {
     const xml = parser.parse(xmlText);
     const hits = collectTextNodes(xml);
+
+    // Detecteer tender type aan de hand van root element
+    let tenderNoticeType: TenderNoticeType = 'Unknown';
+    const rootKeys = Object.keys(xml);
+    for (const key of rootKeys) {
+      const cleanKey = lastSegment(key);
+      if (cleanKey === 'ContractAwardNotice') {
+        tenderNoticeType = 'ContractAwardNotice';
+        break;
+      } else if (cleanKey === 'ContractNotice') {
+        tenderNoticeType = 'ContractNotice';
+        break;
+      } else if (cleanKey === 'PriorInformationNotice') {
+        tenderNoticeType = 'PriorInformationNotice';
+        break;
+      }
+    }
 
     const findFirst = (predicate: (hit: TextHit) => boolean) => hits.find(predicate)?.text;
 
@@ -234,6 +255,7 @@ export function parseEformsSummary(xmlText: string): {
       touchPointAddressPostalCode,
       touchPointCity,
       documentLinks,
+      tenderNoticeType,
     };
   } catch {
     return {} as any;
