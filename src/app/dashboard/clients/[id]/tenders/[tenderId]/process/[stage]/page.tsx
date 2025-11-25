@@ -58,9 +58,21 @@ export default function StageEditorPage() {
   const [uploadingLeidraad, setUploadingLeidraad] = useState(false);
   const [extractingCriteria, setExtractingCriteria] = useState(false);
   const [extractingKeyData, setExtractingKeyData] = useState(false);
-  const [extractedCriteria, setExtractedCriteria] = useState<Array<{ title: string; weight?: number; subQuestions: string[] }>>([]);
+  const [extractedCriteria, setExtractedCriteria] = useState<Array<{ 
+    title: string; 
+    weight?: number; 
+    sourceReference?: string;
+    subCriteria: Array<{
+      title: string;
+      points?: number;
+      sourceReference?: string;
+      assessmentPoints: string[];
+    }>
+  }>>([]);
   const [extractedKeyData, setExtractedKeyData] = useState<Array<{ category: string; items: Array<{ label: string; value: string }> }>>([]);
   const leidraadInputRef = useRef<HTMLInputElement>(null);
+  const [expandedCriteria, setExpandedCriteria] = useState<Set<number>>(new Set());
+  const [expandedSubCriteria, setExpandedSubCriteria] = useState<Set<string>>(new Set());
 
   // Hover preview tooltip state
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -856,36 +868,48 @@ export default function StageEditorPage() {
             {selectedCriterionId && (() => {
               const selectedCriterion = criteria.find(c => c.id === selectedCriterionId);
               return selectedCriterion ? (
-                <div className="card" style={{ padding: '0.75rem', marginBottom: '0.75rem', background: '#fef3c7', border: '2px solid #f59e0b' }}>
-                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', fontWeight: 600, color: '#92400e' }}>
-                    🤖 Instructies voor GROK
-                  </h3>
-                  <p style={{ fontSize: '0.85rem', color: '#78350f', margin: '0 0 0.5rem 0' }}>
-                    Vul hier simpelweg de onderwerpen en deelvragen in voor dit criterium. GROK gebruikt deze bij het genereren.
-                  </p>
-                  <textarea
-                    value={selectedCriterion.aiContext || ''}
-                    onChange={(e) => {
-                      const newContext = e.target.value;
-                      setCriteria(prev => prev.map(c => 
-                        c.id === selectedCriterionId ? { ...c, aiContext: newContext } : c
-                      ));
-                      setHasUnsavedChanges(true);
-                    }}
-                    placeholder={"Onderwerp: Duurzaamheid\n\nDeelvragen:\n- Wat zijn de concrete duurzaamheidsmaatregelen?\n- Hoe worden resultaten gemeten?\n- Welke certificeringen hebben we?"}
-                    style={{
-                      width: '100%',
-                      minHeight: '120px',
+                <div className="card" style={{ padding: '0', marginBottom: '0.75rem', overflow: 'hidden' }}>
+                  <div style={{ padding: '0.75rem', background: '#f59e0b', color: 'white' }}>
+                    <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>
+                      Instructies voor AI Generatie
+                    </h3>
+                  </div>
+                  <div style={{ padding: '0.75rem' }}>
+                    <p style={{ fontSize: '0.85rem', color: '#6b7280', margin: '0 0 0.5rem 0' }}>
+                      Vul hier de onderwerpen en deelvragen in voor dit criterium. De AI gebruikt deze context bij het genereren van tekst.
+                    </p>
+                    <textarea
+                      value={selectedCriterion.aiContext || ''}
+                      onChange={(e) => {
+                        const newContext = e.target.value;
+                        setCriteria(prev => prev.map(c => 
+                          c.id === selectedCriterionId ? { ...c, aiContext: newContext } : c
+                        ));
+                        setHasUnsavedChanges(true);
+                      }}
+                      placeholder={"Onderwerp: Duurzaamheid\n\nDeelvragen:\n- Wat zijn de concrete duurzaamheidsmaatregelen?\n- Hoe worden resultaten gemeten?\n- Welke certificeringen hebben we?"}
+                      style={{
+                        width: '100%',
+                        minHeight: '120px',
+                        padding: '0.5rem',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '6px',
+                        fontSize: '0.9rem',
+                        fontFamily: 'monospace',
+                        resize: 'vertical'
+                      }}
+                    />
+                    <div style={{ 
+                      fontSize: '0.8rem', 
+                      color: '#6b7280', 
+                      marginTop: '0.5rem',
                       padding: '0.5rem',
-                      border: '1px solid #d97706',
-                      borderRadius: '6px',
-                      fontSize: '0.9rem',
-                      fontFamily: 'monospace',
-                      resize: 'vertical'
-                    }}
-                  />
-                  <div style={{ fontSize: '0.8rem', color: '#92400e', marginTop: '0.5rem' }}>
-                    💡 Tip: Of gebruik de automatisch geëxtraheerde criteria uit het leidraad document!
+                      background: '#f9fafb',
+                      borderRadius: '4px',
+                      borderLeft: '3px solid #f59e0b'
+                    }}>
+                      <strong>Tip:</strong> Gebruik de automatisch geëxtraheerde criteria uit het leidraad document!
+                    </div>
                   </div>
                 </div>
               ) : null;
@@ -1021,46 +1045,56 @@ export default function StageEditorPage() {
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {/* Leidraad Document Upload (VERPLICHT) */}
-            <div className="card" style={{ padding: '0.75rem', background: leidraadDocument ? '#d1fae5' : '#fee2e2', border: '2px solid ' + (leidraadDocument ? '#10b981' : '#ef4444') }}>
-              <h3 style={{ margin: '0 0 0.5rem 0', color: leidraadDocument ? '#065f46' : '#991b1b' }}>📋 Leidraad Document {leidraadDocument ? '✓' : '(VERPLICHT)'}</h3>
-              {!leidraadDocument ? (
-                <>
-                  <p style={{ fontSize: '0.85rem', marginBottom: '0.5rem', color: '#7f1d1d' }}>
-                    Upload het aanbestedingsleidraad document. Dit is <strong>verplicht</strong> om te beginnen.
-                  </p>
-                  <button 
-                    className="btn btn-primary" 
-                    onClick={() => leidraadInputRef.current?.click()} 
-                    disabled={uploadingLeidraad}
-                    style={{ width: '100%' }}
-                  >
-                    {uploadingLeidraad ? 'Uploaden...' : 'Upload Leidraad Document'}
-                  </button>
-                  <input 
-                    ref={leidraadInputRef} 
-                    type="file" 
-                    accept=".pdf,.doc,.docx" 
-                    style={{ display: 'none' }} 
-                    onChange={(e) => { 
-                      const f = e.target.files?.[0]; 
-                      if (f) handleLeidraadUpload(f); 
-                      e.currentTarget.value=''; 
-                    }} 
-                  />
-                </>
-              ) : (
-                <>
-                  <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                    <strong>{leidraadDocument.name}</strong>
+            <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+              <div style={{ 
+                padding: '0.75rem', 
+                background: leidraadDocument ? '#10b981' : '#ef4444',
+                color: 'white'
+              }}>
+                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>
+                  Leidraad Document {leidraadDocument ? '' : '(VERPLICHT)'}
+                </h3>
+                {leidraadDocument && (
+                  <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', opacity: 0.9 }}>
+                    {leidraadDocument.name}
                   </div>
-                  <div style={{ display: 'flex', gap: 6, flexDirection: 'column' }}>
+                )}
+              </div>
+              <div style={{ padding: '0.75rem' }}>
+                {!leidraadDocument ? (
+                  <>
+                    <p style={{ fontSize: '0.85rem', marginBottom: '0.75rem', color: '#4b5563' }}>
+                      Upload het aanbestedingsleidraad document. Dit is <strong>verplicht</strong> om te beginnen met de automatische extractie van criteria en data.
+                    </p>
+                    <button 
+                      className="btn btn-primary" 
+                      onClick={() => leidraadInputRef.current?.click()} 
+                      disabled={uploadingLeidraad}
+                      style={{ width: '100%' }}
+                    >
+                      {uploadingLeidraad ? 'Uploaden...' : 'Upload Leidraad Document'}
+                    </button>
+                    <input 
+                      ref={leidraadInputRef} 
+                      type="file" 
+                      accept=".pdf,.doc,.docx" 
+                      style={{ display: 'none' }} 
+                      onChange={(e) => { 
+                        const f = e.target.files?.[0]; 
+                        if (f) handleLeidraadUpload(f); 
+                        e.currentTarget.value=''; 
+                      }} 
+                    />
+                  </>
+                ) : (
+                  <div style={{ display: 'flex', gap: 8, flexDirection: 'column' }}>
                     <button 
                       className="btn btn-primary" 
                       onClick={extractCriteriaFromLeidraad} 
                       disabled={extractingCriteria}
                       style={{ width: '100%' }}
                     >
-                      {extractingCriteria ? 'Analyseren...' : '🤖 Analyseer & Extraheer Criteria'}
+                      {extractingCriteria ? 'Analyseren...' : 'Analyseer & Extraheer Criteria'}
                     </button>
                     <button 
                       className="btn btn-secondary" 
@@ -1068,18 +1102,18 @@ export default function StageEditorPage() {
                       disabled={extractingKeyData}
                       style={{ width: '100%' }}
                     >
-                      {extractingKeyData ? 'Analyseren...' : '📊 Extraheer Belangrijke Data'}
+                      {extractingKeyData ? 'Analyseren...' : 'Extraheer Belangrijke Data'}
                     </button>
                     <button 
                       className="btn btn-secondary" 
                       onClick={() => { setLeidraadDocument(null); setExtractedCriteria([]); setExtractedKeyData([]); }}
                       style={{ width: '100%', fontSize: '0.85rem' }}
                     >
-                      ❌ Verwijder & Upload nieuw
+                      Verwijder & Upload nieuw
                     </button>
                   </div>
-                </>
-              )}
+                )}
+              </div>
             </div>
 
             {/* Zoek bronnen */}
@@ -1135,57 +1169,209 @@ export default function StageEditorPage() {
 
             {/* Gunningscriteria & Deelvragen */}
             {extractedCriteria.length > 0 && (
-              <details className="card" style={{ padding: '0.75rem' }}>
-                <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: '1rem', marginBottom: '0.5rem', color: '#7c3aed' }}>
-                  🎯 Gunningscriteria & Deelvragen ({extractedCriteria.length})
-                </summary>
-                <div style={{ marginTop: '0.75rem' }}>
+              <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+                <div style={{ padding: '0.75rem', background: '#8b5cf6', color: 'white' }}>
+                  <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>
+                    Gunningscriteria & Beoordelingspunten
+                  </h3>
+                  <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', opacity: 0.9 }}>
+                    {extractedCriteria.length} {extractedCriteria.length === 1 ? 'criterium' : 'criteria'} · 
+                    {' '}{extractedCriteria.reduce((sum, c) => sum + (c.subCriteria?.length || 0), 0)} sub-criteria
+                  </div>
+                </div>
+                <div style={{ padding: '0.75rem' }}>
                   {extractedCriteria.map((criterion, idx) => (
-                    <div key={idx} style={{ marginBottom: '1rem', padding: '0.75rem', background: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
-                      <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: '#374151' }}>
-                        {criterion.title}
-                        {criterion.weight !== undefined && <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: '#6b7280' }}>({criterion.weight}%)</span>}
+                    <div key={idx} style={{ marginBottom: idx < extractedCriteria.length - 1 ? '1rem' : 0 }}>
+                      {/* Hoofdcriterium */}
+                      <div 
+                        style={{ 
+                          padding: '0.75rem',
+                          background: '#f3e8ff',
+                          border: '2px solid #c084fc',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                        onClick={() => {
+                          const newExpanded = new Set(expandedCriteria);
+                          if (newExpanded.has(idx)) {
+                            newExpanded.delete(idx);
+                          } else {
+                            newExpanded.add(idx);
+                          }
+                          setExpandedCriteria(newExpanded);
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, color: '#6b21a8', fontSize: '0.95rem' }}>
+                              {criterion.title}
+                            </div>
+                            {criterion.weight !== undefined && (
+                              <div style={{ fontSize: '0.85rem', color: '#7c3aed', marginTop: '0.25rem' }}>
+                                Weging: {criterion.weight}%
+                              </div>
+                            )}
+                          </div>
+                          {criterion.sourceReference && (
+                            <div 
+                              style={{ 
+                                fontSize: '0.75rem', 
+                                color: '#9333ea',
+                                background: 'white',
+                                padding: '0.25rem 0.5rem',
+                                borderRadius: '4px',
+                                marginLeft: '0.5rem',
+                                cursor: 'help'
+                              }}
+                              title={`Bron: ${criterion.sourceReference}`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Bron: {criterion.sourceReference}
+                            </div>
+                          )}
+                          <div style={{ marginLeft: '0.5rem', color: '#8b5cf6', fontSize: '1.2rem' }}>
+                            {expandedCriteria.has(idx) ? '▼' : '▶'}
+                          </div>
+                        </div>
                       </div>
-                      {criterion.subQuestions && criterion.subQuestions.length > 0 && (
-                        <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>
-                          <div style={{ fontWeight: 500, marginBottom: '0.25rem' }}>Deelvragen:</div>
-                          <ul style={{ margin: '0.25rem 0 0 1.25rem', padding: 0 }}>
-                            {criterion.subQuestions.map((q, qIdx) => (
-                              <li key={qIdx} style={{ marginBottom: '0.25rem' }}>{q}</li>
-                            ))}
-                          </ul>
+
+                      {/* Sub-criteria (expanded) */}
+                      {expandedCriteria.has(idx) && criterion.subCriteria && criterion.subCriteria.length > 0 && (
+                        <div style={{ marginTop: '0.5rem', marginLeft: '1rem' }}>
+                          {criterion.subCriteria.map((subCrit, subIdx) => {
+                            const subKey = `${idx}-${subIdx}`;
+                            const isExpanded = expandedSubCriteria.has(subKey);
+                            
+                            return (
+                              <div key={subIdx} style={{ marginBottom: '0.5rem' }}>
+                                {/* Sub-criterium header */}
+                                <div
+                                  style={{
+                                    padding: '0.5rem 0.75rem',
+                                    background: 'white',
+                                    border: '1px solid #d8b4fe',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                  }}
+                                  onClick={() => {
+                                    const newExpanded = new Set(expandedSubCriteria);
+                                    if (newExpanded.has(subKey)) {
+                                      newExpanded.delete(subKey);
+                                    } else {
+                                      newExpanded.add(subKey);
+                                    }
+                                    setExpandedSubCriteria(newExpanded);
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <div style={{ flex: 1 }}>
+                                      <div style={{ fontWeight: 500, color: '#374151', fontSize: '0.9rem' }}>
+                                        {subCrit.title}
+                                      </div>
+                                      {subCrit.points !== undefined && (
+                                        <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.15rem' }}>
+                                          {subCrit.points} punten
+                                        </div>
+                                      )}
+                                    </div>
+                                    {subCrit.sourceReference && (
+                                      <div 
+                                        style={{ 
+                                          fontSize: '0.75rem', 
+                                          color: '#8b5cf6',
+                                          background: '#f3e8ff',
+                                          padding: '0.2rem 0.4rem',
+                                          borderRadius: '3px',
+                                          marginLeft: '0.5rem',
+                                          cursor: 'help'
+                                        }}
+                                        title={`Bron: ${subCrit.sourceReference}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {subCrit.sourceReference}
+                                      </div>
+                                    )}
+                                    <div style={{ marginLeft: '0.5rem', color: '#a78bfa', fontSize: '0.9rem' }}>
+                                      {isExpanded ? '▼' : '▶'}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Assessment points (expanded) */}
+                                {isExpanded && subCrit.assessmentPoints && subCrit.assessmentPoints.length > 0 && (
+                                  <div style={{ 
+                                    marginTop: '0.25rem', 
+                                    marginLeft: '1rem',
+                                    padding: '0.5rem',
+                                    background: '#faf5ff',
+                                    borderLeft: '3px solid #c084fc',
+                                    borderRadius: '4px'
+                                  }}>
+                                    <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.85rem', color: '#4b5563' }}>
+                                      {subCrit.assessmentPoints.map((point, pIdx) => (
+                                        <li key={pIdx} style={{ marginBottom: '0.25rem' }}>{point}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
                   ))}
                 </div>
-              </details>
+              </div>
             )}
 
             {/* Belangrijke Data */}
             {extractedKeyData.length > 0 && (
-              <details className="card" style={{ padding: '0.75rem' }}>
-                <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: '1rem', marginBottom: '0.5rem', color: '#0891b2' }}>
-                  📊 Belangrijke Data ({extractedKeyData.reduce((sum, cat) => sum + cat.items.length, 0)} items)
-                </summary>
-                <div style={{ marginTop: '0.75rem' }}>
+              <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+                <div style={{ padding: '0.75rem', background: '#6b7280', color: 'white' }}>
+                  <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>
+                    Belangrijke Data & Informatie
+                  </h3>
+                  <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', opacity: 0.9 }}>
+                    {extractedKeyData.reduce((sum, cat) => sum + cat.items.length, 0)} datapunten
+                  </div>
+                </div>
+                <div style={{ padding: '0.75rem' }}>
                   {extractedKeyData.map((category, idx) => (
-                    <div key={idx} style={{ marginBottom: '1rem' }}>
-                      <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: '#0e7490', fontSize: '0.95rem' }}>
+                    <div key={idx} style={{ marginBottom: idx < extractedKeyData.length - 1 ? '1rem' : 0 }}>
+                      <div style={{ 
+                        fontWeight: 600, 
+                        marginBottom: '0.5rem', 
+                        color: '#4b5563', 
+                        fontSize: '0.9rem',
+                        paddingBottom: '0.25rem',
+                        borderBottom: '2px solid #e5e7eb'
+                      }}>
                         {category.category}
                       </div>
                       <div style={{ paddingLeft: '0.5rem' }}>
                         {category.items.map((item, iIdx) => (
-                          <div key={iIdx} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.5rem', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
-                            <div style={{ color: '#6b7280', fontWeight: 500 }}>{item.label}:</div>
-                            <div style={{ color: '#374151' }}>{item.value}</div>
+                          <div key={iIdx} style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: '140px 1fr', 
+                            gap: '0.75rem', 
+                            marginBottom: '0.5rem', 
+                            fontSize: '0.85rem',
+                            padding: '0.5rem',
+                            background: '#f9fafb',
+                            borderRadius: '4px'
+                          }}>
+                            <div style={{ color: '#6b7280', fontWeight: 500 }}>{item.label}</div>
+                            <div style={{ color: '#111827', fontWeight: 400 }}>{item.value}</div>
                           </div>
                         ))}
                       </div>
                     </div>
                   ))}
                 </div>
-              </details>
+              </div>
             )}
           </div>
         </div>
