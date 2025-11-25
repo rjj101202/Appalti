@@ -32,7 +32,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         assignedReviewer: stage?.assignedReviewer || null,
         citations: stage?.citations || [],
         sourceLinks: stage?.sourceLinks || [],
-        sources: stage?.sources || []
+        sources: stage?.sources || [],
+        leidraadDocument: stage?.leidraadDocument || null,
+        extractedCriteria: stage?.extractedCriteria || [],
+        extractedKeyData: stage?.extractedKeyData || []
       }
     });
   } catch (e) {

@@ -53,6 +53,15 @@ export default function StageEditorPage() {
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+  // Leidraad document & extracted data
+  const [leidraadDocument, setLeidraadDocument] = useState<{ name: string; url: string; uploadedAt?: Date } | null>(null);
+  const [uploadingLeidraad, setUploadingLeidraad] = useState(false);
+  const [extractingCriteria, setExtractingCriteria] = useState(false);
+  const [extractingKeyData, setExtractingKeyData] = useState(false);
+  const [extractedCriteria, setExtractedCriteria] = useState<Array<{ title: string; weight?: number; subQuestions: string[] }>>([]);
+  const [extractedKeyData, setExtractedKeyData] = useState<Array<{ category: string; items: Array<{ label: string; value: string }> }>>([]);
+  const leidraadInputRef = useRef<HTMLInputElement>(null);
+
   // Hover preview tooltip state
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [hoverText, setHoverText] = useState<string>('');
@@ -172,6 +181,11 @@ export default function StageEditorPage() {
       setClientName(meta.clientName || '');
       setSourceLinks(json.data?.sourceLinks || []);
       setSources(json.data?.sources || []);
+      
+      // Load leidraad document en extracted data
+      setLeidraadDocument(json.data?.leidraadDocument || null);
+      setExtractedCriteria(json.data?.extractedCriteria || []);
+      setExtractedKeyData(json.data?.extractedKeyData || []);
       
       // Log voor debugging
       console.log('[LOAD] Loaded', loadedCriteria.length, 'criteria');
@@ -607,6 +621,91 @@ export default function StageEditorPage() {
     }
   };
 
+  const handleLeidraadUpload = async (file: File) => {
+    try {
+      setUploadingLeidraad(true);
+      const bidId = await bidIdFromQuery();
+      if (!bidId) throw new Error('Bid niet gevonden');
+      
+      // Upload het document
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`/api/bids/${bidId}/stages/${stage}/upload`, { method: 'POST', body: fd });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Upload mislukt');
+      
+      const documentUrl = json.url;
+      const documentInfo = { name: file.name, url: documentUrl, uploadedAt: new Date() };
+      setLeidraadDocument(documentInfo);
+      
+      // We'll save this when extracting criteria (no need for separate API call)
+      alert('Leidraad document geüpload! Klik nu op "Analyseer & Extraheer" om criteria en vragen te halen.');
+    } catch (e: any) {
+      alert(e?.message || 'Upload mislukt');
+    } finally {
+      setUploadingLeidraad(false);
+    }
+  };
+
+  const extractCriteriaFromLeidraad = async () => {
+    if (!leidraadDocument) {
+      alert('Upload eerst een leidraad document');
+      return;
+    }
+    
+    try {
+      setExtractingCriteria(true);
+      const bidId = await bidIdFromQuery();
+      if (!bidId) throw new Error('Bid niet gevonden');
+      
+      const res = await fetch(`/api/bids/${bidId}/stages/${stage}/extract-criteria`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentUrl: leidraadDocument.url })
+      });
+      
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Extractie mislukt');
+      
+      setExtractedCriteria(json.data.criteria);
+      alert(json.data.message || 'Criteria geëxtraheerd!');
+    } catch (e: any) {
+      alert(e?.message || 'Extractie mislukt');
+    } finally {
+      setExtractingCriteria(false);
+    }
+  };
+
+  const extractKeyDataFromDocument = async (documentUrl?: string) => {
+    const docUrl = documentUrl || leidraadDocument?.url;
+    if (!docUrl) {
+      alert('Selecteer een document om te analyseren');
+      return;
+    }
+    
+    try {
+      setExtractingKeyData(true);
+      const bidId = await bidIdFromQuery();
+      if (!bidId) throw new Error('Bid niet gevonden');
+      
+      const res = await fetch(`/api/bids/${bidId}/stages/${stage}/extract-keydata`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentUrl: docUrl })
+      });
+      
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Extractie mislukt');
+      
+      setExtractedKeyData(json.data.keyData);
+      alert(json.data.message || 'Belangrijke data geëxtraheerd!');
+    } catch (e: any) {
+      alert(e?.message || 'Extractie mislukt');
+    } finally {
+      setExtractingKeyData(false);
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -753,16 +852,16 @@ export default function StageEditorPage() {
               <button className="btn btn-secondary" onClick={generateWithRag} disabled={genLoading}>{genLoading ? 'Genereren...' : 'Genereer met AI (RAG)'}</button>
             </div>
 
-            {/* AI Context Field */}
+            {/* AI Context Field - Simplified */}
             {selectedCriterionId && (() => {
               const selectedCriterion = criteria.find(c => c.id === selectedCriterionId);
               return selectedCriterion ? (
                 <div className="card" style={{ padding: '0.75rem', marginBottom: '0.75rem', background: '#fef3c7', border: '2px solid #f59e0b' }}>
                   <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', fontWeight: 600, color: '#92400e' }}>
-                    🤖 AI Context voor GROK (per criterium)
+                    🤖 Instructies voor GROK
                   </h3>
                   <p style={{ fontSize: '0.85rem', color: '#78350f', margin: '0 0 0.5rem 0' }}>
-                    Vul hier deelvragen en specifieke instructies in die GROK moet gebruiken bij het genereren van tekst voor dit criterium. Deze context wordt meegenomen bij het aanroepen van "Genereer met AI (RAG)".
+                    Vul hier simpelweg de onderwerpen en deelvragen in voor dit criterium. GROK gebruikt deze bij het genereren.
                   </p>
                   <textarea
                     value={selectedCriterion.aiContext || ''}
@@ -773,18 +872,21 @@ export default function StageEditorPage() {
                       ));
                       setHasUnsavedChanges(true);
                     }}
-                    placeholder="Bijv: Beschrijf onze aanpak voor duurzaamheid. Wat zijn de concrete maatregelen? Hoe meten we resultaten?"
+                    placeholder={"Onderwerp: Duurzaamheid\n\nDeelvragen:\n- Wat zijn de concrete duurzaamheidsmaatregelen?\n- Hoe worden resultaten gemeten?\n- Welke certificeringen hebben we?"}
                     style={{
                       width: '100%',
-                      minHeight: '100px',
+                      minHeight: '120px',
                       padding: '0.5rem',
                       border: '1px solid #d97706',
                       borderRadius: '6px',
                       fontSize: '0.9rem',
-                      fontFamily: 'inherit',
+                      fontFamily: 'monospace',
                       resize: 'vertical'
                     }}
                   />
+                  <div style={{ fontSize: '0.8rem', color: '#92400e', marginTop: '0.5rem' }}>
+                    💡 Tip: Of gebruik de automatisch geëxtraheerde criteria uit het leidraad document!
+                  </div>
                 </div>
               ) : null;
             })()}
@@ -918,6 +1020,68 @@ export default function StageEditorPage() {
             </div>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {/* Leidraad Document Upload (VERPLICHT) */}
+            <div className="card" style={{ padding: '0.75rem', background: leidraadDocument ? '#d1fae5' : '#fee2e2', border: '2px solid ' + (leidraadDocument ? '#10b981' : '#ef4444') }}>
+              <h3 style={{ margin: '0 0 0.5rem 0', color: leidraadDocument ? '#065f46' : '#991b1b' }}>📋 Leidraad Document {leidraadDocument ? '✓' : '(VERPLICHT)'}</h3>
+              {!leidraadDocument ? (
+                <>
+                  <p style={{ fontSize: '0.85rem', marginBottom: '0.5rem', color: '#7f1d1d' }}>
+                    Upload het aanbestedingsleidraad document. Dit is <strong>verplicht</strong> om te beginnen.
+                  </p>
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={() => leidraadInputRef.current?.click()} 
+                    disabled={uploadingLeidraad}
+                    style={{ width: '100%' }}
+                  >
+                    {uploadingLeidraad ? 'Uploaden...' : 'Upload Leidraad Document'}
+                  </button>
+                  <input 
+                    ref={leidraadInputRef} 
+                    type="file" 
+                    accept=".pdf,.doc,.docx" 
+                    style={{ display: 'none' }} 
+                    onChange={(e) => { 
+                      const f = e.target.files?.[0]; 
+                      if (f) handleLeidraadUpload(f); 
+                      e.currentTarget.value=''; 
+                    }} 
+                  />
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                    <strong>{leidraadDocument.name}</strong>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexDirection: 'column' }}>
+                    <button 
+                      className="btn btn-primary" 
+                      onClick={extractCriteriaFromLeidraad} 
+                      disabled={extractingCriteria}
+                      style={{ width: '100%' }}
+                    >
+                      {extractingCriteria ? 'Analyseren...' : '🤖 Analyseer & Extraheer Criteria'}
+                    </button>
+                    <button 
+                      className="btn btn-secondary" 
+                      onClick={() => extractKeyDataFromDocument()} 
+                      disabled={extractingKeyData}
+                      style={{ width: '100%' }}
+                    >
+                      {extractingKeyData ? 'Analyseren...' : '📊 Extraheer Belangrijke Data'}
+                    </button>
+                    <button 
+                      className="btn btn-secondary" 
+                      onClick={() => { setLeidraadDocument(null); setExtractedCriteria([]); setExtractedKeyData([]); }}
+                      style={{ width: '100%', fontSize: '0.85rem' }}
+                    >
+                      ❌ Verwijder & Upload nieuw
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
             {/* Zoek bronnen */}
             <div className="card" style={{ padding: '0.75rem' }}>
               <h3>Zoek bronnen</h3>
@@ -968,6 +1132,61 @@ export default function StageEditorPage() {
                 <Link href={`/dashboard/clients/${clientId}`} className="btn btn-secondary">Team beheren</Link>
               </div>
             </div>
+
+            {/* Gunningscriteria & Deelvragen */}
+            {extractedCriteria.length > 0 && (
+              <details className="card" style={{ padding: '0.75rem' }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: '1rem', marginBottom: '0.5rem', color: '#7c3aed' }}>
+                  🎯 Gunningscriteria & Deelvragen ({extractedCriteria.length})
+                </summary>
+                <div style={{ marginTop: '0.75rem' }}>
+                  {extractedCriteria.map((criterion, idx) => (
+                    <div key={idx} style={{ marginBottom: '1rem', padding: '0.75rem', background: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                      <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: '#374151' }}>
+                        {criterion.title}
+                        {criterion.weight !== undefined && <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: '#6b7280' }}>({criterion.weight}%)</span>}
+                      </div>
+                      {criterion.subQuestions && criterion.subQuestions.length > 0 && (
+                        <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>
+                          <div style={{ fontWeight: 500, marginBottom: '0.25rem' }}>Deelvragen:</div>
+                          <ul style={{ margin: '0.25rem 0 0 1.25rem', padding: 0 }}>
+                            {criterion.subQuestions.map((q, qIdx) => (
+                              <li key={qIdx} style={{ marginBottom: '0.25rem' }}>{q}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
+
+            {/* Belangrijke Data */}
+            {extractedKeyData.length > 0 && (
+              <details className="card" style={{ padding: '0.75rem' }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: '1rem', marginBottom: '0.5rem', color: '#0891b2' }}>
+                  📊 Belangrijke Data ({extractedKeyData.reduce((sum, cat) => sum + cat.items.length, 0)} items)
+                </summary>
+                <div style={{ marginTop: '0.75rem' }}>
+                  {extractedKeyData.map((category, idx) => (
+                    <div key={idx} style={{ marginBottom: '1rem' }}>
+                      <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: '#0e7490', fontSize: '0.95rem' }}>
+                        {category.category}
+                      </div>
+                      <div style={{ paddingLeft: '0.5rem' }}>
+                        {category.items.map((item, iIdx) => (
+                          <div key={iIdx} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.5rem', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
+                            <div style={{ color: '#6b7280', fontWeight: 500 }}>{item.label}:</div>
+                            <div style={{ color: '#374151' }}>{item.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
           </div>
         </div>
       </div>
