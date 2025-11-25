@@ -859,9 +859,36 @@ export default function StageEditorPage() {
               ))}
             </div>
 
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
               <button className="btn btn-secondary" onClick={save} disabled={saving}>{saving ? 'Opslaan...' : 'Opslaan'}</button>
               <button className="btn btn-secondary" onClick={generateWithRag} disabled={genLoading}>{genLoading ? 'Genereren...' : 'Genereer met AI (RAG)'}</button>
+              {selectedCriterionId && (() => {
+                const selectedCriterion = criteria.find(c => c.id === selectedCriterionId);
+                const hasContext = selectedCriterion?.aiContext && selectedCriterion.aiContext.trim().length > 20;
+                return hasContext ? (
+                  <div style={{ 
+                    fontSize: '0.8rem', 
+                    padding: '0.4rem 0.7rem', 
+                    background: '#10b981', 
+                    color: 'white', 
+                    borderRadius: '6px',
+                    fontWeight: 500
+                  }}>
+                    ✓ Beantwoordingsmodus actief
+                  </div>
+                ) : (
+                  <div style={{ 
+                    fontSize: '0.8rem', 
+                    padding: '0.4rem 0.7rem', 
+                    background: '#f59e0b', 
+                    color: 'white', 
+                    borderRadius: '6px',
+                    fontWeight: 500
+                  }}>
+                    ! Vul eerst AI Instructies in
+                  </div>
+                );
+              })()}
             </div>
 
             {/* AI Context Field - Simplified */}

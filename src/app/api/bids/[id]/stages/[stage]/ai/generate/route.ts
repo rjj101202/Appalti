@@ -197,56 +197,75 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         const criterion = (stageState?.criteria || []).find((c: any) => c.id === parsedBody.data.criterionId);
         if (criterion?.aiContext) {
           aiContext = criterion.aiContext;
+          console.log(`[AI-GENERATE] Found aiContext for criterion ${parsedBody.data.criterionId}: ${aiContext.slice(0, 100)}...`);
+        } else {
+          console.log(`[AI-GENERATE] No aiContext found for criterion ${parsedBody.data.criterionId}`);
         }
-      } catch {}
+      } catch (e) {
+        console.error('[AI-GENERATE] Error fetching criterion aiContext:', e);
+      }
+    } else {
+      console.log('[AI-GENERATE] No criterionId provided');
     }
 
-    // Check if aiContext contains structured questions (wensvraag + deelvragen)
-    const hasStructuredQuestions = aiContext && (
-      aiContext.toLowerCase().includes('wensvraag') || 
-      aiContext.toLowerCase().includes('deelvraag') ||
-      aiContext.toLowerCase().includes('onderwerp:') ||
-      /\n\s*-\s+/.test(aiContext) // bevat bullets
-    );
+    // Als er aiContext is, ga ALTIJD in beantwoordingsmodus (niet alleen bij gedetecteerde structuur)
+    const useQuestionAnswerMode = aiContext && aiContext.trim().length > 20;
+    console.log(`[AI-GENERATE] useQuestionAnswerMode: ${useQuestionAnswerMode}, aiContext length: ${aiContext.length}`);
 
     let system = 'Je bent een senior tenderschrijver (Grok) die voor de inschrijver schrijft. Schrijf professioneel, helder, overtuigend en strikt bedrijfsspecifiek. Gebruik bronnen en voeg inline citaties [S1], [S2] toe.';
     
     let user = '';
 
-    if (hasStructuredQuestions && aiContext) {
-      // NIEUWE AANPAK: Beantwoord specifieke vragen
-      system = 'Je bent een senior tenderschrijver die concrete antwoorden geeft op gunningscriteria-vragen. Schrijf vanuit het perspectief van de inschrijver en beantwoord elke vraag specifiek met bewijs uit hun documenten. Gebruik citaties [S1], [S2] voor elk feit.';
+    if (useQuestionAnswerMode) {
+      // BEANTWOORD SPECIFIEKE VRAGEN - GEEN ALGEMENE TEKST
+      system = `Je bent een senior tenderschrijver die UITSLUITEND concrete antwoorden geeft op gunningscriteria-vragen.
+
+KRITIEK: Je schrijft GEEN algemene introductieteksten, bedrijfsprofielen of achtergrondverhalen.
+Je beantwoordt ALLEEN de specifieke vragen die gesteld worden met concrete feiten, processen en voorbeelden.
+
+Als de vraag is "Beschrijf het proces", dan beschrijf je het EXACTE proces met stappen, tools en methoden.
+Als de vraag is "Hoe communiceert u", dan beschrijf je de CONCRETE communicatiemethoden, frequentie en tools.
+
+Gebruik citaties [S1], [S2] voor elk feit uit de bronfragmenten.`;
       
-      user = `OPDRACHT: Beantwoord de onderstaande vragen voor de inschrijving op "${tender.title}" namens ${clientCompany?.name || 'het bedrijf'}.\n\n`;
-      user += `BELANGRIJK: Dit is GEEN introductie of algemene tekst. Geef CONCRETE ANTWOORDEN op elke vraag.\n\n`;
+      user = `STRIKT VERBODEN: Schrijf GEEN algemene introductie zoals "Bedrijf X richt zich op..." of "Onze organisatie biedt..."\n\n`;
+      user += `OPDRACHT: Beantwoord ALLEEN en UITSLUITEND de onderstaande specifieke vragen voor "${tender.title}" namens ${clientCompany?.name || 'het bedrijf'}.\n\n`;
       
       user += `=== VRAGEN DIE BEANTWOORD MOETEN WORDEN ===\n${aiContext}\n=== EINDE VRAGEN ===\n\n`;
       
-      user += `INSTRUCTIES:\n`;
-      user += `1. Lees de vragen (wensvraag en deelvragen) hierboven zorgvuldig\n`;
-      user += `2. Beantwoord elke deelvraag in een aparte sectie met H2 of H3 heading\n`;
-      user += `3. Geef CONCRETE antwoorden over HOE ${clientCompany?.name || 'het bedrijf'} dit aanpakt\n`;
-      user += `4. Gebruik ALLEEN feiten uit de bronfragmenten hieronder - geen algemene claims\n`;
-      user += `5. Voeg bij elk feit een citatie toe [S1], [S2], etc.\n`;
-      user += `6. Beschrijf specifieke processen, methodieken, tools, ervaring van DIT bedrijf\n`;
-      user += `7. Als informatie ontbreekt, schrijf dan: "[Te specificeren: concrete voorbeelden van...]"\n\n`;
+      user += `VERPLICHTE AANPAK:\n`;
+      user += `1. Lees elke vraag/deelvraag hierboven\n`;
+      user += `2. Beantwoord elke vraag met een H2 of H3 heading die de vraag herhaalt\n`;
+      user += `3. Geef onder elke heading het CONCRETE antwoord met:\n`;
+      user += `   - Specifieke processen/stappen die ${clientCompany?.name || 'het bedrijf'} volgt\n`;
+      user += `   - Namen van tools, systemen, methodieken die gebruikt worden\n`;
+      user += `   - Concrete voorbeelden uit projecten of ervaring\n`;
+      user += `   - Citaties [S1], [S2] bij elk feit\n`;
+      user += `4. SCHRIJF GEEN algemene zinnen over het bedrijf, focus op de VRAAG\n`;
+      user += `5. Als een feit niet in de bronnen staat, schrijf: "[Te specificeren]"\n\n`;
       
-      if (clientCompany?.website) user += `Bedrijf website: ${clientCompany.website}\n`;
+      user += `Bedrijf: ${clientCompany?.name || 'het bedrijf'}\n`;
+      if (clientCompany?.website) user += `Website: ${clientCompany.website}\n`;
       if (clientCompany?.address?.city) user += `Locatie: ${clientCompany.address.city}\n`;
-      if (buyerDocSummary) user += `\nLeidraad context: ${buyerDocSummary.slice(0, 1000)}\n`;
       
-      user += `\n=== BRONFRAGMENTEN (Gebruik deze voor concrete antwoorden) ===\n`;
+      user += `\n=== BRONFRAGMENTEN (Gebruik deze voor antwoorden) ===\n`;
       for (const s of contextSnippets) {
         user += `\n---\n${s.text.slice(0, 1500)}\nBron: ${s.source}\n`;
       }
       
-      user += `\n\nSTRUCTUUR VAN JE ANTWOORD:\n`;
-      user += `- Begin met een korte inleiding (2-3 zinnen) die de wensvraag benoemt\n`;
-      user += `- Daarna voor elke deelvraag:\n`;
-      user += `  ## [Deelvraag]\n`;
-      user += `  [Concreet antwoord met feiten en citaties]\n`;
-      user += `- Sluit af met een korte conclusie\n`;
-      user += `- Voeg onderaan een Referenties sectie toe\n`;
+      user += `\n\nVERWACHTE STRUCTUUR (VERPLICHT):\n\n`;
+      user += `[Optioneel: 1-2 zinnen context]\n\n`;
+      user += `## [Vraag/Deelvraag 1 letterlijk overnemen]\n\n`;
+      user += `[Direct het antwoord - concreet, specifiek, met citaties]\n`;
+      user += `- Stap 1: [concrete beschrijving] [S1]\n`;
+      user += `- Stap 2: [concrete beschrijving] [S2]\n`;
+      user += `Voorbeeld: [concreet voorbeeld] [S3]\n\n`;
+      user += `## [Vraag/Deelvraag 2 letterlijk overnemen]\n\n`;
+      user += `[Direct het antwoord - concreet, specifiek, met citaties]\n\n`;
+      user += `[Herhaal voor elke vraag]\n\n`;
+      user += `## Referenties\n`;
+      user += `[S1] Bron 1\n`;
+      user += `[S2] Bron 2\n`;
       
     } else {
       // OUDE AANPAK: Algemene tekst genereren
