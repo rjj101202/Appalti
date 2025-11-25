@@ -60,10 +60,12 @@ export default function StageEditorPage() {
   const [extractingKeyData, setExtractingKeyData] = useState(false);
   const [extractedCriteria, setExtractedCriteria] = useState<Array<{ 
     title: string; 
+    isPerceel?: boolean;
     weight?: number; 
     sourceReference?: string;
     subCriteria: Array<{
       title: string;
+      weight?: number;
       points?: number;
       sourceReference?: string;
       assessmentPoints: string[];
@@ -1210,12 +1212,12 @@ export default function StageEditorPage() {
                 <div style={{ padding: '0.75rem' }}>
                   {extractedCriteria.map((criterion, idx) => (
                     <div key={idx} style={{ marginBottom: idx < extractedCriteria.length - 1 ? '1rem' : 0 }}>
-                      {/* Hoofdcriterium */}
+                      {/* Hoofdcriterium / Perceel */}
                       <div 
                         style={{ 
                           padding: '0.75rem',
-                          background: '#f3e8ff',
-                          border: '2px solid #c084fc',
+                          background: criterion.isPerceel ? '#ddd6fe' : '#f3e8ff',
+                          border: '2px solid ' + (criterion.isPerceel ? '#a78bfa' : '#c084fc'),
                           borderRadius: '6px',
                           cursor: 'pointer',
                           transition: 'all 0.2s'
@@ -1232,6 +1234,11 @@ export default function StageEditorPage() {
                       >
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <div style={{ flex: 1 }}>
+                            {criterion.isPerceel && (
+                              <div style={{ fontSize: '0.7rem', color: '#7c3aed', fontWeight: 600, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                Perceel
+                              </div>
+                            )}
                             <div style={{ fontWeight: 600, color: '#6b21a8', fontSize: '0.95rem' }}>
                               {criterion.title}
                             </div>
@@ -1255,7 +1262,7 @@ export default function StageEditorPage() {
                               title={`Bron: ${criterion.sourceReference}`}
                               onClick={(e) => e.stopPropagation()}
                             >
-                              Bron: {criterion.sourceReference}
+                              {criterion.sourceReference}
                             </div>
                           )}
                           <div style={{ marginLeft: '0.5rem', color: '#8b5cf6', fontSize: '1.2rem' }}>
@@ -1298,11 +1305,14 @@ export default function StageEditorPage() {
                                       <div style={{ fontWeight: 500, color: '#374151', fontSize: '0.9rem' }}>
                                         {subCrit.title}
                                       </div>
-                                      {subCrit.points !== undefined && (
-                                        <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.15rem' }}>
-                                          {subCrit.points} punten
-                                        </div>
-                                      )}
+                                      <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.15rem', display: 'flex', gap: '0.75rem' }}>
+                                        {subCrit.weight !== undefined && (
+                                          <span>Weging: {subCrit.weight}%</span>
+                                        )}
+                                        {subCrit.points !== undefined && (
+                                          <span>Punten: {subCrit.points}</span>
+                                        )}
+                                      </div>
                                     </div>
                                     {subCrit.sourceReference && (
                                       <div 

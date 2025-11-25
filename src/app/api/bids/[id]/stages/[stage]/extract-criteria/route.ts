@@ -78,28 +78,36 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const xApiKey = process.env.X_AI_API;
     if (!xApiKey) return NextResponse.json({ error: 'X_AI_API missing' }, { status: 500 });
 
-    const system = `Je bent een expert in Nederlandse aanbestedingen. Je taak is om gunningscriteria en hun volledige hiërarchische structuur te extraheren uit aanbestedingsdocumenten.
+    const system = `Je bent een expert in Nederlandse aanbestedingen. Je taak is om de VOLLEDIGE hiërarchische structuur van percelen en gunningscriteria te extraheren.
 
-BELANGRIJK: Behoud de exacte structuur met:
-- Hoofdcriteria (bijv. "Kwaliteit van de tekeningen")
-- Sub-criteria met puntenverdeling (bijv. "a) Aanpak en aanpassingen tekeningen (40 punten)")
-- Specifieke beoordelingspunten als bullets onder elk sub-criterium
+KRITIEKE HIËRARCHIE (4 niveaus):
+1. PERCEEL niveau (bijv. "Perceel 1 specifiek ICT")
+2. KWALITATIEF GUNNINGSCRITERIUM niveau (bijv. "Kwaliteit" met weging 60%)
+3. SUB-GUNNINGSCRITERIUM niveau (bijv. "SG 1. Werving-, selectie- en contracteringsproces" met 35%)
+4. DEELVRAGEN/BEOORDELINGSPUNTEN niveau (bullets onder elk sub-criterium)
 
-Geef je antwoord ALTIJD in dit exacte JSON formaat (zonder extra tekst):
+LET OP FINANCIEEL:
+- Skip "Inschrijfprijs" en "Financieel" criteria
+- Focus ALLEEN op kwalitatieve criteria
+
+Geef je antwoord ALTIJD in dit exacte JSON formaat:
 {
   "criteria": [
     {
-      "title": "Hoofdcriterium titel",
-      "weight": 30,
-      "sourceReference": "Sectie 2.2, blz X",
+      "title": "Perceel 1 specifiek ICT (of Kwalitatief gunningscriterium)",
+      "isPerceel": true,
+      "weight": 60,
+      "sourceReference": "Sectie 4, blz 36",
       "subCriteria": [
         {
-          "title": "Sub-criterium titel (bijv. a) Aanpak en aanpassingen tekeningen)",
-          "points": 40,
-          "sourceReference": "blz X",
+          "title": "SG 1. Werving-, selectie- en contracteringsproces",
+          "weight": 35,
+          "points": 35,
+          "sourceReference": "blz 36",
           "assessmentPoints": [
-            "Eerste beoordelingspunt",
-            "Tweede beoordelingspunt"
+            "Eerste beoordelingspunt/deelvraag",
+            "Tweede beoordelingspunt/deelvraag",
+            "Derde beoordelingspunt/deelvraag"
           ]
         }
       ]
@@ -107,48 +115,93 @@ Geef je antwoord ALTIJD in dit exacte JSON formaat (zonder extra tekst):
   ]
 }`;
 
-    const user = `Analyseer het volgende Nederlandse aanbestedingsdocument en extraheer de VOLLEDIGE hiërarchische structuur van gunningscriteria.
+    const user = `Analyseer het volgende Nederlandse aanbestedingsdocument en extraheer ALLE percelen en kwalitatieve gunningscriteria.
 
 Document tekst (eerste 8000 karakters):
 ${documentText.slice(0, 8000)}
 
-KRITIEKE INSTRUCTIES:
+HIËRARCHIE OM TE EXTRAHEREN (4 NIVEAUS):
 
-1. HOOFDCRITERIA (niveau 1):
-   - Dit zijn de top-level criteria zoals "Financieel", "Kwaliteit"
-   - Zoek deze in de tabel met "Gunningscriterium" en "Weging in %"
-   - Extraheer EXACT de titel en het weging percentage
+NIVEAU 1 - PERCELEN (indien aanwezig):
+- Zoek naar "Perceel 1", "Perceel 2", etc.
+- Of direct naar hoofdcriteria als er geen percelen zijn
+- Bijvoorbeeld: "Kwalitatief gunningscriterium perceel 1 specifiek ICT"
 
-2. SUB-CRITERIA (niveau 2):
-   - Dit zijn de criteria die ONDER een hoofdcriterium vallen
-   - Bijvoorbeeld onder "Kwaliteit": "1. Kwaliteit van de tekeningen (200 punten)", "2. Werkwijze en tekenafspraken (100 punten)"
-   - Extraheer de volledige titel MET nummering en het aantal punten tussen haakjes
+NIVEAU 2 - KWALITATIEVE GUNNINGSCRITERIA:
+- Dit zijn criteria zoals "Kwaliteit", "Aanpak", etc.
+- SKIP "Inschrijfprijs" en "Financieel"
+- Extraheer de weging in % (bijv. 60%)
+- Zoek in tabellen met "Gunningscriterium" en "Weging in %"
 
-3. SUB-SUB-CRITERIA EN BEOORDELINGSPUNTEN (niveau 3):
-   - Dit zijn genummerde sub-items onder een sub-criterium
-   - Bijvoorbeeld "a) Aanpak en aanpassingen tekeningen (40 punten)" onder "Kwaliteit van de tekeningen"
-   - Daarbinnen zijn er vaak bullet points met specifieke beoordelingscriteria
-   - Extraheer ALLE bullets als assessmentPoints
+NIVEAU 3 - SUB-GUNNINGSCRITERIA (SG):
+- Dit zijn items zoals "SG 1. Werving-, selectie- en contracteringsproces"
+- Staan vaak in een tabel met "Sub-gunningscriteria", "Weging in %", "Te behalen punten"
+- Extraheer:
+  * Volledige titel (inclusief SG nummer)
+  * Weging percentage (bijv. 35%)
+  * Aantal punten (bijv. 35 punten)
+- BELANGRIJK: ALLE SG items moeten worden geëxtraheerd, ook "n.v.t." items
 
-4. BEOORDELINGSPUNTEN (niveau 4):
-   - Dit zijn de specifieke bullets die beoordeeld worden
-   - Bijvoorbeeld: "Correcte toepassing van normen en symbolen (90 punten)"
-   - Met sub-bullets zoals "Volledigheid met NEN-1414"
-   - Extraheer deze als losse items in de assessmentPoints array
+NIVEAU 4 - DEELVRAGEN/BEOORDELINGSPUNTEN:
+- Dit zijn de specifieke vragen of bullets onder elk SG
+- Kunnen in tekst staan of als bullets/opsommingen
+- Extraheer ALLE punten die beoordeeld worden
+- Dit kunnen er 5, 10 of meer zijn per SG
 
-5. BRONVERWIJZINGEN:
-   - Vermeld sectienummer (bijv. "2.2", "2.3")
-   - Probeer paginanummer te vinden indien vermeld
+KRITIEKE REGELS:
+1. Extraheer ALLE sub-gunningscriteria (SG 1, SG 2, SG 3, etc.) - niet maar 1 of 2!
+2. Voor elk SG, extraheer ALLE deelvragen/beoordelingspunten
+3. Skip alleen "Inschrijfprijs" en puur financiële criteria
+4. Behoud nummering en structuur exact zoals in document
+5. Voeg bronverwijzingen toe (sectie/pagina)
 
-VOORBEELD STRUCTUUR uit het document:
-- Hoofdcriterium: "Kwaliteit" (30%)
-  - Sub-criterium: "1. Kwaliteit van de tekeningen (casus) (200 punten)"
-    - Sub-sub: "a) Aanpak en aanpassingen tekeningen (40 punten)"
-      - Bullets: ["Beschrijving van het proces...", "Uitleg over de communicatie..."]
-    - Sub-sub: "b) Omgang met wijzigingen (verbetermeldeling) (20 punten)"
-      - Bullets: ["Geef aan welke aanpak u hanteert..."]
+VOORBEELD VERWACHTE OUTPUT:
+{
+  "criteria": [
+    {
+      "title": "Kwalitatief gunningscriterium perceel 1 specifiek ICT",
+      "isPerceel": true,
+      "weight": 60,
+      "sourceReference": "Sectie 4, blz 36",
+      "subCriteria": [
+        {
+          "title": "SG 1. Werving-, selectie- en contracteringsproces",
+          "weight": 35,
+          "points": 35,
+          "assessmentPoints": [
+            "Beschrijving van selectieproces",
+            "Kwaliteitsborging van personeel",
+            "Contractering en voorwaarden",
+            "... alle andere punten ..."
+          ]
+        },
+        {
+          "title": "SG 2. Samenwerking en communicatie",
+          "weight": 35,
+          "points": 35,
+          "assessmentPoints": [
+            "Communicatiemethoden",
+            "Rapportagestructuur",
+            "Contactmomenten",
+            "... alle andere punten ..."
+          ]
+        },
+        {
+          "title": "SG 3. Presentatie",
+          "weight": null,
+          "points": null,
+          "assessmentPoints": [
+            "Presentatie van 10 minuten",
+            "Toelichting op aanpak"
+          ]
+        }
+      ]
+    }
+  ]
+}
 
-Geef ALLEEN valide JSON terug, geen extra tekst. Zorg dat de hiërarchie correct is volgens bovenstaande structuur.`;
+BELANGRIJK: Extraheer ALLE sub-criteria en ALLE assessment points volledig!
+Geef ALLEEN valide JSON terug, geen extra tekst.`;
 
     const xaiRes = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
@@ -180,10 +233,12 @@ Geef ALLEEN valide JSON terug, geen extra tekst. Zorg dat de hiërarchie correct
     let extractedData: { 
       criteria: Array<{ 
         title: string; 
+        isPerceel?: boolean;
         weight?: number; 
         sourceReference?: string;
         subCriteria: Array<{
           title: string;
+          weight?: number;
           points?: number;
           sourceReference?: string;
           assessmentPoints: string[];
@@ -213,6 +268,15 @@ Geef ALLEEN valide JSON terug, geen extra tekst. Zorg dat de hiërarchie correct
     const totalAssessmentPoints = extractedData.criteria.reduce((sum, c) => 
       sum + c.subCriteria.reduce((s, sc) => s + (sc.assessmentPoints?.length || 0), 0), 0
     );
+
+    // Log voor debugging
+    console.log(`[EXTRACT-CRITERIA] Extracted structure:`);
+    for (const crit of extractedData.criteria) {
+      console.log(`  - ${crit.title} (${crit.weight}%): ${crit.subCriteria?.length || 0} sub-criteria`);
+      for (const sub of crit.subCriteria || []) {
+        console.log(`    - ${sub.title}: ${sub.assessmentPoints?.length || 0} assessment points`);
+      }
+    }
 
     // Sla de geëxtraheerde criteria op bij de bid stage
     const stageKey = parsedParams.data.stage;
@@ -253,13 +317,13 @@ Geef ALLEEN valide JSON terug, geen extra tekst. Zorg dat de hiërarchie correct
       );
     }
 
-    console.log(`[EXTRACT-CRITERIA] Extracted ${extractedData.criteria.length} criteria with ${totalSubCriteria} sub-criteria for bid ${parsedParams.data.id}, stage ${stageKey}`);
+    console.log(`[EXTRACT-CRITERIA] Successfully extracted ${extractedData.criteria.length} criteria with ${totalSubCriteria} sub-criteria and ${totalAssessmentPoints} assessment points for bid ${parsedParams.data.id}`);
 
     return NextResponse.json({ 
       success: true, 
       data: { 
         criteria: extractedData.criteria,
-        message: `${extractedData.criteria.length} hoofdcriteria, ${totalSubCriteria} sub-criteria, ${totalAssessmentPoints} beoordelingspunten geëxtraheerd`
+        message: `${extractedData.criteria.length} ${extractedData.criteria.length === 1 ? 'criterium' : 'criteria'}, ${totalSubCriteria} sub-criteria, ${totalAssessmentPoints} beoordelingspunten`
       } 
     });
   } catch (e: any) {
