@@ -76,6 +76,8 @@ export default function StageEditorPage() {
   const [expandedCriteria, setExpandedCriteria] = useState<Set<number>>(new Set());
   const [expandedSubCriteria, setExpandedSubCriteria] = useState<Set<string>>(new Set());
   const [editingExtractedCriteria, setEditingExtractedCriteria] = useState(false);
+  const [keyDataExpanded, setKeyDataExpanded] = useState(false);
+  const [referencesExpanded, setReferencesExpanded] = useState(false);
 
   // Hover preview tooltip state
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -286,11 +288,15 @@ export default function StageEditorPage() {
         ));
         setSelectedCriterionId(newCriterion.id);
       } else {
-        // Update bestaand criterium
+        // Update bestaand criterium - stuur ALLE velden mee
         const res = await fetch(`/api/bids/${bidId}/stages/${stage}/criteria/${selectedCriterionId}`, { 
           method: 'PUT', 
           headers: { 'Content-Type': 'application/json' }, 
-          body: JSON.stringify({ content: html, aiContext: selectedCriterion.aiContext }) 
+          body: JSON.stringify({ 
+            title: selectedCriterion.title,
+            content: html, 
+            aiContext: selectedCriterion.aiContext 
+          }) 
         });
         const json = await res.json();
         if (!res.ok || !json.success) throw new Error(json.error || 'Opslaan mislukt');
@@ -1051,78 +1057,227 @@ export default function StageEditorPage() {
               </label>
               <ExportButtons clientId={String(clientId)} tenderId={String(tenderId)} stage={stage} />
             </div>
-            {/* Design hulp: stijlgids voor consistente opmaak */}
-            {/* Bronnen & Referenties */}
+            {/* Bronnen & Referenties - Gedetailleerd Dropdown */}
             {(tenderLink || (sourceLinks && sourceLinks.length) || (sources && sources.length)) && (
-              <div style={{ marginTop: '1rem' }}>
-                <h3>Referenties</h3>
-                <ul>
-                  {tenderLink && <li><a href={tenderLink} target="_blank" rel="noreferrer">Aankondiging op TenderNed</a></li>}
-                  {sources.map((s,i)=> (
-                    <li
-                      key={i}
-                      style={{ display:'flex', alignItems:'center', gap:8, position:'relative' }}
-                      onMouseEnter={async (e)=>{
-                        setHoverIdx(i);
-                        setHoverPos({ x: (e.currentTarget.getBoundingClientRect().right + window.scrollX + 12), y: (e.currentTarget.getBoundingClientRect().top + window.scrollY) });
-                        try {
-                          // Only preview if we can resolve a document + chunk
-                          const docId = (typeof s.documentId === 'string') ? s.documentId : (s as any).documentId?.$oid || undefined;
-                          const firstChunk = s.chunks && s.chunks.length ? s.chunks[0].index : undefined;
-                          if (docId && typeof firstChunk === 'number') {
-                            const params = new URLSearchParams({ docId, chunkIndex: String(firstChunk), window: '1' });
-                            const r = await fetch(`/api/knowledge/chunk/preview?${params.toString()}`);
-                            const j = await r.json();
-                            if (r.ok && j.success) {
-                              const focus = j.data?.focus?.text || '';
-                              const prev = j.data?.prev?.text || '';
-                              const next = j.data?.next?.text || '';
-                              setHoverText([prev && `… ${prev}`, focus, next && `${next} …`].filter(Boolean).join('\n\n'));
-                            } else {
-                              setHoverText(s.snippet || '');
-                            }
-                          } else {
-                            setHoverText(s.snippet || '');
-                          }
-                        } catch {
-                          setHoverText(s.snippet || '');
-                        }
-                      }}
-                      onMouseLeave={()=>{ setHoverIdx(null); setHoverText(''); setHoverPos(null); }}
-                      onClick={async ()=>{
-                        try {
-                          const docId = (typeof s.documentId === 'string') ? s.documentId : (s as any).documentId?.$oid || undefined;
-                          const firstChunk = s.chunks && s.chunks.length ? s.chunks[0].index : undefined;
-                          if (docId && typeof firstChunk === 'number') {
-                            const params = new URLSearchParams({ docId, chunkIndex: String(firstChunk), window: '1' });
-                            const r = await fetch(`/api/knowledge/chunk/preview?${params.toString()}`);
-                            const j = await r.json();
-                            if (r.ok && j.success) {
-                              setInspector({ open: true, title: s.title || s.url, content: { prev: j.data?.prev?.text || null, focus: j.data?.focus?.text || null, next: j.data?.next?.text || null } });
-                              return;
-                            }
-                          }
-                          setInspector({ open: true, title: s.title || s.url, content: { prev: null, focus: s.snippet || null, next: null } });
-                        } catch {
-                          setInspector({ open: true, title: s.title || s.url, content: { prev: null, focus: s.snippet || null, next: null } });
-                        }
-                      }}
-                    >
-                      <span title={s.type} aria-label={s.type} style={{ width:18, height:18, display:'inline-flex', alignItems:'center', justifyContent:'center' }}>
-                        {s.type==='client'?'🌳':s.type==='tender'?'🍃':s.type==='attachment'?'📎':'🏠'}
-                      </span>
-                      <a href={s.url||'#'} target="_blank" rel="noreferrer">[{s.label}] {s.title || s.url}</a>
-                      {(hoverIdx===i && hoverPos && hoverText) && (
-                        <div style={{ position:'absolute', top:0, left:'calc(100% + 8px)', zIndex:50, maxWidth: 420, background:'#111827', color:'#f9fafb', borderRadius:8, padding:'8px 10px', boxShadow:'0 8px 20px rgba(0,0,0,0.25)' }}>
-                          <div style={{ fontSize:'0.85em', whiteSpace:'pre-wrap', lineHeight:1.4 }}>{hoverText}</div>
+              <div className="card" style={{ padding: '0', overflow: 'hidden', marginTop: '1rem' }}>
+                <div 
+                  onClick={() => setReferencesExpanded(!referencesExpanded)}
+                  style={{ 
+                    padding: '0.75rem', 
+                    background: '#701c74', 
+                    color: 'white',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600 }}>
+                      Referenties & Bronnen
+                    </h3>
+                    <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', opacity: 0.9 }}>
+                      {sources.length + (tenderLink ? 1 : 0)} bronnen gebruikt
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '1.2rem' }}>
+                    {referencesExpanded ? '▼' : '▶'}
+                  </div>
+                </div>
+                {referencesExpanded && (
+                  <div style={{ padding: '0.75rem' }}>
+                    {tenderLink && (
+                      <div style={{ 
+                        padding: '0.75rem', 
+                        background: '#f0fdf4', 
+                        border: '1px solid #86efac',
+                        borderRadius: '6px',
+                        marginBottom: '0.75rem'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                          <div style={{ fontSize: '1.2rem' }}>🍃</div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, color: '#166534', marginBottom: '0.25rem' }}>
+                              TenderNed Aankondiging
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+                              <strong>Locatie:</strong> Extern (TenderNed platform)
+                            </div>
+                            <a 
+                              href={tenderLink} 
+                              target="_blank" 
+                              rel="noreferrer"
+                              style={{ fontSize: '0.85rem', color: '#701c74', textDecoration: 'underline' }}
+                            >
+                              {tenderLink}
+                            </a>
+                          </div>
                         </div>
-                      )}
-                    </li>
-                  ))}
-                  {sourceLinks.filter(u=>!sources.some(s=>s.url===u)).map((u, i) => (
-                    <li key={`extra-${i}`}><a href={u} target="_blank" rel="noreferrer">{u}</a></li>
-                  ))}
-                </ul>
+                      </div>
+                    )}
+                    
+                    {sources.map((s, i) => {
+                      const getSourceInfo = () => {
+                        switch (s.type) {
+                          case 'client':
+                            return {
+                              icon: '🌳',
+                              label: 'Bedrijfsdocument',
+                              location: 'In platform (Knowledge Base)',
+                              detail: s.title || 'Document',
+                              bg: '#f0f9ff',
+                              borderColor: '#93c5fd',
+                              textColor: '#1e40af'
+                            };
+                          case 'attachment':
+                            return {
+                              icon: '📎',
+                              label: 'Geüploade bijlage',
+                              location: 'In platform (Bid attachments)',
+                              detail: s.title || 'Bijlage',
+                              bg: '#fef3c7',
+                              borderColor: '#fcd34d',
+                              textColor: '#92400e'
+                            };
+                          case 'tender':
+                            return {
+                              icon: '🍃',
+                              label: 'TenderNed document',
+                              location: 'Extern (TenderNed)',
+                              detail: s.title || 'Tender document',
+                              bg: '#f0fdf4',
+                              borderColor: '#86efac',
+                              textColor: '#166534'
+                            };
+                          case 'xai':
+                            return {
+                              icon: '🏠',
+                              label: 'Appalti Best Practice',
+                              location: s.url?.includes('/api/knowledge/') ? 'In platform (appalti_bron)' : 'Extern (X.AI Collection)',
+                              detail: s.title || 'Referentie document',
+                              bg: '#faf5ff',
+                              borderColor: '#d8b4fe',
+                              textColor: '#6b21a8'
+                            };
+                          default:
+                            return {
+                              icon: '❓',
+                              label: 'Onbekend',
+                              location: 'Locatie onbekend - geen metadata beschikbaar',
+                              detail: s.title || s.url || 'Geen informatie beschikbaar',
+                              bg: '#f9fafb',
+                              borderColor: '#d1d5db',
+                              textColor: '#6b7280'
+                            };
+                        }
+                      };
+                      
+                      const info = getSourceInfo();
+                      
+                      return (
+                        <div 
+                          key={i}
+                          style={{ 
+                            padding: '0.75rem', 
+                            background: info.bg, 
+                            border: `1px solid ${info.borderColor}`,
+                            borderRadius: '6px',
+                            marginBottom: '0.5rem'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                            <div style={{ fontSize: '1.2rem' }}>{info.icon}</div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontWeight: 600, color: info.textColor, marginBottom: '0.25rem', fontSize: '0.9rem' }}>
+                                [{s.label}] {info.label}
+                              </div>
+                              <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+                                <strong>Locatie:</strong> {info.location}
+                              </div>
+                              <div style={{ fontSize: '0.85rem', color: '#374151', marginBottom: '0.25rem' }}>
+                                <strong>Document:</strong> {info.detail}
+                              </div>
+                              {s.chunks && s.chunks.length > 0 && (
+                                <div style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                                  📄 Gebruikt: {s.chunks.length} {s.chunks.length === 1 ? 'fragment' : 'fragmenten'}
+                                  {s.chunks[0].pageNumber && ` (o.a. pagina ${s.chunks[0].pageNumber})`}
+                                </div>
+                              )}
+                              {s.snippet && (
+                                <div style={{ 
+                                  fontSize: '0.8rem', 
+                                  color: '#6b7280', 
+                                  marginTop: '0.5rem',
+                                  padding: '0.5rem',
+                                  background: 'white',
+                                  borderLeft: '3px solid ' + info.borderColor,
+                                  borderRadius: '3px',
+                                  fontStyle: 'italic'
+                                }}>
+                                  "{s.snippet.slice(0, 150)}..."
+                                </div>
+                              )}
+                              {s.url && (
+                                <a 
+                                  href={s.url} 
+                                  target="_blank" 
+                                  rel="noreferrer"
+                                  style={{ 
+                                    fontSize: '0.8rem', 
+                                    color: '#701c74', 
+                                    textDecoration: 'underline',
+                                    display: 'inline-block',
+                                    marginTop: '0.5rem'
+                                  }}
+                                >
+                                  → Bekijk bron
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    
+                    {sourceLinks.filter(u => !sources.some(s => s.url === u)).map((u, i) => (
+                      <div 
+                        key={`extra-${i}`}
+                        style={{ 
+                          padding: '0.75rem', 
+                          background: '#f9fafb', 
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          marginBottom: '0.5rem'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                          <div style={{ fontSize: '1.2rem' }}>❓</div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, color: '#6b7280', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
+                              Extra bron
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+                              <strong>Locatie:</strong> Onbekend - geen metadata beschikbaar
+                            </div>
+                            <a 
+                              href={u} 
+                              target="_blank" 
+                              rel="noreferrer"
+                              style={{ 
+                                fontSize: '0.8rem', 
+                                color: '#701c74', 
+                                textDecoration: 'underline',
+                                wordBreak: 'break-all'
+                              }}
+                            >
+                              {u}
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             {/* Bijlagen + Upload */}
@@ -1354,31 +1509,58 @@ export default function StageEditorPage() {
                                 Perceel
                               </div>
                             )}
-                            {editingExtractedCriteria ? (
-                              <input
-                                type="text"
-                                value={criterion.title}
-                                onChange={(e) => {
-                                  const newCriteria = [...extractedCriteria];
-                                  newCriteria[idx].title = e.target.value;
-                                  setExtractedCriteria(newCriteria);
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                                style={{ 
-                                  fontWeight: 600, 
-                                  color: '#6b21a8', 
-                                  fontSize: '0.95rem',
-                                  width: '100%',
-                                  padding: '0.25rem',
-                                  border: '1px solid #9333ea',
-                                  borderRadius: '4px'
-                                }}
-                              />
-                            ) : (
-                              <div style={{ fontWeight: 600, color: '#6b21a8', fontSize: '0.95rem' }}>
-                                {criterion.title}
-                              </div>
-                            )}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              {editingExtractedCriteria ? (
+                                <>
+                                  <input
+                                    type="text"
+                                    value={criterion.title}
+                                    onChange={(e) => {
+                                      const newCriteria = [...extractedCriteria];
+                                      newCriteria[idx].title = e.target.value;
+                                      setExtractedCriteria(newCriteria);
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{ 
+                                      fontWeight: 600, 
+                                      color: '#6b21a8', 
+                                      fontSize: '0.95rem',
+                                      flex: 1,
+                                      padding: '0.25rem',
+                                      border: '1px solid #9333ea',
+                                      borderRadius: '4px'
+                                    }}
+                                  />
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (confirm('Dit hoofdcriterium en alle sub-criteria verwijderen?')) {
+                                        const newCriteria = [...extractedCriteria];
+                                        newCriteria.splice(idx, 1);
+                                        setExtractedCriteria(newCriteria);
+                                      }
+                                    }}
+                                    style={{
+                                      background: '#ef4444',
+                                      color: 'white',
+                                      border: 'none',
+                                      borderRadius: '4px',
+                                      padding: '0.25rem 0.5rem',
+                                      cursor: 'pointer',
+                                      fontSize: '0.85rem',
+                                      fontWeight: 600
+                                    }}
+                                    title="Verwijder hoofdcriterium"
+                                  >
+                                    × Verwijder
+                                  </button>
+                                </>
+                              ) : (
+                                <div style={{ fontWeight: 600, color: '#6b21a8', fontSize: '0.95rem' }}>
+                                  {criterion.title}
+                                </div>
+                              )}
+                            </div>
                             {criterion.weight !== undefined && (
                               <div style={{ fontSize: '0.85rem', color: '#7c3aed', marginTop: '0.25rem' }}>
                                 Weging: {criterion.weight}%
@@ -1438,27 +1620,52 @@ export default function StageEditorPage() {
                                   }}
                                 >
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <div style={{ flex: 1 }}>
+                                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                       {editingExtractedCriteria ? (
-                                        <input
-                                          type="text"
-                                          value={subCrit.title}
-                                          onChange={(e) => {
-                                            const newCriteria = [...extractedCriteria];
-                                            newCriteria[idx].subCriteria[subIdx].title = e.target.value;
-                                            setExtractedCriteria(newCriteria);
-                                          }}
-                                          onClick={(e) => e.stopPropagation()}
-                                          style={{ 
-                                            fontWeight: 500, 
-                                            color: '#374151', 
-                                            fontSize: '0.9rem',
-                                            width: '100%',
-                                            padding: '0.25rem',
-                                            border: '1px solid #d8b4fe',
-                                            borderRadius: '4px'
-                                          }}
-                                        />
+                                        <>
+                                          <input
+                                            type="text"
+                                            value={subCrit.title}
+                                            onChange={(e) => {
+                                              const newCriteria = [...extractedCriteria];
+                                              newCriteria[idx].subCriteria[subIdx].title = e.target.value;
+                                              setExtractedCriteria(newCriteria);
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            style={{ 
+                                              fontWeight: 500, 
+                                              color: '#374151', 
+                                              fontSize: '0.9rem',
+                                              flex: 1,
+                                              padding: '0.25rem',
+                                              border: '1px solid #d8b4fe',
+                                              borderRadius: '4px'
+                                            }}
+                                          />
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              if (confirm('Dit sub-criterium verwijderen?')) {
+                                                const newCriteria = [...extractedCriteria];
+                                                newCriteria[idx].subCriteria.splice(subIdx, 1);
+                                                setExtractedCriteria(newCriteria);
+                                              }
+                                            }}
+                                            style={{
+                                              background: '#ef4444',
+                                              color: 'white',
+                                              border: 'none',
+                                              borderRadius: '3px',
+                                              padding: '0.2rem 0.4rem',
+                                              cursor: 'pointer',
+                                              fontSize: '0.75rem',
+                                              fontWeight: 600
+                                            }}
+                                            title="Verwijder sub-criterium"
+                                          >
+                                            ×
+                                          </button>
+                                        </>
                                       ) : (
                                         <div style={{ fontWeight: 500, color: '#374151', fontSize: '0.9rem' }}>
                                           {subCrit.title}
@@ -1622,14 +1829,31 @@ export default function StageEditorPage() {
             {/* Belangrijke Data */}
             {extractedKeyData.length > 0 && (
               <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-                <div style={{ padding: '0.75rem', background: '#6b7280', color: 'white' }}>
-                  <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>
-                    Belangrijke Data & Informatie
-                  </h3>
-                  <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', opacity: 0.9 }}>
-                    {extractedKeyData.reduce((sum, cat) => sum + cat.items.length, 0)} datapunten
+                <div 
+                  onClick={() => setKeyDataExpanded(!keyDataExpanded)}
+                  style={{ 
+                    padding: '0.75rem', 
+                    background: '#701c74', 
+                    color: 'white',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600 }}>
+                      Belangrijke Data & Informatie
+                    </h3>
+                    <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', opacity: 0.9 }}>
+                      {extractedKeyData.reduce((sum, cat) => sum + cat.items.length, 0)} datapunten
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '1.2rem' }}>
+                    {keyDataExpanded ? '▼' : '▶'}
                   </div>
                 </div>
+                {keyDataExpanded && (
                 <div style={{ padding: '0.75rem' }}>
                   {extractedKeyData.map((category, idx) => (
                     <div key={idx} style={{ marginBottom: idx < extractedKeyData.length - 1 ? '1rem' : 0 }}>
@@ -1663,6 +1887,7 @@ export default function StageEditorPage() {
                     </div>
                   ))}
                 </div>
+                )}
               </div>
             )}
           </div>
