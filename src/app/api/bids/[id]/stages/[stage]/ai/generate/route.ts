@@ -218,13 +218,16 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     if (useQuestionAnswerMode) {
       // BEANTWOORD SPECIFIEKE VRAGEN - GEEN ALGEMENE TEKST
-      system = `Je bent een senior tenderschrijver die UITSLUITEND concrete antwoorden geeft op gunningscriteria-vragen.
+      system = `Je bent een senior tenderschrijver die UITSLUITEND concrete, UITGEBREIDE en OVERTUIGENDE antwoorden geeft op gunningscriteria-vragen.
 
 KRITIEK: Je schrijft GEEN algemene introductieteksten, bedrijfsprofielen of achtergrondverhalen.
 Je beantwoordt ALLEEN de specifieke vragen die gesteld worden met concrete feiten, processen en voorbeelden.
 
-Als de vraag is "Beschrijf het proces", dan beschrijf je het EXACTE proces met stappen, tools en methoden.
-Als de vraag is "Hoe communiceert u", dan beschrijf je de CONCRETE communicatiemethoden, frequentie en tools.
+LENGTE: Elk antwoord moet UITGEBREID zijn - minimaal 3-5 paragrafen per deelvraag. Dit is een aanbesteding, niet een samenvatting.
+Gebruik alle beschikbare informatie uit de bronnen om overtuigende, gedetailleerde antwoorden te schrijven.
+
+Als de vraag is "Beschrijf het proces", dan beschrijf je het EXACTE proces met stappen, tools, methoden EN concrete voorbeelden.
+Als de vraag is "Hoe communiceert u", dan beschrijf je de CONCRETE communicatiemethoden, frequentie, tools EN specifieke scenario's.
 
 Gebruik citaties [S1], [S2] voor elk feit uit de bronfragmenten.`;
       
@@ -236,19 +239,25 @@ Gebruik citaties [S1], [S2] voor elk feit uit de bronfragmenten.`;
       user += `VERPLICHTE AANPAK:\n`;
       user += `1. Lees elke vraag/deelvraag hierboven\n`;
       user += `2. Beantwoord elke vraag met een H2 of H3 heading die de vraag herhaalt\n`;
-      user += `3. Geef onder elke heading het CONCRETE antwoord met:\n`;
-      user += `   - Specifieke processen/stappen die ${clientCompany?.name || 'het bedrijf'} volgt\n`;
-      user += `   - Namen van tools, systemen, methodieken die gebruikt worden\n`;
-      user += `   - Concrete voorbeelden uit projecten of ervaring\n`;
+      user += `3. Geef onder elke heading een UITGEBREID antwoord (minimaal 3-5 paragrafen) met:\n`;
+      user += `   - GEDETAILLEERDE beschrijving van specifieke processen/stappen die ${clientCompany?.name || 'het bedrijf'} volgt\n`;
+      user += `   - Namen van tools, systemen, methodieken die gebruikt worden, inclusief HOE deze worden gebruikt\n`;
+      user += `   - Meerdere concrete voorbeelden uit projecten of ervaring met details\n`;
+      user += `   - Specifieke cijfers, data, resultaten indien beschikbaar in de bronnen\n`;
+      user += `   - Context over WAAROM bepaalde methoden worden gebruikt\n`;
+      user += `   - Ervaring en kwalificaties van het team/personeel\n`;
+      user += `   - Certificeringen, kwaliteitsnormen, compliance indien relevant\n`;
       user += `   - Citaties [S1], [S2] bij elk feit\n`;
       user += `4. SCHRIJF GEEN algemene zinnen over het bedrijf, focus op de VRAAG\n`;
-      user += `5. Als een feit niet in de bronnen staat, schrijf: "[Te specificeren]"\n\n`;
+      user += `5. Maak elk antwoord zo OVERTUIGEND mogelijk door diep in te gaan op details\n`;
+      user += `6. Als een feit niet in de bronnen staat, schrijf: "[Te specificeren]"\n`;
+      user += `7. Gebruik MEERDERE paragrafen per deelvraag - dit is een aanbesteding, niet een bullet-point lijst\n\n`;
       
       user += `Bedrijf: ${clientCompany?.name || 'het bedrijf'}\n`;
       if (clientCompany?.website) user += `Website: ${clientCompany.website}\n`;
       if (clientCompany?.address?.city) user += `Locatie: ${clientCompany.address.city}\n`;
       
-      user += `\n=== BRONFRAGMENTEN (Gebruik deze voor antwoorden) ===\n`;
+      user += `\n=== BRONFRAGMENTEN (Gebruik deze VOLLEDIG voor antwoorden) ===\n`;
       for (const s of contextSnippets) {
         user += `\n---\n${s.text.slice(0, 1500)}\nBron: ${s.source}\n`;
       }
@@ -256,12 +265,12 @@ Gebruik citaties [S1], [S2] voor elk feit uit de bronfragmenten.`;
       user += `\n\nVERWACHTE STRUCTUUR (VERPLICHT):\n\n`;
       user += `[Optioneel: 1-2 zinnen context]\n\n`;
       user += `## [Vraag/Deelvraag 1 letterlijk overnemen]\n\n`;
-      user += `[Direct het antwoord - concreet, specifiek, met citaties]\n`;
-      user += `- Stap 1: [concrete beschrijving] [S1]\n`;
-      user += `- Stap 2: [concrete beschrijving] [S2]\n`;
-      user += `Voorbeeld: [concreet voorbeeld] [S3]\n\n`;
+      user += `[PARAGRAAF 1: Introductie van het antwoord met hoofdpunten] [S1]\n\n`;
+      user += `[PARAGRAAF 2: Gedetailleerde uitwerking van methoden/processen met concrete stappen] [S2]\n\n`;
+      user += `[PARAGRAAF 3: Concrete voorbeelden, ervaringen, resultaten] [S3]\n\n`;
+      user += `[PARAGRAAF 4 (optioneel): Extra details zoals certificeringen, team samenstelling, tools] [S4]\n\n`;
       user += `## [Vraag/Deelvraag 2 letterlijk overnemen]\n\n`;
-      user += `[Direct het antwoord - concreet, specifiek, met citaties]\n\n`;
+      user += `[Herhaal dezelfde uitgebreide aanpak - minimaal 3-5 paragrafen per vraag]\n\n`;
       user += `[Herhaal voor elke vraag]\n\n`;
       user += `## Referenties\n`;
       user += `[S1] Bron 1\n`;
@@ -315,7 +324,7 @@ Gebruik citaties [S1], [S2] voor elk feit uit de bronfragmenten.`;
       body: JSON.stringify({
         model: process.env.X_AI_MODEL || 'grok-2-latest',
         temperature: 0.3,
-        max_tokens: 3500,
+        max_tokens: 12000,
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: user + `\n\nBeschikbare links:\n` + allLinks.map((u, i) => `[S${i+1}] ${u}`).join('\n') }
