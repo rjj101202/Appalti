@@ -954,7 +954,7 @@ export default function StageEditorPage() {
                     borderRadius: '6px',
                     fontWeight: 500
                   }}>
-                    ✓ Beantwoordingsmodus actief
+                    Beantwoordingsmodus actief
                   </div>
                 ) : (
                   <div style={{ 
@@ -965,7 +965,7 @@ export default function StageEditorPage() {
                     borderRadius: '6px',
                     fontWeight: 500
                   }}>
-                    ! Vul eerst AI Instructies in
+                    Vul eerst AI Instructies in
                   </div>
                 );
               })()}

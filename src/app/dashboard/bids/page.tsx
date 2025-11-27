@@ -144,10 +144,10 @@ export default function BidsPage() {
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', flex: 1 }}>
               {[
-                { type: 'ContractNotice' as TenderNoticeType, label: 'Actief', bg: '#d1fae5', color: '#065f46', activeBg: '#065f46', activeColor: '#fff' },
-                { type: 'PriorInformationNotice' as TenderNoticeType, label: 'Voorafgaande Mededeling', bg: '#fef3c7', color: '#92400e', activeBg: '#92400e', activeColor: '#fff' },
-                { type: 'ContractAwardNotice' as TenderNoticeType, label: 'Al gegund', bg: '#fee2e2', color: '#991b1b', activeBg: '#991b1b', activeColor: '#fff' }
-              ].map(({ type, label, bg, color, activeBg, activeColor }) => {
+                { type: 'ContractNotice' as TenderNoticeType, label: 'Actief' },
+                { type: 'PriorInformationNotice' as TenderNoticeType, label: 'Voorafgaande Mededeling' },
+                { type: 'ContractAwardNotice' as TenderNoticeType, label: 'Al gegund' }
+              ].map(({ type, label }) => {
                 const isActive = selectedTenderTypes.includes(type);
                 return (
                   <button
@@ -162,14 +162,14 @@ export default function BidsPage() {
                     style={{
                       padding: '0.5rem 1rem',
                       borderRadius: '20px',
-                      border: 'none',
+                      border: isActive ? 'none' : '2px solid #e5e7eb',
                       cursor: 'pointer',
                       fontSize: '0.9em',
                       fontWeight: 600,
-                      backgroundColor: isActive ? activeBg : bg,
-                      color: isActive ? activeColor : color,
+                      backgroundColor: isActive ? '#701c74' : '#f9fafb',
+                      color: isActive ? '#ffffff' : '#701c74',
                       transition: 'all 0.2s',
-                      boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.15)' : 'none'
+                      boxShadow: isActive ? '0 2px 8px rgba(112, 28, 116, 0.25)' : 'none'
                     }}
                   >
                     {label}
