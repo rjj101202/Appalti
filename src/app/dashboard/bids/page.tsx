@@ -42,6 +42,7 @@ export default function BidsPage() {
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({ q: '', cpv: '', deadlineBefore: '', newSince: '', sector: '', city: '', buyer: '' });
   const [selectedCPVCodes, setSelectedCPVCodes] = useState<string[]>([]);
+  const [selectedTenderTypes, setSelectedTenderTypes] = useState<TenderNoticeType[]>(['ContractNotice', 'PriorInformationNotice']); // Default: toon actieve tenders
   const [total, setTotal] = useState<number | undefined>(undefined);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -66,6 +67,13 @@ export default function BidsPage() {
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Laden mislukt');
       let array = Array.isArray(data.items) ? data.items : [];
+      
+      // Client-side filtering for tender types
+      if (selectedTenderTypes.length > 0) {
+        array = array.filter((item: any) => 
+          selectedTenderTypes.includes(item.tenderNoticeType)
+        );
+      }
       
       // Client-side filtering for sector, city, buyer (not supported by TenderNed API)
       if (filters.sector) {
@@ -101,7 +109,7 @@ export default function BidsPage() {
   useEffect(() => {
     load(0, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selectedTenderTypes]);
 
   const applyFilters = () => load(0, false);
 
@@ -131,27 +139,48 @@ export default function BidsPage() {
           <p>Overzicht van openbare aanbestedingen (TenderNed) met filters en paginatie.</p>
         </div>
 
-        {/* Quick Filters */}
+        {/* Tender Type Filters */}
         <div className="card" style={{ marginBottom: '1rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '0.75rem', alignItems: 'center' }}>
-            <input placeholder="Zoekterm" value={filters.q} onChange={e => setFilters({ ...filters, q: e.target.value })} />
-            <input placeholder="CPV" value={filters.cpv} onChange={e => setFilters({ ...filters, cpv: e.target.value })} />
-            <button className="btn btn-primary" onClick={() => setShowFilterModal(true)}>
-              Geavanceerd Filteren
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', flex: 1 }}>
+              {[
+                { type: 'ContractNotice' as TenderNoticeType, label: 'Actief', bg: '#d1fae5', color: '#065f46', activeBg: '#065f46', activeColor: '#fff' },
+                { type: 'PriorInformationNotice' as TenderNoticeType, label: 'Voorafgaande Mededeling', bg: '#fef3c7', color: '#92400e', activeBg: '#92400e', activeColor: '#fff' },
+                { type: 'ContractAwardNotice' as TenderNoticeType, label: 'Al gegund', bg: '#fee2e2', color: '#991b1b', activeBg: '#991b1b', activeColor: '#fff' }
+              ].map(({ type, label, bg, color, activeBg, activeColor }) => {
+                const isActive = selectedTenderTypes.includes(type);
+                return (
+                  <button
+                    key={type}
+                    onClick={() => {
+                      if (isActive) {
+                        setSelectedTenderTypes(prev => prev.filter(t => t !== type));
+                      } else {
+                        setSelectedTenderTypes(prev => [...prev, type]);
+                      }
+                    }}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '20px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '0.9em',
+                      fontWeight: 600,
+                      backgroundColor: isActive ? activeBg : bg,
+                      color: isActive ? activeColor : color,
+                      transition: 'all 0.2s',
+                      boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.15)' : 'none'
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <button className="btn btn-secondary" onClick={() => setShowFilterModal(true)} style={{ fontSize: '0.85em', whiteSpace: 'nowrap' }}>
+              Meer filters
             </button>
           </div>
-          {(filters.sector || filters.city || filters.buyer || filters.deadlineBefore || filters.newSince) && (
-            <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              {filters.sector && <span className="badge" style={{ backgroundColor: '#f3e8ff', color: '#701c74' }}>Sector: {filters.sector}</span>}
-              {filters.city && <span className="badge" style={{ backgroundColor: '#f3e8ff', color: '#701c74' }}>Stad: {filters.city}</span>}
-              {filters.buyer && <span className="badge" style={{ backgroundColor: '#f3e8ff', color: '#701c74' }}>Opdrachtgever: {filters.buyer}</span>}
-              {filters.deadlineBefore && <span className="badge" style={{ backgroundColor: '#f3e8ff', color: '#701c74' }}>Deadline voor: {filters.deadlineBefore}</span>}
-              {filters.newSince && <span className="badge" style={{ backgroundColor: '#f3e8ff', color: '#701c74' }}>Nieuw sinds: {filters.newSince}</span>}
-              <button className="btn btn-secondary" onClick={() => setFilters({ q: '', cpv: '', deadlineBefore: '', newSince: '', sector: '', city: '', buyer: '' })} style={{ fontSize: '0.85em' }}>
-                Wis filters
-              </button>
-            </div>
-          )}
         </div>
 
         {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
