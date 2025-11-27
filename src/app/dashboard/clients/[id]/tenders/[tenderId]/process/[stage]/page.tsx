@@ -429,6 +429,23 @@ export default function StageEditorPage() {
       setGenLoading(true);
       const bidId = await bidIdFromQuery();
       if (!bidId) throw new Error('Bid niet gevonden');
+      
+      // EERST opslaan zodat de laatste aiContext in de database staat
+      if (selectedCriterionId) {
+        const selectedCriterion = criteria.find(c => c.id === selectedCriterionId);
+        if (selectedCriterion && !selectedCriterion.id.startsWith('temp-')) {
+          // Sla aiContext op voordat we genereren
+          await fetch(`/api/bids/${bidId}/stages/${stage}/criteria/${selectedCriterionId}`, { 
+            method: 'PUT', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ 
+              aiContext: selectedCriterion.aiContext || '',
+              content: editor?.getHTML() || selectedCriterion.content
+            }) 
+          });
+        }
+      }
+      
       const res = await fetch(`/api/bids/${bidId}/stages/${stage}/ai/generate`, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
@@ -1490,59 +1507,105 @@ export default function StageEditorPage() {
                                     }}>
                                       <ul style={{ margin: 0, paddingLeft: editingExtractedCriteria ? 0 : '1.25rem', fontSize: '0.85rem', color: '#4b5563', listStyle: editingExtractedCriteria ? 'none' : 'disc' }}>
                                         {subCrit.assessmentPoints.map((point, pIdx) => (
-                                          <li key={pIdx} style={{ marginBottom: '0.25rem' }}>
+                                          <li key={pIdx} style={{ marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                             {editingExtractedCriteria ? (
-                                              <input
-                                                type="text"
-                                                value={point}
-                                                onChange={(e) => {
-                                                  const newCriteria = [...extractedCriteria];
-                                                  newCriteria[idx].subCriteria[subIdx].assessmentPoints[pIdx] = e.target.value;
-                                                  setExtractedCriteria(newCriteria);
-                                                }}
-                                                style={{ 
-                                                  width: '100%',
-                                                  padding: '0.25rem',
-                                                  fontSize: '0.85rem',
-                                                  border: '1px solid #e5e7eb',
-                                                  borderRadius: '3px'
-                                                }}
-                                              />
+                                              <>
+                                                <input
+                                                  type="text"
+                                                  value={point}
+                                                  onChange={(e) => {
+                                                    const newCriteria = [...extractedCriteria];
+                                                    newCriteria[idx].subCriteria[subIdx].assessmentPoints[pIdx] = e.target.value;
+                                                    setExtractedCriteria(newCriteria);
+                                                  }}
+                                                  style={{ 
+                                                    flex: 1,
+                                                    padding: '0.25rem',
+                                                    fontSize: '0.85rem',
+                                                    border: '1px solid #e5e7eb',
+                                                    borderRadius: '3px'
+                                                  }}
+                                                />
+                                                <button
+                                                  onClick={() => {
+                                                    const newCriteria = [...extractedCriteria];
+                                                    newCriteria[idx].subCriteria[subIdx].assessmentPoints.splice(pIdx, 1);
+                                                    setExtractedCriteria(newCriteria);
+                                                  }}
+                                                  style={{
+                                                    background: '#ef4444',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '3px',
+                                                    padding: '0.25rem 0.5rem',
+                                                    cursor: 'pointer',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 600
+                                                  }}
+                                                  title="Verwijder deze deelvraag"
+                                                >
+                                                  ×
+                                                </button>
+                                              </>
                                             ) : (
                                               point
                                             )}
                                           </li>
                                         ))}
                                       </ul>
+                                      {editingExtractedCriteria && (
+                                        <button
+                                          onClick={() => {
+                                            const newCriteria = [...extractedCriteria];
+                                            newCriteria[idx].subCriteria[subIdx].assessmentPoints.push('Nieuwe deelvraag');
+                                            setExtractedCriteria(newCriteria);
+                                          }}
+                                          style={{
+                                            marginTop: '0.5rem',
+                                            padding: '0.35rem 0.6rem',
+                                            fontSize: '0.8rem',
+                                            background: '#701c74',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            width: '100%'
+                                          }}
+                                        >
+                                          + Nieuwe deelvraag toevoegen
+                                        </button>
+                                      )}
                                     </div>
-                                    <button
-                                      className="btn btn-secondary"
-                                      style={{ 
-                                        fontSize: '0.8rem', 
-                                        padding: '0.35rem 0.6rem', 
-                                        marginTop: '0.5rem',
-                                        width: '100%'
-                                      }}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        // Kopieer naar AI Context veld
-                                        const questionText = `${criterion.title}\n\n${subCrit.title}\n\nBeoordelingspunten:\n${subCrit.assessmentPoints.map(p => `- ${p}`).join('\n')}`;
-                                        
-                                        if (selectedCriterionId) {
-                                          const currentCriterion = criteria.find(c => c.id === selectedCriterionId);
-                                          const newContext = (currentCriterion?.aiContext || '') + '\n\n' + questionText;
-                                          setCriteria(prev => prev.map(c => 
-                                            c.id === selectedCriterionId ? { ...c, aiContext: newContext.trim() } : c
-                                          ));
-                                          setHasUnsavedChanges(true);
-                                          alert('Toegevoegd aan AI Instructies!');
-                                        } else {
-                                          alert('Selecteer eerst een criterium tab om dit toe te voegen');
-                                        }
-                                      }}
-                                    >
-                                      ↓ Kopieer naar AI Instructies
-                                    </button>
+                                    {!editingExtractedCriteria && (
+                                      <button
+                                        className="btn btn-secondary"
+                                        style={{ 
+                                          fontSize: '0.8rem', 
+                                          padding: '0.35rem 0.6rem', 
+                                          marginTop: '0.5rem',
+                                          width: '100%'
+                                        }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          // Kopieer naar AI Context veld
+                                          const questionText = `${criterion.title}\n\n${subCrit.title}\n\nBeoordelingspunten:\n${subCrit.assessmentPoints.map(p => `- ${p}`).join('\n')}`;
+                                          
+                                          if (selectedCriterionId) {
+                                            const currentCriterion = criteria.find(c => c.id === selectedCriterionId);
+                                            const newContext = (currentCriterion?.aiContext || '') + '\n\n' + questionText;
+                                            setCriteria(prev => prev.map(c => 
+                                              c.id === selectedCriterionId ? { ...c, aiContext: newContext.trim() } : c
+                                            ));
+                                            setHasUnsavedChanges(true);
+                                            alert('Toegevoegd aan AI Instructies!');
+                                          } else {
+                                            alert('Selecteer eerst een criterium tab om dit toe te voegen');
+                                          }
+                                        }}
+                                      >
+                                        ↓ Kopieer naar AI Instructies
+                                      </button>
+                                    )}
                                   </div>
                                 )}
                               </div>
