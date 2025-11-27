@@ -75,6 +75,7 @@ export default function StageEditorPage() {
   const leidraadInputRef = useRef<HTMLInputElement>(null);
   const [expandedCriteria, setExpandedCriteria] = useState<Set<number>>(new Set());
   const [expandedSubCriteria, setExpandedSubCriteria] = useState<Set<string>>(new Set());
+  const [editingExtractedCriteria, setEditingExtractedCriteria] = useState(false);
 
   // Hover preview tooltip state
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -652,7 +653,17 @@ export default function StageEditorPage() {
       const documentInfo = { name: file.name, url: documentUrl, uploadedAt: new Date() };
       setLeidraadDocument(documentInfo);
       
-      // We'll save this when extracting criteria (no need for separate API call)
+      // Sla het leidraad document op in de database
+      const saveRes = await fetch(`/api/bids/${bidId}/stages/${stage}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leidraadDocument: documentInfo })
+      });
+      const saveJson = await saveRes.json();
+      if (!saveRes.ok || !saveJson.success) {
+        console.error('Failed to save leidraad document reference:', saveJson.error);
+      }
+      
       alert('Leidraad document geüpload! Klik nu op "Analyseer & Extraheer" om criteria en vragen te halen.');
     } catch (e: any) {
       alert(e?.message || 'Upload mislukt');
@@ -717,6 +728,73 @@ export default function StageEditorPage() {
       alert(e?.message || 'Extractie mislukt');
     } finally {
       setExtractingKeyData(false);
+    }
+  };
+
+  const createTabsFromSubCriteria = async () => {
+    if (extractedCriteria.length === 0) {
+      alert('Geen criteria gevonden. Extraheer eerst de criteria.');
+      return;
+    }
+
+    try {
+      const bidId = await bidIdFromQuery();
+      if (!bidId) throw new Error('Bid niet gevonden');
+
+      // Verzamel alle sub-criteria
+      const newCriteria: Array<{ title: string; content: string; aiContext: string; order: number }> = [];
+      let order = 0;
+
+      for (const mainCrit of extractedCriteria) {
+        if (mainCrit.subCriteria && mainCrit.subCriteria.length > 0) {
+          for (const subCrit of mainCrit.subCriteria) {
+            // Maak AI context van de assessment points
+            const aiContext = `${mainCrit.title}\n\n${subCrit.title}\n\nBeoordelingspunten:\n${(subCrit.assessmentPoints || []).map(p => `- ${p}`).join('\n')}`;
+            
+            newCriteria.push({
+              title: subCrit.title,
+              content: '<p></p>',
+              aiContext: aiContext,
+              order: order++
+            });
+          }
+        }
+      }
+
+      if (newCriteria.length === 0) {
+        alert('Geen sub-criteria gevonden om tabbladen van te maken.');
+        return;
+      }
+
+      // Maak alle criteria aan via API
+      setSaving(true);
+      const createdCriteria = [];
+      for (const crit of newCriteria) {
+        const res = await fetch(`/api/bids/${bidId}/stages/${stage}/criteria`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(crit)
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          createdCriteria.push(json.data.criterion);
+        }
+      }
+
+      // Update lokale state
+      setCriteria(createdCriteria);
+      if (createdCriteria.length > 0) {
+        setSelectedCriterionId(createdCriteria[0].id);
+        if (editor) {
+          editor.commands.setContent(createdCriteria[0].content || '<p></p>');
+        }
+      }
+
+      alert(`${createdCriteria.length} tabbladen aangemaakt uit sub-criteria!`);
+    } catch (e: any) {
+      alert(e?.message || 'Kon tabbladen niet aanmaken');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -893,20 +971,17 @@ export default function StageEditorPage() {
               })()}
             </div>
 
-            {/* AI Context Field - Simplified */}
+            {/* AI Context Field - Minimalistisch */}
             {selectedCriterionId && (() => {
               const selectedCriterion = criteria.find(c => c.id === selectedCriterionId);
               return selectedCriterion ? (
-                <div className="card" style={{ padding: '0', marginBottom: '0.75rem', overflow: 'hidden' }}>
-                  <div style={{ padding: '0.75rem', background: '#f59e0b', color: 'white' }}>
-                    <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>
-                      Instructies voor AI Generatie
+                <div className="card" style={{ padding: '0.75rem', marginBottom: '0.75rem' }}>
+                  <div style={{ marginBottom: '0.5rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: '#701c74' }}>
+                      Deelvragen
                     </h3>
                   </div>
-                  <div style={{ padding: '0.75rem' }}>
-                    <p style={{ fontSize: '0.85rem', color: '#6b7280', margin: '0 0 0.5rem 0' }}>
-                      Vul hier de <strong>wensvraag</strong> (hoofdonderwerp) en <strong>deelvragen</strong> in. De AI beantwoordt deze vragen specifiek voor uw bedrijf met concrete voorbeelden en bewijs uit uw documenten.
-                    </p>
+                  <div>
                     <textarea
                       value={selectedCriterion.aiContext || ''}
                       onChange={(e) => {
@@ -947,7 +1022,6 @@ export default function StageEditorPage() {
 
             {/* Rich editor */}
             <div className="card" style={{ padding: '0.5rem' }}>
-              <Toolbar editor={editor} />
               <div style={{ border: '1px solid #e5e7eb', borderRadius: 6, minHeight: 500, padding: 12, background: '#fff' }}>
                 {editor && <EditorContent editor={editor} />}
               </div>
@@ -961,14 +1035,6 @@ export default function StageEditorPage() {
               <ExportButtons clientId={String(clientId)} tenderId={String(tenderId)} stage={stage} />
             </div>
             {/* Design hulp: stijlgids voor consistente opmaak */}
-            <div className="card" style={{ marginTop: '1rem' }}>
-              <h3>Stijlgids (versie‑specifiek)</h3>
-              <ul style={{ color: '#6b7280' }}>
-                <li>Gebruik H2 voor hoofddelen, H3 voor subsecties.</li>
-                <li>Gebruik opsommingen voor eisen en aanpak.</li>
-                <li>Voeg citaties [S1], [S2] toe bij claims; bewijs is verplicht.</li>
-              </ul>
-            </div>
             {/* Bronnen & Referenties */}
             {(tenderLink || (sourceLinks && sourceLinks.length) || (sources && sources.length)) && (
               <div style={{ marginTop: '1rem' }}>
@@ -1074,27 +1140,23 @@ export default function StageEditorPage() {
             </div>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {/* Leidraad Document Upload (VERPLICHT) */}
-            <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-              <div style={{ 
-                padding: '0.75rem', 
-                background: leidraadDocument ? '#10b981' : '#ef4444',
-                color: 'white'
-              }}>
-                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>
-                  Leidraad Document {leidraadDocument ? '' : '(VERPLICHT)'}
+            {/* Leidraad Document Upload */}
+            <div className="card" style={{ padding: '0.75rem' }}>
+              <div style={{ marginBottom: '0.5rem' }}>
+                <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600, color: '#701c74' }}>
+                  Leidraad Document
                 </h3>
                 {leidraadDocument && (
-                  <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', opacity: 0.9 }}>
+                  <div style={{ fontSize: '0.85rem', marginTop: '0.25rem', color: '#6b7280' }}>
                     {leidraadDocument.name}
                   </div>
                 )}
               </div>
-              <div style={{ padding: '0.75rem' }}>
+              <div>
                 {!leidraadDocument ? (
                   <>
-                    <p style={{ fontSize: '0.85rem', marginBottom: '0.75rem', color: '#4b5563' }}>
-                      Upload het aanbestedingsleidraad document. Dit is <strong>verplicht</strong> om te beginnen met de automatische extractie van criteria en data.
+                    <p style={{ fontSize: '0.85rem', marginBottom: '0.75rem', color: '#6b7280' }}>
+                      Upload het aanbestedingsleidraad document.
                     </p>
                     <button 
                       className="btn btn-primary" 
@@ -1133,6 +1195,14 @@ export default function StageEditorPage() {
                       style={{ width: '100%' }}
                     >
                       {extractingKeyData ? 'Analyseren...' : 'Extraheer Belangrijke Data'}
+                    </button>
+                    <button 
+                      className="btn btn-primary" 
+                      onClick={createTabsFromSubCriteria} 
+                      disabled={saving || extractedCriteria.length === 0}
+                      style={{ width: '100%', background: '#701c74', borderColor: '#701c74' }}
+                    >
+                      ✓ Maak Tabbladen van Sub-criteria
                     </button>
                     <button 
                       className="btn btn-secondary" 
@@ -1200,14 +1270,42 @@ export default function StageEditorPage() {
             {/* Gunningscriteria & Deelvragen */}
             {extractedCriteria.length > 0 && (
               <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-                <div style={{ padding: '0.75rem', background: '#8b5cf6', color: 'white' }}>
-                  <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>
-                    Gunningscriteria & Beoordelingspunten
-                  </h3>
-                  <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', opacity: 0.9 }}>
-                    {extractedCriteria.length} {extractedCriteria.length === 1 ? 'criterium' : 'criteria'} · 
-                    {' '}{extractedCriteria.reduce((sum, c) => sum + (c.subCriteria?.length || 0), 0)} sub-criteria
+                <div style={{ padding: '0.75rem', background: '#701c74', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600 }}>
+                      Gunningscriteria & Beoordelingspunten
+                    </h3>
+                    <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', opacity: 0.9 }}>
+                      {extractedCriteria.length} {extractedCriteria.length === 1 ? 'criterium' : 'criteria'} · 
+                      {' '}{extractedCriteria.reduce((sum, c) => sum + (c.subCriteria?.length || 0), 0)} sub-criteria
+                    </div>
                   </div>
+                  <button 
+                    className="btn btn-secondary" 
+                    onClick={async () => {
+                      if (editingExtractedCriteria) {
+                        // Opslaan
+                        try {
+                          const bidId = await bidIdFromQuery();
+                          if (!bidId) throw new Error('Bid niet gevonden');
+                          const res = await fetch(`/api/bids/${bidId}/stages/${stage}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ extractedCriteria })
+                          });
+                          const json = await res.json();
+                          if (!res.ok || !json.success) throw new Error(json.error || 'Opslaan mislukt');
+                          alert('Criteria opgeslagen!');
+                        } catch (e: any) {
+                          alert(e?.message || 'Opslaan mislukt');
+                        }
+                      }
+                      setEditingExtractedCriteria(!editingExtractedCriteria);
+                    }}
+                    style={{ fontSize: '0.8rem', padding: '0.4rem 0.7rem', background: 'white', color: '#701c74' }}
+                  >
+                    {editingExtractedCriteria ? '✓ Opslaan' : '✎ Bewerken'}
+                  </button>
                 </div>
                 <div style={{ padding: '0.75rem' }}>
                   {extractedCriteria.map((criterion, idx) => (
@@ -1239,9 +1337,31 @@ export default function StageEditorPage() {
                                 Perceel
                               </div>
                             )}
-                            <div style={{ fontWeight: 600, color: '#6b21a8', fontSize: '0.95rem' }}>
-                              {criterion.title}
-                            </div>
+                            {editingExtractedCriteria ? (
+                              <input
+                                type="text"
+                                value={criterion.title}
+                                onChange={(e) => {
+                                  const newCriteria = [...extractedCriteria];
+                                  newCriteria[idx].title = e.target.value;
+                                  setExtractedCriteria(newCriteria);
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                style={{ 
+                                  fontWeight: 600, 
+                                  color: '#6b21a8', 
+                                  fontSize: '0.95rem',
+                                  width: '100%',
+                                  padding: '0.25rem',
+                                  border: '1px solid #9333ea',
+                                  borderRadius: '4px'
+                                }}
+                              />
+                            ) : (
+                              <div style={{ fontWeight: 600, color: '#6b21a8', fontSize: '0.95rem' }}>
+                                {criterion.title}
+                              </div>
+                            )}
                             {criterion.weight !== undefined && (
                               <div style={{ fontSize: '0.85rem', color: '#7c3aed', marginTop: '0.25rem' }}>
                                 Weging: {criterion.weight}%
@@ -1302,9 +1422,31 @@ export default function StageEditorPage() {
                                 >
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                     <div style={{ flex: 1 }}>
-                                      <div style={{ fontWeight: 500, color: '#374151', fontSize: '0.9rem' }}>
-                                        {subCrit.title}
-                                      </div>
+                                      {editingExtractedCriteria ? (
+                                        <input
+                                          type="text"
+                                          value={subCrit.title}
+                                          onChange={(e) => {
+                                            const newCriteria = [...extractedCriteria];
+                                            newCriteria[idx].subCriteria[subIdx].title = e.target.value;
+                                            setExtractedCriteria(newCriteria);
+                                          }}
+                                          onClick={(e) => e.stopPropagation()}
+                                          style={{ 
+                                            fontWeight: 500, 
+                                            color: '#374151', 
+                                            fontSize: '0.9rem',
+                                            width: '100%',
+                                            padding: '0.25rem',
+                                            border: '1px solid #d8b4fe',
+                                            borderRadius: '4px'
+                                          }}
+                                        />
+                                      ) : (
+                                        <div style={{ fontWeight: 500, color: '#374151', fontSize: '0.9rem' }}>
+                                          {subCrit.title}
+                                        </div>
+                                      )}
                                       <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.15rem', display: 'flex', gap: '0.75rem' }}>
                                         {subCrit.weight !== undefined && (
                                           <span>Weging: {subCrit.weight}%</span>
@@ -1346,9 +1488,30 @@ export default function StageEditorPage() {
                                       borderLeft: '3px solid #c084fc',
                                       borderRadius: '4px'
                                     }}>
-                                      <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.85rem', color: '#4b5563' }}>
+                                      <ul style={{ margin: 0, paddingLeft: editingExtractedCriteria ? 0 : '1.25rem', fontSize: '0.85rem', color: '#4b5563', listStyle: editingExtractedCriteria ? 'none' : 'disc' }}>
                                         {subCrit.assessmentPoints.map((point, pIdx) => (
-                                          <li key={pIdx} style={{ marginBottom: '0.25rem' }}>{point}</li>
+                                          <li key={pIdx} style={{ marginBottom: '0.25rem' }}>
+                                            {editingExtractedCriteria ? (
+                                              <input
+                                                type="text"
+                                                value={point}
+                                                onChange={(e) => {
+                                                  const newCriteria = [...extractedCriteria];
+                                                  newCriteria[idx].subCriteria[subIdx].assessmentPoints[pIdx] = e.target.value;
+                                                  setExtractedCriteria(newCriteria);
+                                                }}
+                                                style={{ 
+                                                  width: '100%',
+                                                  padding: '0.25rem',
+                                                  fontSize: '0.85rem',
+                                                  border: '1px solid #e5e7eb',
+                                                  borderRadius: '3px'
+                                                }}
+                                              />
+                                            ) : (
+                                              point
+                                            )}
+                                          </li>
                                         ))}
                                       </ul>
                                     </div>
@@ -1455,24 +1618,6 @@ function stageLabel(stage: Stage) {
   }
 }
 
-function Toolbar({ editor }: { editor: any }) {
-  if (!editor) return null;
-  return (
-    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-      <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleBold().run()}><b>B</b></button>
-      <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleItalic().run()}><i>I</i></button>
-      <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleUnderline?.().run?.()}><u>U</u></button>
-      <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleBulletList().run()}>• Lijst</button>
-      <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleOrderedList().run()}>1. Lijst</button>
-      <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleTaskList?.().run?.()}>☑ Taken</button>
-      <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleCodeBlock?.().run?.()}>{"<> Code"}</button>
-      <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>H2</button>
-      <button className="btn btn-secondary" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>H3</button>
-      <button className="btn btn-secondary" onClick={() => editor.chain().focus().insertTable?.({ rows: 3, cols: 3, withHeaderRow: true }).run?.()}>Tabel</button>
-      <button className="btn btn-secondary" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}>Clear</button>
-    </div>
-  );
-}
 
 function ExportButtons({ clientId, tenderId, stage }: { clientId: string; tenderId: string; stage: string }) {
   const download = (url: string) => {
