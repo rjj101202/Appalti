@@ -210,7 +210,7 @@ Geef ALLEEN valide JSON terug, geen extra tekst.`;
         'authorization': `Bearer ${xApiKey}`
       },
       body: JSON.stringify({
-        model: process.env.X_AI_MODEL || 'grok-2-latest',
+        model: process.env.X_AI_MODEL || 'grok-3',
         temperature: 0.1,
         max_tokens: 2000,
         messages: [

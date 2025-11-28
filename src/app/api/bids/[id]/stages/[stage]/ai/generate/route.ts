@@ -322,7 +322,7 @@ Gebruik citaties [S1], [S2] voor elk feit uit de bronfragmenten.`;
         'authorization': `Bearer ${xApiKey}`
       },
       body: JSON.stringify({
-        model: process.env.X_AI_MODEL || 'grok-2-latest',
+        model: process.env.X_AI_MODEL || 'grok-3',
         temperature: 0.3,
         max_tokens: 12000,
         messages: [
