@@ -79,6 +79,15 @@ export default function StageEditorPage() {
   const [keyDataExpanded, setKeyDataExpanded] = useState(false);
   const [referencesExpanded, setReferencesExpanded] = useState(false);
 
+  // Source viewer modal state
+  const [sourceViewerOpen, setSourceViewerOpen] = useState(false);
+  const [sourceViewerLoading, setSourceViewerLoading] = useState(false);
+  const [sourceViewerData, setSourceViewerData] = useState<{
+    document: { id: string; title: string; totalChunks: number };
+    chunks: Array<{ index: number; text: string; pageNumber?: number }>;
+    highlightChunks: number[];
+  } | null>(null);
+
   // Hover preview tooltip state
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [hoverText, setHoverText] = useState<string>('');
@@ -484,6 +493,33 @@ export default function StageEditorPage() {
   };
 
   const [suggestions, setSuggestions] = useState<any[]>([]);
+
+  // Open source viewer modal with highlighted chunks
+  const openSourceViewer = async (documentId: string, chunkIndices: number[] = []) => {
+    try {
+      setSourceViewerLoading(true);
+      setSourceViewerOpen(true);
+      setSourceViewerData(null);
+
+      const res = await fetch(`/api/knowledge/documents/${documentId}/chunks`);
+      const json = await res.json();
+      
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Fout bij ophalen document');
+      }
+
+      setSourceViewerData({
+        document: json.data.document,
+        chunks: json.data.chunks,
+        highlightChunks: chunkIndices
+      });
+    } catch (e: any) {
+      alert(e?.message || 'Fout bij ophalen document');
+      setSourceViewerOpen(false);
+    } finally {
+      setSourceViewerLoading(false);
+    }
+  };
 
   // Inline citation hover/click inside editor content
   useEffect(() => {
@@ -1217,7 +1253,29 @@ export default function StageEditorPage() {
                                   "{s.snippet.slice(0, 150)}..."
                                 </div>
                               )}
-                              {s.url && (
+                              {s.documentId && (
+                                <button 
+                                  onClick={() => {
+                                    const docId = typeof s.documentId === 'string' ? s.documentId : s.documentId.toString();
+                                    const chunkIndices = (s.chunks || []).map(c => c.index);
+                                    openSourceViewer(docId, chunkIndices);
+                                  }}
+                                  style={{ 
+                                    fontSize: '0.8rem', 
+                                    color: '#701c74', 
+                                    textDecoration: 'underline',
+                                    display: 'inline-block',
+                                    marginTop: '0.5rem',
+                                    background: 'none',
+                                    border: 'none',
+                                    padding: 0,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  → Bekijk bron met highlights
+                                </button>
+                              )}
+                              {s.url && !s.documentId && (
                                 <a 
                                   href={s.url} 
                                   target="_blank" 
@@ -1230,7 +1288,7 @@ export default function StageEditorPage() {
                                     marginTop: '0.5rem'
                                   }}
                                 >
-                                  → Bekijk bron
+                                  → Bekijk externe bron
                                 </a>
                               )}
                             </div>
@@ -1893,6 +1951,187 @@ export default function StageEditorPage() {
           </div>
         </div>
       </div>
+
+      {/* Source Viewer Modal */}
+      {sourceViewerOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '2rem'
+          }}
+          onClick={() => setSourceViewerOpen(false)}
+        >
+          <div
+            className="card"
+            style={{
+              maxWidth: '900px',
+              width: '100%',
+              maxHeight: '85vh',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '1.5rem',
+              borderBottom: '2px solid #e5e7eb'
+            }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#111827' }}>
+                  📄 Brondocument
+                </h2>
+                {sourceViewerData && (
+                  <div style={{ fontSize: '0.9rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                    {sourceViewerData.document.title}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setSourceViewerOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.75rem',
+                  cursor: 'pointer',
+                  color: '#6b7280',
+                  padding: '0.25rem',
+                  lineHeight: 1
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Content */}
+            <div style={{
+              flex: 1,
+              overflow: 'auto',
+              padding: '1.5rem'
+            }}>
+              {sourceViewerLoading && (
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+                  <div style={{ marginBottom: '1rem' }}>⏳</div>
+                  <div>Document wordt geladen...</div>
+                </div>
+              )}
+
+              {!sourceViewerLoading && sourceViewerData && (
+                <div>
+                  {/* Info banner */}
+                  {sourceViewerData.highlightChunks.length > 0 && (
+                    <div style={{
+                      background: '#fef3c7',
+                      border: '1px solid #fbbf24',
+                      padding: '0.75rem 1rem',
+                      borderRadius: '6px',
+                      marginBottom: '1.5rem',
+                      fontSize: '0.9rem',
+                      color: '#92400e'
+                    }}>
+                      <strong>✨ {sourceViewerData.highlightChunks.length} fragment{sourceViewerData.highlightChunks.length !== 1 ? 'en' : ''} gemarkeerd</strong>
+                      <div style={{ marginTop: '0.25rem', fontSize: '0.85rem' }}>
+                        De gele achtergrond geeft aan welke tekstdelen de AI heeft gebruikt
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Document chunks */}
+                  <div style={{
+                    background: 'white',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    overflow: 'hidden'
+                  }}>
+                    {sourceViewerData.chunks.map((chunk, idx) => {
+                      const isHighlighted = sourceViewerData.highlightChunks.includes(chunk.index);
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            padding: '1rem 1.25rem',
+                            background: isHighlighted ? '#fef3c7' : 'white',
+                            borderLeft: isHighlighted ? '4px solid #fbbf24' : '4px solid transparent',
+                            borderBottom: idx < sourceViewerData.chunks.length - 1 ? '1px solid #e5e7eb' : 'none',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <div style={{
+                            fontSize: '0.75rem',
+                            color: isHighlighted ? '#92400e' : '#9ca3af',
+                            marginBottom: '0.5rem',
+                            fontWeight: isHighlighted ? 600 : 400
+                          }}>
+                            {chunk.pageNumber && `Pagina ${chunk.pageNumber} • `}
+                            Fragment {chunk.index + 1}
+                            {isHighlighted && ' • ✨ Gebruikt door AI'}
+                          </div>
+                          <div style={{
+                            fontSize: '0.95rem',
+                            lineHeight: 1.6,
+                            color: '#111827',
+                            whiteSpace: 'pre-wrap',
+                            fontFamily: 'system-ui, -apple-system, sans-serif'
+                          }}>
+                            {chunk.text}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Footer info */}
+                  <div style={{
+                    marginTop: '1.5rem',
+                    padding: '1rem',
+                    background: '#f9fafb',
+                    borderRadius: '6px',
+                    fontSize: '0.85rem',
+                    color: '#6b7280'
+                  }}>
+                    <strong>Totaal {sourceViewerData.document.totalChunks} fragmenten</strong> in dit document.
+                    {sourceViewerData.highlightChunks.length > 0 && (
+                      <span> De AI heeft {sourceViewerData.highlightChunks.length} daarvan gebruikt voor tekstgeneratie.</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {!sourceViewerLoading && !sourceViewerData && (
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#6b7280' }}>
+                  <div style={{ marginBottom: '1rem' }}>⚠️</div>
+                  <div>Fout bij het laden van het document</div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div style={{
+              padding: '1rem 1.5rem',
+              borderTop: '1px solid #e5e7eb',
+              display: 'flex',
+              justifyContent: 'flex-end'
+            }}>
+              <button
+                className="btn btn-primary"
+                onClick={() => setSourceViewerOpen(false)}
+              >
+                Sluiten
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
