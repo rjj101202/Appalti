@@ -49,6 +49,42 @@ export interface BidStageState {
   }>;
 }
 
+/**
+ * Kick-Off document data
+ */
+export interface KickoffData {
+  // Uploaded leidraad/aanbestedingsdocument
+  leidraadDocument?: {
+    name: string;
+    url: string;
+    uploadedAt: Date;
+  };
+  // Generated kick-off document content (HTML)
+  generatedContent?: string;
+  generatedAt?: Date;
+  // Extracted structured data from leidraad for kick-off
+  extractedData?: {
+    trajectNaam?: string;
+    klantnaam?: string;
+    datumOverleg?: string;
+    kickoffDatum?: string;
+    inleiding?: string;
+    aanleidingAanbesteding?: string;
+    doelAanbesteding?: string;
+    waardeAanbesteding?: string;
+    contractduur?: string;
+    beoordelingsteam?: string[];
+    planning?: Array<{ onderwerp: string; datum: string; tijd?: string }>;
+    geschiktheidseisen?: string[];
+    actiepunten?: Array<{ onderwerp: string; wie?: string; wanneer?: string }>;
+    documentatieBijInschrijving?: string[];
+    documentatieBijGunning?: string[];
+    watVerderVanBelang?: string;
+  };
+  status: 'empty' | 'document_uploaded' | 'generating' | 'generated' | 'error';
+  error?: string;
+}
+
 export interface Bid {
   _id?: ObjectId;
   tenantId: string;
@@ -56,6 +92,7 @@ export interface Bid {
   clientCompanyId: ObjectId;
   currentStage: BidStageKey;
   stages: BidStageState[];
+  kickoff?: KickoffData;
   assignedUserIds?: ObjectId[]; // wie werkt eraan
   createdAt: Date;
   updatedAt: Date;
