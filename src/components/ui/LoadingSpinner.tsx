@@ -40,7 +40,7 @@ export default function LoadingSpinner() {
 
 export function InlineLoadingSpinner({ 
   size = 48, 
-  fullPage = false  // ← Nieuwe prop: true = centreer op hele pagina
+  fullPage = true  // ← Nieuwe prop: true = centreer op hele pagina
 }: { 
   size?: number; 
   fullPage?: boolean; 
