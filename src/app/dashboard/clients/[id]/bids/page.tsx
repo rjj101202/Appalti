@@ -143,7 +143,7 @@ export default function ClientBidsOverviewPage() {
         )}
       </div>
 
-      {deleteTarget && (
+      {deleteTarget && ( // dit eerst blokje is de achtergrond. Een modal is een pop up venster dat je niet kunt negeren. 
         <div
           style={{
             position: 'fixed',
@@ -154,9 +154,10 @@ export default function ClientBidsOverviewPage() {
             alignItems: 'center',
             zIndex: 50,
             padding: '1.5rem'
+            console.log('modal open');
           }}
         >
-          <div
+          <div // dit is het pop up venster
             className="card"
             style={{
               maxWidth: '520px',
@@ -168,26 +169,9 @@ export default function ClientBidsOverviewPage() {
             <h2 style={{ marginTop: 0, marginBottom: '0.75rem', color: '#b91c1c' }}>Bieding definitief verwijderen</h2>
             <p style={{ marginBottom: '0.75rem', color: '#1f2937', lineHeight: 1.5 }}>
               Je staat op het punt om de bid voor <strong>{deleteTarget.title}</strong> definitief te verwijderen.
-              Dit verwijdert ook het gekoppelde tenderproces en kan niet ongedaan worden gemaakt.
             </p>
-            <ol style={{ margin: '0 0 1rem 1.25rem', color: '#374151' }}>
-              <li>Bevestig dat je begrijpt dat alle versies, AI-output en bijlagen verdwijnen.</li>
-              <li>Typ de titel van de tender exact zoals hierboven getoond.</li>
-              <li>Typ de tekst <code>{requiredPhrase}</code> in hoofdletters.</li>
-            </ol>
 
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <input
-                id="acknowledge-delete"
-                type="checkbox"
-                checked={acknowledged}
-                onChange={(e) => setAcknowledged(e.target.checked)}
-              />
-              <label htmlFor="acknowledge-delete" style={{ color: '#1f2937', cursor: 'pointer' }}>
-                Ik begrijp dat deze actie onomkeerbaar is.
-              </label>
-            </div>
-
+         
             <div style={{ marginBottom: '0.75rem' }}>
               <label style={{ display: 'block', fontWeight: 500, marginBottom: '0.25rem' }}>Typ tender titel:</label>
               <input
