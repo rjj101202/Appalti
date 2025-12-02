@@ -154,6 +154,7 @@ export default function ClientBidsOverviewPage() {
             alignItems: 'center',
             zIndex: 50,
             padding: '1.5rem'
+
           }}
         >
           <div // dit is het pop up venster
@@ -179,8 +180,7 @@ export default function ClientBidsOverviewPage() {
               <button
                 className="btn btn-danger"
                 type="button"
-                onClick={handleDelete}
-                disabled={!canDelete || deleteLoading}
+                onClick={handleDelete}// kan crtl z voor wijziging
               >
                 {deleteLoading ? 'Verwijderen…' : 'Verwijder definitief'}
               </button>
