@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
+import { InlineLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 type Stage = 'storyline' | 'version_65' | 'version_95' | 'final';
 
@@ -98,7 +99,7 @@ export default function BidProcessPage() {
       <div className="page-container">
         <button className="btn btn-secondary" onClick={() => router.push(`/dashboard/clients/${clientId}/bids`)}>← Terug</button>
         <h1 style={{ marginTop: '1rem' }}>Bid proces</h1>
-        {loading && <p>Laden...</p>}
+        {loading && <InlineLoadingSpinner />}
         {error && <p className="error-message">{error}</p>}
         {!loading && !error && (
           <div className="action-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>

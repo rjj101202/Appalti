@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { formatDateNL, daysUntilDeadline } from '@/lib/date-utils';
 import { useSession } from 'next-auth/react';
+import { InlineLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -266,9 +267,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <DashboardLayout>
-        <div style={{ textAlign: 'center', padding: '3rem' }}>
-          <p style={{ color: '#6b7280' }}>Laden...</p>
-        </div>
+        <InlineLoadingSpinner />
       </DashboardLayout>
     );
   }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
+import { InlineLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export default function TeamMemberDetailPage() {
   const params = useParams();
@@ -48,10 +49,7 @@ export default function TeamMemberDetailPage() {
         {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem' }}>
-            <div className="spinner-small" style={{ margin: '0 auto' }}></div>
-            <p style={{ marginTop: '1rem', color: '#6b7280' }}>Laden...</p>
-          </div>
+          <InlineLoadingSpinner />
         ) : (
           <>
             <div className="card" style={{ marginBottom: '1.5rem' }}>

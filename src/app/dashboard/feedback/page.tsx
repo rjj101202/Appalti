@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { InlineLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export default function FeedbackPage() {
   const { data: session } = useSession();
@@ -54,9 +55,7 @@ export default function FeedbackPage() {
         {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem' }}>
-            <p style={{ color: '#6b7280' }}>Laden...</p>
-          </div>
+          <InlineLoadingSpinner />
         ) : (
           <div className="data-table">
             <table>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import CPVCodeSelector from '@/components/CPVCodeSelector';
+import { InlineLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export default function ClientEditPage() {
   const params = useParams();
@@ -280,7 +281,11 @@ export default function ClientEditPage() {
   if (!client) {
     return (
       <DashboardLayout>
-        <div className="page-container">{error || 'Laden...'}</div>
+        {error ? (
+          <div className="page-container">{error}</div>
+        ) : (
+          <InlineLoadingSpinner />
+        )}
       </DashboardLayout>
     );
   }
@@ -490,10 +495,7 @@ export default function ClientEditPage() {
               </p>
               
               {loadingTenders && (
-                <div style={{ textAlign: 'center', padding: '2rem' }}>
-                  <div className="spinner-small" style={{ margin: '0 auto' }}></div>
-                  <p style={{ marginTop: '0.5rem', color: '#6b7280', fontSize: '0.9em' }}>Tenders laden...</p>
-                </div>
+                <InlineLoadingSpinner size={32} />
               )}
               
               {tendersError && (

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import IKPForm from '@/components/ikp/IKPForm';
 import { IKPData } from '@/types/ikp';
+import { InlineLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export default function IKPPage() {
   const params = useParams();
@@ -73,10 +74,7 @@ export default function IKPPage() {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div style={{ textAlign: 'center', padding: '3rem' }}>
-          <div className="spinner-small" style={{ margin: '0 auto' }}></div>
-          <p style={{ marginTop: '1rem', color: '#6b7280' }}>Laden...</p>
-        </div>
+        <InlineLoadingSpinner />
       </DashboardLayout>
     );
   }

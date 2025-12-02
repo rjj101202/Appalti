@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import Link from 'next/link';
+import { InlineLoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -916,7 +917,7 @@ export default function StageEditorPage() {
   if (loading) {
     return (
       <DashboardLayout>
-        <div style={{ textAlign: 'center', padding: '3rem' }}>Laden...</div>
+        <InlineLoadingSpinner />
       </DashboardLayout>
     );
   }

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
+import { InlineLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export default function ClientDetailPage() {
   const params = useParams();
@@ -51,10 +52,7 @@ export default function ClientDetailPage() {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div style={{ textAlign: 'center', padding: '3rem' }}>
-          <div className="spinner-small" style={{ margin: '0 auto' }}></div>
-          <p style={{ marginTop: '1rem', color: '#6b7280' }}>Laden...</p>
-        </div>
+        <InlineLoadingSpinner />
       </DashboardLayout>
     );
   }

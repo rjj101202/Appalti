@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { InlineLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export default function TeamPage() {
   const { data: session } = useSession();
@@ -164,10 +165,7 @@ export default function TeamPage() {
         {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem' }}>
-            <div className="spinner-small" style={{ margin: '0 auto' }}></div>
-            <p style={{ marginTop: '1rem', color: '#6b7280' }}>Laden...</p>
-          </div>
+          <InlineLoadingSpinner />
         ) : (
           <>
             {/* Company Information Section */}

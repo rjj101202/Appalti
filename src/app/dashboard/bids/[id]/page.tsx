@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
+import { InlineLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export default function BidDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -105,7 +106,7 @@ export default function BidDetailPage() {
           router.push(`/dashboard/bids${qs}`);
         }}>← Terug</button>
         <h1 style={{ marginTop: '1rem' }}>Aanbesteding {id}</h1>
-        {loading && <p>Laden...</p>}
+        {loading && <InlineLoadingSpinner />}
         {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
         
         {linkSuccess && (

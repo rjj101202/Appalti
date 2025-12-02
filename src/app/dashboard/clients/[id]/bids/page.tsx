@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { formatDateNL } from '@/lib/date-utils';
+import { InlineLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export default function ClientBidsOverviewPage() {
   const { id } = useParams<{ id: string }>();
@@ -90,7 +91,7 @@ export default function ClientBidsOverviewPage() {
           <h1 style={{ margin: 0 }}>Bid proces</h1>
         </div>
 
-        {loading && <p style={{ marginTop: '1rem' }}>Laden...</p>}
+        {loading && <InlineLoadingSpinner />}
         {error && <p className="error-message" style={{ marginTop: '1rem' }}>{error}</p>}
 
         {!loading && !error && (

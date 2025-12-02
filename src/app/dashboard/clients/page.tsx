@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { useSession } from 'next-auth/react';
+import { InlineLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<any[]>([]);
@@ -80,10 +81,7 @@ export default function ClientsPage() {
         )}
 
         {isLoading ? (
-          <div style={{ textAlign: 'center', padding: '3rem' }}>
-            <div className="spinner-small" style={{ margin: '0 auto' }}></div>
-            <p style={{ marginTop: '1rem', color: '#6b7280' }}>Laden...</p>
-          </div>
+          <InlineLoadingSpinner />
         ) : clients.length === 0 ? (
           <div className="empty-state">
             <h3>Nog geen client companies</h3>

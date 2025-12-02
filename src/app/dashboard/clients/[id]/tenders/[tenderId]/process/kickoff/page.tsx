@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
+import { InlineLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface KickoffData {
   leidraadDocument?: {
@@ -231,7 +232,7 @@ export default function KickoffPage() {
           <h1 style={{ margin: 0 }}>📋 Kick-Off Document</h1>
         </div>
         
-        {loading && <p>Laden...</p>}
+        {loading && <InlineLoadingSpinner />}
         {error && <p className="error-message">{error}</p>}
         
         {!loading && !error && (
