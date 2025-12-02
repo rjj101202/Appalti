@@ -35,7 +35,7 @@ export default function ClientBidsOverviewPage() {
     })();
   }, [id]);
 
-  const requiredPhrase = 'VERWIJDER BID';
+  const requiredPhrase = 'Verwijder bid';
 
   const canDelete = useMemo(() => {
     if (!deleteTarget?.title || !deleteTarget?.bid?.id) return false;
