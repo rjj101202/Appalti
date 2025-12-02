@@ -170,30 +170,6 @@ export default function ClientBidsOverviewPage() {
               Je staat op het punt om de bid voor <strong>{deleteTarget.title}</strong> definitief te verwijderen.
             </p>
 
-         
-            <div style={{ marginBottom: '0.75rem' }}>
-              <label style={{ display: 'block', fontWeight: 500, marginBottom: '0.25rem' }}>Typ tender titel:</label>
-              <input
-                type="text"
-                value={titleConfirm}
-                onChange={(e) => setTitleConfirm(e.target.value)}
-                placeholder={deleteTarget.title}
-                style={{ width: '100%' }}
-                autoFocus
-              />
-            </div>
-
-            <div style={{ marginBottom: '0.75rem' }}>
-              <label style={{ display: 'block', fontWeight: 500, marginBottom: '0.25rem' }}>Typ <code>{requiredPhrase}</code>:</label>
-              <input
-                type="text"
-                value={phraseConfirm}
-                onChange={(e) => setPhraseConfirm(e.target.value)}
-                placeholder={requiredPhrase}
-                style={{ width: '100%' }}
-              />
-            </div>
-
             {deleteError && (
               <div className="error-message" style={{ marginBottom: '0.75rem' }}>{deleteError}</div>
             )}
