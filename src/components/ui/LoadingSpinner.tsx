@@ -44,7 +44,7 @@ export function InlineLoadingSpinner({ size = 48 }: { size?: number }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '3rem',
+        padding: '1.5rem 3rem',
         width: '100%'
       }}
     >
