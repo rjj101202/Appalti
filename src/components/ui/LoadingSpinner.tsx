@@ -50,6 +50,7 @@ export function InlineLoadingSpinner({
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
+    minHeight: '50vh',
     ...(fullPage && {  // ← Als fullPage=true, override met fullscreen
       position: 'fixed',
       top: 0,
@@ -58,10 +59,12 @@ export function InlineLoadingSpinner({
       bottom: 0,
       backgroundColor: 'rgba(255, 255, 255, 0.8)',  // ← Semi-transparant om content te dimmen
       zIndex: 9999,
-      padding: '0',  // ← Geen padding meer – puur gecentreerd
+      padding: '0',  
+      minHeight: '100vh', // Voor fullPage: hele hoogte
     }),
-    ...(!fullPage && {  // ← Anders, de oude inline-stijl
-      padding: '1.5rem 3rem',  // ← Je fix uit stap 2
+    ...(!fullPage && {  // ← Inline-stijl: nu lager en ruimer
+      marginTop: '2rem', // ← Nieuwe: Extra ruimte boven (zakt hem lager)
+      padding: '2rem',  // ← Minder dan voorheen, gelijkmatig (boven/onder/links/rechts)
     }),
   };
 
