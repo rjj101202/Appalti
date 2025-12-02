@@ -96,6 +96,10 @@ export default function StageEditorPage() {
   // Right-side inspector state
   const [inspector, setInspector] = useState<{ open: boolean; title?: string; content?: { prev?: string|null; focus?: string|null; next?: string|null } | null }>({ open: false, content: null });
 
+  // A4 page tracking - approximately 3000 characters per A4 page (with standard margins and font)
+  const [textStats, setTextStats] = useState({ characters: 0, words: 0, pages: 0 });
+  const CHARS_PER_A4 = 3000; // Conservative estimate for formatted text
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -120,8 +124,14 @@ export default function StageEditorPage() {
         class: 'prose max-w-none prose-headings:scroll-mt-24 prose-h1:mb-3 prose-h2:mt-6 prose-h2:mb-2 prose-p:leading-7 prose-li:my-1'
       }
     },
-    onUpdate: () => {
+    onUpdate: ({ editor }) => {
       setHasUnsavedChanges(true);
+      // Calculate text stats for A4 indicator
+      const text = editor.getText();
+      const chars = text.length;
+      const words = text.split(/\s+/).filter(Boolean).length;
+      const pages = chars / CHARS_PER_A4;
+      setTextStats({ characters: chars, words, pages });
     }
   });
 
@@ -1079,8 +1089,60 @@ export default function StageEditorPage() {
               ) : null;
             })()}
 
-            {/* Rich editor */}
+            {/* Rich editor with A4 indicator */}
             <div className="card" style={{ padding: '0.5rem' }}>
+              {/* A4 Page Indicator */}
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                padding: '0.5rem 0.75rem',
+                marginBottom: '0.5rem',
+                background: textStats.pages > 2 ? '#fef2f2' : textStats.pages > 1 ? '#fefce8' : '#f0fdf4',
+                borderRadius: '6px',
+                border: `1px solid ${textStats.pages > 2 ? '#fecaca' : textStats.pages > 1 ? '#fde047' : '#86efac'}`
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    color: textStats.pages > 2 ? '#dc2626' : textStats.pages > 1 ? '#ca8a04' : '#16a34a'
+                  }}>
+                    <span style={{ fontSize: '1.1rem' }}>📄</span>
+                    <span>{textStats.pages.toFixed(1)} A4</span>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                    {textStats.words} woorden • {textStats.characters} tekens
+                  </div>
+                </div>
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '0.25rem',
+                  alignItems: 'center'
+                }}>
+                  {/* Visual page indicators */}
+                  {Array.from({ length: Math.min(Math.ceil(textStats.pages), 5) }).map((_, i) => (
+                    <div 
+                      key={i}
+                      style={{
+                        width: '12px',
+                        height: '16px',
+                        borderRadius: '2px',
+                        background: i < Math.floor(textStats.pages) 
+                          ? (textStats.pages > 2 ? '#dc2626' : textStats.pages > 1 ? '#eab308' : '#22c55e')
+                          : '#e5e7eb',
+                        border: '1px solid rgba(0,0,0,0.1)'
+                      }}
+                    />
+                  ))}
+                  {textStats.pages > 5 && (
+                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>+{Math.ceil(textStats.pages) - 5}</span>
+                  )}
+                </div>
+              </div>
               <div style={{ border: '1px solid #e5e7eb', borderRadius: 6, minHeight: 500, padding: 12, background: '#fff' }}>
                 {editor && <EditorContent editor={editor} />}
               </div>

@@ -65,6 +65,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const form = await request.formData();
     const files = form.getAll('files');
     if (!files.length) return NextResponse.json({ error: 'files are required' }, { status: 400 });
+    
+    // Get optional category parameter (profile, previous_bids, or general)
+    const categoryParam = form.get('category');
+    const category = (typeof categoryParam === 'string' && ['profile', 'previous_bids', 'general'].includes(categoryParam)) 
+      ? categoryParam as 'profile' | 'previous_bids' | 'general'
+      : 'general';
 
     const maxBytes = 30 * 1024 * 1024; // 30MB
     const repo = await getKnowledgeRepository();
@@ -105,6 +111,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       // Upsert doc metadata (no binary stored)
       const doc = await repo.upsertDocument(auth.tenantId, {
         scope: 'vertical',
+        category, // Document category (profile, previous_bids, general)
         companyId: companyObjectId,
         title: file.name,
         path: safePath,

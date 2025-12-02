@@ -14,10 +14,13 @@ export default function ClientEditPage() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [docs, setDocs] = useState<Array<any>>([]);
+  const [uploadingCategory, setUploadingCategory] = useState<'profile' | 'previous_bids' | null>(null);
+  const [profileDocs, setProfileDocs] = useState<Array<any>>([]);
+  const [bidDocs, setBidDocs] = useState<Array<any>>([]);
   const [searchQ, setSearchQ] = useState('');
   const [searchResults, setSearchResults] = useState<Array<any>>([]);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const profileFileInputRef = useRef<HTMLInputElement | null>(null);
+  const bidFileInputRef = useRef<HTMLInputElement | null>(null);
   
   // Relevante Tenders
   const [relevantTenders, setRelevantTenders] = useState<Array<any>>([]);
@@ -144,20 +147,28 @@ export default function ClientEditPage() {
 
   const refreshDocs = async () => {
     try {
-      const res = await fetch(`/api/clients/${params.id}/knowledge/list`);
-      const data = await res.json();
-      if (res.ok && data.success) setDocs(data.data.items || []);
+      // Load profile documents
+      const profileRes = await fetch(`/api/clients/${params.id}/knowledge/list?category=profile`);
+      const profileData = await profileRes.json();
+      if (profileRes.ok && profileData.success) setProfileDocs(profileData.data.items || []);
+      
+      // Load previous bids documents
+      const bidRes = await fetch(`/api/clients/${params.id}/knowledge/list?category=previous_bids`);
+      const bidData = await bidRes.json();
+      if (bidRes.ok && bidData.success) setBidDocs(bidData.data.items || []);
     } catch {}
   };
 
-  const onFilesChosen = async (files: FileList | null) => {
+  const onFilesChosen = async (files: FileList | null, category: 'profile' | 'previous_bids') => {
     if (!files || files.length === 0) return;
     setUploading(true);
+    setUploadingCategory(category);
     setError('');
     setMessage('');
     try {
       const formData = new FormData();
       Array.from(files).forEach(f => formData.append('files', f));
+      formData.append('category', category);
       const res = await fetch(`/api/clients/${params.id}/knowledge/upload`, { method: 'POST', body: formData });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Upload mislukt');
@@ -167,14 +178,22 @@ export default function ClientEditPage() {
       setError(e?.message || 'Upload mislukt');
     } finally {
       setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setUploadingCategory(null);
+      if (profileFileInputRef.current) profileFileInputRef.current.value = '';
+      if (bidFileInputRef.current) bidFileInputRef.current.value = '';
     }
   };
 
-  const handleDrop: React.DragEventHandler<HTMLDivElement> = (e) => {
+  const handleProfileDrop: React.DragEventHandler<HTMLDivElement> = (e) => {
     e.preventDefault();
     const files = e.dataTransfer?.files;
-    onFilesChosen(files || null);
+    onFilesChosen(files || null, 'profile');
+  };
+
+  const handleBidDrop: React.DragEventHandler<HTMLDivElement> = (e) => {
+    e.preventDefault();
+    const files = e.dataTransfer?.files;
+    onFilesChosen(files || null, 'previous_bids');
   };
 
   const doSearch = async () => {
@@ -738,7 +757,7 @@ export default function ClientEditPage() {
           )}
         </div>
 
-        {/* Accordion Sectie 4: Documenten */}
+        {/* Accordion Sectie 5: Documenten */}
         <div className="card" style={{ marginTop: '1rem' }}>
           <div 
             onClick={() => toggleSection('documenten')}
@@ -754,7 +773,7 @@ export default function ClientEditPage() {
           >
             <h2 style={{ margin: 0, color: '#701c74', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               Documenten
-              {docs.length > 0 && (
+              {(profileDocs.length + bidDocs.length) > 0 && (
                 <span style={{ 
                   fontSize: '0.7em', 
                   backgroundColor: '#f3e8ff', 
@@ -763,7 +782,7 @@ export default function ClientEditPage() {
                   borderRadius: '12px',
                   fontWeight: 600
                 }}>
-                  {docs.length}
+                  {profileDocs.length + bidDocs.length}
                 </span>
               )}
             </h2>
@@ -774,86 +793,226 @@ export default function ClientEditPage() {
           
           {openSections.documenten && (
             <div>
-          <p className="text-gray-600" style={{ margin: '0 0 0.75rem 0' }}>Upload documenten (pdf, docx, txt, md, html). Deze worden geïndexeerd voor AI en zoeken. Binaire bestanden worden niet opgeslagen.</p>
+              <p className="text-gray-600" style={{ margin: '0 0 1rem 0' }}>
+                Upload documenten in twee categorieën. Deze worden geïndexeerd voor AI en zoeken bij het opstellen van bids.
+              </p>
 
-          <div
-            onDragOver={(e) => { e.preventDefault(); }}
-            onDrop={handleDrop}
-            style={{
-              border: '2px dashed #d8b4fe', background: '#faf5ff', borderRadius: 12, padding: '1rem',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem'
-            }}
-          >
-            <div>
-              <div style={{ fontWeight: 600, color: '#581c87' }}>Sleep bestanden hierheen</div>
-              <div className="text-gray-600" style={{ fontSize: 12 }}>of kies bestanden via de knop</div>
-            </div>
-            <div>
-              <input ref={fileInputRef} type="file" multiple onChange={(e) => onFilesChosen(e.target.files)} />
-              <button className="btn btn-primary" disabled={uploading} onClick={() => fileInputRef.current?.click()} style={{ marginLeft: '0.5rem' }}>{uploading ? 'Uploaden…' : 'Kies bestanden'}</button>
-            </div>
-          </div>
+              {/* Zoekfunctie */}
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', alignItems: 'center' }}>
+                <input className="form-input" placeholder="Zoek in alle documenten…" value={searchQ} onChange={(e) => setSearchQ(e.target.value)} />
+                <button className="btn btn-secondary" onClick={doSearch}>Zoek</button>
+              </div>
+              {searchResults.length > 0 && (
+                <div className="card" style={{ marginBottom: '1.5rem', background: '#fef3c7', border: '1px solid #fcd34d' }}>
+                  <h4 style={{ marginTop: 0 }}>Zoekresultaten</h4>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                    {searchResults.map((r, idx) => (
+                      <li key={idx} style={{ padding: '0.5rem 0', borderTop: '1px solid #fde68a' }}>
+                        <div style={{ fontSize: 12, color: '#92400e' }}>Bron: {r.document?.title || r.document?.path || 'document'}</div>
+                        <div>{r.text}</div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', alignItems: 'center' }}>
-            <input className="form-input" placeholder="Zoek in documenten…" value={searchQ} onChange={(e) => setSearchQ(e.target.value)} />
-            <button className="btn btn-secondary" onClick={doSearch}>Zoek</button>
-          </div>
-          {searchResults.length > 0 && (
-            <div className="card" style={{ marginTop: '0.75rem' }}>
-              <h4 style={{ marginTop: 0 }}>Zoekresultaten</h4>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                {searchResults.map((r, idx) => (
-                  <li key={idx} style={{ padding: '0.5rem 0', borderTop: '1px solid #eee' }}>
-                    <div style={{ fontSize: 12, color: '#6b7280' }}>Bron: {r.document?.title || r.document?.path || 'document'}</div>
-                    <div>{r.text}</div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+              {/* SECTIE 1: Bedrijfsprofiel Documenten */}
+              <div style={{ marginBottom: '2rem' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem', 
+                  marginBottom: '0.75rem',
+                  padding: '0.5rem 0.75rem',
+                  background: '#dbeafe',
+                  borderRadius: '6px'
+                }}>
+                  <span style={{ fontSize: '1.25rem' }}>🏢</span>
+                  <h3 style={{ margin: 0, color: '#1e40af', fontSize: '1rem' }}>
+                    Bedrijfsprofiel
+                    {profileDocs.length > 0 && (
+                      <span style={{ 
+                        marginLeft: '0.5rem',
+                        fontSize: '0.8em', 
+                        backgroundColor: '#1e40af', 
+                        color: 'white', 
+                        padding: '0.15rem 0.4rem', 
+                        borderRadius: '10px'
+                      }}>
+                        {profileDocs.length}
+                      </span>
+                    )}
+                  </h3>
+                </div>
+                <p style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '0.75rem' }}>
+                  <strong>Wat maakt dit bedrijf uniek?</strong> Upload hier documenten over kerncompetenties, USP&apos;s, team, certificeringen, referenties, bedrijfsprofiel, etc.
+                </p>
 
-          <div className="card" style={{ marginTop: '1rem' }}>
-            <h4 style={{ marginTop: 0 }}>Geüploade documenten</h4>
-            {docs.length === 0 ? (
-              <div className="text-gray-600">Nog geen documenten geüpload.</div>
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: 'left', padding: '0.5rem 0' }}>Titel</th>
-                    <th style={{ textAlign: 'left', padding: '0.5rem 0' }}>Type</th>
-                    <th style={{ textAlign: 'right', padding: '0.5rem 0' }}>Grootte</th>
-                    <th style={{ textAlign: 'right', padding: '0.5rem 0' }}>Chunks</th>
-                    <th style={{ textAlign: 'right', padding: '0.5rem 0' }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {docs.map((d) => (
-                    <tr key={d.id}>
-                      <td style={{ padding: '0.5rem 0' }}>{d.title}</td>
-                      <td style={{ padding: '0.5rem 0' }}>{d.mimeType || '-'}</td>
-                      <td style={{ padding: '0.5rem 0', textAlign: 'right' }}>{typeof d.size === 'number' ? `${Math.round(d.size/1024)} KB` : '-'}</td>
-                      <td style={{ padding: '0.5rem 0', textAlign: 'right' }}>{d.chunkCount}</td>
-                      <td style={{ padding: '0.5rem 0', textAlign: 'right' }}>
-                        <button className="btn btn-secondary" style={{ marginRight: '0.5rem' }} onClick={async () => {
-                          try {
-                            const res = await fetch(`/api/clients/${params.id}/knowledge/${d.id}?offset=0&limit=50`);
-                            const data = await res.json();
-                            if (!res.ok) throw new Error(data.error || 'Laden mislukt');
-                            const text = (data.data.chunks || []).map((c: any) => c.text).join('\n\n');
-                            alert(`${d.title}\n\n${text}`);
-                          } catch (e: any) {
-                            alert(e?.message || 'Kon document niet openen');
-                          }
-                        }}>Bekijken</button>
-                        <button className="btn btn-secondary" onClick={() => deleteDoc(d.id)}>Verwijder</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+                <div
+                  onDragOver={(e) => { e.preventDefault(); }}
+                  onDrop={handleProfileDrop}
+                  style={{
+                    border: '2px dashed #93c5fd', 
+                    background: '#eff6ff', 
+                    borderRadius: 8, 
+                    padding: '0.75rem',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    gap: '1rem',
+                    marginBottom: '0.75rem'
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 600, color: '#1e40af', fontSize: '0.9rem' }}>Sleep bestanden hierheen</div>
+                    <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>pdf, docx, txt, md, html</div>
+                  </div>
+                  <div style={{ display: 'none' }}>
+                    <input ref={profileFileInputRef} type="file" multiple onChange={(e) => onFilesChosen(e.target.files, 'profile')} />
+                  </div>
+                  <button 
+                    className="btn btn-secondary" 
+                    disabled={uploading && uploadingCategory === 'profile'} 
+                    onClick={() => profileFileInputRef.current?.click()} 
+                    style={{ fontSize: '0.85rem' }}
+                  >
+                    {uploading && uploadingCategory === 'profile' ? 'Uploaden…' : 'Kies bestanden'}
+                  </button>
+                </div>
+
+                {profileDocs.length > 0 && (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                    <thead>
+                      <tr style={{ background: '#f1f5f9' }}>
+                        <th style={{ textAlign: 'left', padding: '0.4rem' }}>Document</th>
+                        <th style={{ textAlign: 'right', padding: '0.4rem', width: '80px' }}>Grootte</th>
+                        <th style={{ textAlign: 'right', padding: '0.4rem', width: '100px' }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {profileDocs.map((d) => (
+                        <tr key={d.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                          <td style={{ padding: '0.4rem' }}>
+                            <div style={{ fontWeight: 500 }}>{d.title}</div>
+                            <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{d.chunkCount} chunks geïndexeerd</div>
+                          </td>
+                          <td style={{ padding: '0.4rem', textAlign: 'right', color: '#6b7280' }}>
+                            {typeof d.size === 'number' ? `${Math.round(d.size/1024)} KB` : '-'}
+                          </td>
+                          <td style={{ padding: '0.4rem', textAlign: 'right' }}>
+                            {d.sourceUrl && (
+                              <a href={d.sourceUrl} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.2rem 0.4rem', marginRight: '0.25rem' }}>Open</a>
+                            )}
+                            <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.2rem 0.4rem' }} onClick={() => deleteDoc(d.id)}>×</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                {profileDocs.length === 0 && (
+                  <div style={{ color: '#6b7280', fontSize: '0.85rem', fontStyle: 'italic' }}>Nog geen bedrijfsprofiel documenten geüpload.</div>
+                )}
+              </div>
+
+              {/* SECTIE 2: Voorgaande Bids */}
+              <div>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem', 
+                  marginBottom: '0.75rem',
+                  padding: '0.5rem 0.75rem',
+                  background: '#dcfce7',
+                  borderRadius: '6px'
+                }}>
+                  <span style={{ fontSize: '1.25rem' }}>📝</span>
+                  <h3 style={{ margin: 0, color: '#166534', fontSize: '1rem' }}>
+                    Voorgaande Bids
+                    {bidDocs.length > 0 && (
+                      <span style={{ 
+                        marginLeft: '0.5rem',
+                        fontSize: '0.8em', 
+                        backgroundColor: '#166534', 
+                        color: 'white', 
+                        padding: '0.15rem 0.4rem', 
+                        borderRadius: '10px'
+                      }}>
+                        {bidDocs.length}
+                      </span>
+                    )}
+                  </h3>
+                </div>
+                <p style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '0.75rem' }}>
+                  <strong>Referentie voor nieuwe bids.</strong> Upload hier eerdere ingediende aanbestedingen, winnende bids, plan van aanpak documenten, etc.
+                </p>
+
+                <div
+                  onDragOver={(e) => { e.preventDefault(); }}
+                  onDrop={handleBidDrop}
+                  style={{
+                    border: '2px dashed #86efac', 
+                    background: '#f0fdf4', 
+                    borderRadius: 8, 
+                    padding: '0.75rem',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    gap: '1rem',
+                    marginBottom: '0.75rem'
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 600, color: '#166534', fontSize: '0.9rem' }}>Sleep bestanden hierheen</div>
+                    <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>pdf, docx, txt, md, html</div>
+                  </div>
+                  <div style={{ display: 'none' }}>
+                    <input ref={bidFileInputRef} type="file" multiple onChange={(e) => onFilesChosen(e.target.files, 'previous_bids')} />
+                  </div>
+                  <button 
+                    className="btn btn-secondary" 
+                    disabled={uploading && uploadingCategory === 'previous_bids'} 
+                    onClick={() => bidFileInputRef.current?.click()} 
+                    style={{ fontSize: '0.85rem' }}
+                  >
+                    {uploading && uploadingCategory === 'previous_bids' ? 'Uploaden…' : 'Kies bestanden'}
+                  </button>
+                </div>
+
+                {bidDocs.length > 0 && (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                    <thead>
+                      <tr style={{ background: '#f1f5f9' }}>
+                        <th style={{ textAlign: 'left', padding: '0.4rem' }}>Document</th>
+                        <th style={{ textAlign: 'right', padding: '0.4rem', width: '80px' }}>Grootte</th>
+                        <th style={{ textAlign: 'right', padding: '0.4rem', width: '100px' }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bidDocs.map((d) => (
+                        <tr key={d.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                          <td style={{ padding: '0.4rem' }}>
+                            <div style={{ fontWeight: 500 }}>{d.title}</div>
+                            <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{d.chunkCount} chunks geïndexeerd</div>
+                          </td>
+                          <td style={{ padding: '0.4rem', textAlign: 'right', color: '#6b7280' }}>
+                            {typeof d.size === 'number' ? `${Math.round(d.size/1024)} KB` : '-'}
+                          </td>
+                          <td style={{ padding: '0.4rem', textAlign: 'right' }}>
+                            {d.sourceUrl && (
+                              <a href={d.sourceUrl} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.2rem 0.4rem', marginRight: '0.25rem' }}>Open</a>
+                            )}
+                            <button className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.2rem 0.4rem' }} onClick={() => deleteDoc(d.id)}>×</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                {bidDocs.length === 0 && (
+                  <div style={{ color: '#6b7280', fontSize: '0.85rem', fontStyle: 'italic' }}>Nog geen voorgaande bid documenten geüpload.</div>
+                )}
+              </div>
             </div>
           )}
         </div>

@@ -57,7 +57,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const topK = parsedBody.data.topK || 8;
 
-    // Vertical client context (bedrijfsspecifiek)
+    // Vertical client context (bedrijfsspecifiek) - search both profile and previous_bids categories
     const verticalHits = await repo.searchByEmbedding(auth.tenantId, embedding, topK, { scope: 'vertical', companyId: bid.clientCompanyId });
     const verticalDocIdStrings = Array.from(new Set(verticalHits.map(h => h.documentId.toString())));
     const verticalDocIds = verticalDocIdStrings.map(s => new ObjectId(s));
@@ -67,16 +67,28 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const allowedDocIds = new Set(allDocs.map((d: any) => d._id.toString()));
     const byId = new Map(allDocs.map((d: any) => [d._id.toString(), d]));
 
+    // Separate documents by category for better context
+    const profileDocs = allDocs.filter((d: any) => d.category === 'profile');
+    const bidDocs = allDocs.filter((d: any) => d.category === 'previous_bids');
+    const generalDocs = allDocs.filter((d: any) => !d.category || d.category === 'general');
+    
+    console.log(`[AI-GENERATE] Found ${profileDocs.length} profile docs, ${bidDocs.length} previous bid docs, ${generalDocs.length} general docs`);
+
     const allowedHits = verticalHits.filter(h => allowedDocIds.has(h.documentId.toString()));
-    let contextSnippets = allowedHits.map(h => ({
-      text: h.text,
-      source: byId.get(h.documentId.toString())?.title || byId.get(h.documentId.toString())?.sourceUrl || byId.get(h.documentId.toString())?.path || 'bron',
-      type: 'client' as const,
-      documentId: h.documentId.toString(),
-      url: byId.get(h.documentId.toString())?.sourceUrl || byId.get(h.documentId.toString())?.path || '',
-      chunkIndex: (h as any).chunkIndex,
-      pageNumber: (h as any).pageNumber
-    })).slice(0, 12);
+    let contextSnippets = allowedHits.map(h => {
+      const doc = byId.get(h.documentId.toString());
+      const category = doc?.category || 'general';
+      return {
+        text: h.text,
+        source: doc?.title || doc?.sourceUrl || doc?.path || 'bron',
+        type: 'client' as const,
+        category, // Include category for better context building
+        documentId: h.documentId.toString(),
+        url: doc?.sourceUrl || doc?.path || '',
+        chunkIndex: (h as any).chunkIndex,
+        pageNumber: (h as any).pageNumber
+      };
+    }).slice(0, 12);
 
     // Optioneel: appalti_bron (horizontale collectie) meenemen
     let xaiDocs: any[] = [];
@@ -220,6 +232,37 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       // BEANTWOORD SPECIFIEKE VRAGEN - GEEN ALGEMENE TEKST
       system = `Je bent een senior tenderschrijver die UITSLUITEND concrete, UITGEBREIDE en OVERTUIGENDE antwoorden geeft op gunningscriteria-vragen.
 
+=== SCHRIJFSTIJL EISEN (STRICT) ===
+
+1. SMART FORMULEREN:
+   - Specifiek: Noem exacte namen, tools, systemen, methoden
+   - Meetbaar: Gebruik cijfers, percentages, aantallen, frequenties
+   - Acceptabel: Toon begrip voor de behoefte van de opdrachtgever
+   - Realistisch: Baseer claims op bewezen ervaring en feiten
+   - Tijdgebonden: Noem concrete termijnen, deadlines, doorlooptijden
+
+2. ACTIEF TAALGEBRUIK:
+   - FOUT: "Er wordt door ons een aanpak gehanteerd..." 
+   - GOED: "Wij hanteren een aanpak waarbij..."
+   - FOUT: "De kwaliteit wordt gewaarborgd door..."
+   - GOED: "Wij waarborgen de kwaliteit door..."
+   - Vermijd lijdende vormen volledig!
+
+3. KORTE ZINNEN:
+   - Gemiddeld 15-20 woorden per zin (max 2 regels)
+   - Splits lange zinnen op met punten
+   - Eén gedachte per zin
+   - Gebruik opsommingen voor meerdere punten
+
+4. DE 5 B's METHODE (toepassen in elk antwoord):
+   - BEGRIP: Toon dat je de situatie/uitdaging van de opdrachtgever begrijpt
+   - BEHOEFTEN: Benoem de specifieke behoeften van de beslissers
+   - BELOFTE: Stem je belofte af op deze behoefte
+   - BIJDRAGE: Wat ga je CONCREET doen?
+   - BEWIJS: HOE ga je dit concreet doen? Met welke methoden/tools?
+
+=== INHOUDELIJKE EISEN ===
+
 KRITIEK: Je schrijft GEEN algemene introductieteksten, bedrijfsprofielen of achtergrondverhalen.
 Je beantwoordt ALLEEN de specifieke vragen die gesteld worden met concrete feiten, processen en voorbeelden.
 
@@ -236,48 +279,93 @@ Gebruik citaties [S1], [S2] voor elk feit uit de bronfragmenten.`;
       
       user += `=== VRAGEN DIE BEANTWOORD MOETEN WORDEN ===\n${aiContext}\n=== EINDE VRAGEN ===\n\n`;
       
+      user += `=== SCHRIJFSTIJL CHECKLIST (VERPLICHT) ===\n`;
+      user += `□ SMART: Specifiek, Meetbaar, Acceptabel, Realistisch, Tijdgebonden\n`;
+      user += `□ ACTIEF: "Wij doen X" NIET "X wordt gedaan"\n`;
+      user += `□ KORT: Max 2 regels per zin, splits lange zinnen\n`;
+      user += `□ 5 B's per antwoord: Begrip → Behoeften → Belofte → Bijdrage → Bewijs\n\n`;
+      
       user += `VERPLICHTE AANPAK:\n`;
       user += `1. Lees elke vraag/deelvraag hierboven\n`;
       user += `2. Beantwoord elke vraag met een H2 of H3 heading die de vraag herhaalt\n`;
-      user += `3. Geef onder elke heading een UITGEBREID antwoord (minimaal 3-5 paragrafen) met:\n`;
-      user += `   - GEDETAILLEERDE beschrijving van specifieke processen/stappen die ${clientCompany?.name || 'het bedrijf'} volgt\n`;
-      user += `   - Namen van tools, systemen, methodieken die gebruikt worden, inclusief HOE deze worden gebruikt\n`;
-      user += `   - Meerdere concrete voorbeelden uit projecten of ervaring met details\n`;
-      user += `   - Specifieke cijfers, data, resultaten indien beschikbaar in de bronnen\n`;
-      user += `   - Context over WAAROM bepaalde methoden worden gebruikt\n`;
-      user += `   - Ervaring en kwalificaties van het team/personeel\n`;
-      user += `   - Certificeringen, kwaliteitsnormen, compliance indien relevant\n`;
+      user += `3. Start elk antwoord met BEGRIP (toon dat je de situatie begrijpt)\n`;
+      user += `4. Benoem de BEHOEFTEN van de opdrachtgever\n`;
+      user += `5. Maak een concrete BELOFTE\n`;
+      user += `6. Beschrijf de BIJDRAGE (wat je concreet gaat doen)\n`;
+      user += `7. Lever BEWIJS (hoe je dit gaat doen, met welke methoden)\n`;
+      user += `8. Geef onder elke heading een UITGEBREID antwoord (minimaal 3-5 paragrafen) met:\n`;
+      user += `   - GEDETAILLEERDE beschrijving van specifieke processen/stappen\n`;
+      user += `   - Namen van tools, systemen, methodieken (SMART: noem specifieke namen)\n`;
+      user += `   - Concrete voorbeelden met cijfers en resultaten (Meetbaar)\n`;
+      user += `   - Tijdslijnen en doorlooptijden (Tijdgebonden)\n`;
       user += `   - Citaties [S1], [S2] bij elk feit\n`;
-      user += `4. SCHRIJF GEEN algemene zinnen over het bedrijf, focus op de VRAAG\n`;
-      user += `5. Maak elk antwoord zo OVERTUIGEND mogelijk door diep in te gaan op details\n`;
-      user += `6. Als een feit niet in de bronnen staat, schrijf: "[Te specificeren]"\n`;
-      user += `7. Gebruik MEERDERE paragrafen per deelvraag - dit is een aanbesteding, niet een bullet-point lijst\n\n`;
+      user += `9. Schrijf ACTIEF: "Wij voeren uit" niet "Er wordt uitgevoerd"\n`;
+      user += `10. Houd zinnen KORT: max 2 regels, één gedachte per zin\n`;
+      user += `11. Als een feit niet in de bronnen staat, schrijf: "[Te specificeren]"\n\n`;
       
       user += `Bedrijf: ${clientCompany?.name || 'het bedrijf'}\n`;
       if (clientCompany?.website) user += `Website: ${clientCompany.website}\n`;
       if (clientCompany?.address?.city) user += `Locatie: ${clientCompany.address.city}\n`;
       
+      // Group snippets by category for clearer context
+      const profileSnippets = contextSnippets.filter((s: any) => s.category === 'profile');
+      const bidSnippets = contextSnippets.filter((s: any) => s.category === 'previous_bids');
+      const otherSnippets = contextSnippets.filter((s: any) => s.category !== 'profile' && s.category !== 'previous_bids');
+      
       user += `\n=== BRONFRAGMENTEN (Gebruik deze VOLLEDIG voor antwoorden) ===\n`;
-      for (const s of contextSnippets) {
-        user += `\n---\n${s.text.slice(0, 1500)}\nBron: ${s.source}\n`;
+      
+      if (profileSnippets.length > 0) {
+        user += `\n--- BEDRIJFSPROFIEL (Wat maakt ${clientCompany?.name || 'dit bedrijf'} uniek?) ---\n`;
+        for (const s of profileSnippets) {
+          user += `\n${s.text.slice(0, 1500)}\n[Bron: ${s.source}]\n`;
+        }
       }
       
-      user += `\n\nVERWACHTE STRUCTUUR (VERPLICHT):\n\n`;
-      user += `[Optioneel: 1-2 zinnen context]\n\n`;
+      if (bidSnippets.length > 0) {
+        user += `\n--- VOORGAANDE BIDS (Referentie voor stijl en aanpak) ---\n`;
+        for (const s of bidSnippets) {
+          user += `\n${s.text.slice(0, 1500)}\n[Bron: ${s.source}]\n`;
+        }
+      }
+      
+      if (otherSnippets.length > 0) {
+        user += `\n--- OVERIGE BRONNEN ---\n`;
+        for (const s of otherSnippets) {
+          user += `\n${s.text.slice(0, 1500)}\n[Bron: ${s.source}]\n`;
+        }
+      }
+      
+      user += `\n\nVERWACHTE STRUCTUUR (5 B's METHODE):\n\n`;
       user += `## [Vraag/Deelvraag 1 letterlijk overnemen]\n\n`;
-      user += `[PARAGRAAF 1: Introductie van het antwoord met hoofdpunten] [S1]\n\n`;
-      user += `[PARAGRAAF 2: Gedetailleerde uitwerking van methoden/processen met concrete stappen] [S2]\n\n`;
-      user += `[PARAGRAAF 3: Concrete voorbeelden, ervaringen, resultaten] [S3]\n\n`;
-      user += `[PARAGRAAF 4 (optioneel): Extra details zoals certificeringen, team samenstelling, tools] [S4]\n\n`;
+      user += `**Begrip:** Wij begrijpen dat [situatie opdrachtgever]. Dit vraagt om [specifieke aanpak]. [S1]\n\n`;
+      user += `**Behoeften:** U zoekt een partner die [specifieke behoeften]. Wij herkennen dit vanuit onze ervaring met [voorbeelden]. [S2]\n\n`;
+      user += `**Belofte:** ${clientCompany?.name || 'Wij'} garandeert [concrete belofte met meetbare resultaten]. [S3]\n\n`;
+      user += `**Bijdrage:** Concreet leveren wij:\n`;
+      user += `- [Specifieke activiteit 1 met tijdlijn]\n`;
+      user += `- [Specifieke activiteit 2 met resultaat]\n`;
+      user += `- [Specifieke activiteit 3 met kwaliteitsmeting] [S4]\n\n`;
+      user += `**Bewijs:** Wij realiseren dit door:\n`;
+      user += `- [Methode/tool 1]: [concrete toepassing]\n`;
+      user += `- [Methode/tool 2]: [meetbaar resultaat]\n`;
+      user += `- [Referentieproject]: [cijfers en resultaten] [S5]\n\n`;
       user += `## [Vraag/Deelvraag 2 letterlijk overnemen]\n\n`;
-      user += `[Herhaal dezelfde uitgebreide aanpak - minimaal 3-5 paragrafen per vraag]\n\n`;
-      user += `[Herhaal voor elke vraag]\n\n`;
+      user += `[Herhaal dezelfde 5 B's structuur - minimaal 3-5 paragrafen per vraag]\n\n`;
       user += `## Referenties\n`;
       user += `[S1] Bron 1\n`;
       user += `[S2] Bron 2\n`;
       
     } else {
-      // OUDE AANPAK: Algemene tekst genereren
+      // ALGEMENE TEKST - met verbeterde schrijfstijl
+      system = `Je bent een senior tenderschrijver die overtuigende aanbestedingsteksten schrijft.
+
+=== SCHRIJFSTIJL EISEN ===
+1. SMART: Specifiek, Meetbaar, Acceptabel, Realistisch, Tijdgebonden
+2. ACTIEF TAALGEBRUIK: "Wij doen X" niet "X wordt gedaan"
+3. KORTE ZINNEN: Gemiddeld 15-20 woorden, max 2 regels per zin
+4. 5 B's: Begrip, Behoeften, Belofte, Bijdrage, Bewijs
+
+Gebruik citaties [S1], [S2] voor elk feit uit de bronfragmenten.`;
+
       user = `Schrijf de eerste versie voor de aanbesteding "${tender.title}" voor inschrijver: ${clientCompany?.name || 'onbekend bedrijf'}.\n`;
       if (clientCompany?.website) user += `Website inschrijver: ${clientCompany.website}.\n`;
       if (clientCompany?.address?.city) user += `Locatie: ${clientCompany.address.city}.\n`;
@@ -288,11 +376,49 @@ Gebruik citaties [S1], [S2] voor elk feit uit de bronfragmenten.`;
       if (aiContext) user += `\n=== SPECIFIEKE CONTEXT ===\n${aiContext}\n=== EINDE CONTEXT ===\n\n`;
       if (parsedBody.data.prompt) user += `Extra instructie: ${parsedBody.data.prompt}\n`;
 
-      user += `\nEisen:\n- Schrijf bedrijfsspecifiek; neem GEEN claims op zonder bewijs/citatie.\n- Gebruik citaties [S1], [S2], ... in de tekst.\n- Voeg onderaan een sectie "Referenties" toe met dezelfde labels en URLs/titels.\n- Structuur: Inleiding, Begrip van doelstellingen, Oplossingsrichting, Waardepropositie, Ervaring/Referenties, Aanpak & Planning, Kwaliteit & Risico's, Governance & Communicatie, Conclusie.\n`;
+      user += `\n=== SCHRIJFSTIJL CHECKLIST ===\n`;
+      user += `□ SMART: Noem specifieke tools, cijfers, termijnen\n`;
+      user += `□ ACTIEF: "Wij implementeren" niet "Er wordt geïmplementeerd"\n`;
+      user += `□ KORT: Max 2 regels per zin\n`;
+      user += `□ 5 B's: Begrip → Behoeften → Belofte → Bijdrage → Bewijs\n\n`;
 
-      user += `\nBronfragmenten (max 12):\n`;
-      for (const s of contextSnippets) {
-        user += `---\n${s.text.slice(0, 1500)}\nBron: ${s.source}\n`;
+      user += `Eisen:\n`;
+      user += `- Schrijf bedrijfsspecifiek; neem GEEN claims op zonder bewijs/citatie.\n`;
+      user += `- Gebruik citaties [S1], [S2], ... in de tekst.\n`;
+      user += `- Voeg onderaan een sectie "Referenties" toe.\n`;
+      user += `- Structuur met 5 B's methode:\n`;
+      user += `  1. Begrip: Toon begrip voor de situatie van de opdrachtgever\n`;
+      user += `  2. Behoeften: Benoem de behoeften van de beslissers\n`;
+      user += `  3. Belofte: Maak een concrete, meetbare belofte\n`;
+      user += `  4. Bijdrage: Beschrijf wat jullie concreet gaan doen\n`;
+      user += `  5. Bewijs: Leg uit HOE jullie dit gaan doen met welke methoden\n`;
+
+      // Group snippets by category
+      const profileSnippetsGen = contextSnippets.filter((s: any) => s.category === 'profile');
+      const bidSnippetsGen = contextSnippets.filter((s: any) => s.category === 'previous_bids');
+      const otherSnippetsGen = contextSnippets.filter((s: any) => s.category !== 'profile' && s.category !== 'previous_bids');
+      
+      user += `\nBronfragmenten:\n`;
+      
+      if (profileSnippetsGen.length > 0) {
+        user += `\n--- BEDRIJFSPROFIEL ---\n`;
+        for (const s of profileSnippetsGen) {
+          user += `${s.text.slice(0, 1500)}\n[Bron: ${s.source}]\n\n`;
+        }
+      }
+      
+      if (bidSnippetsGen.length > 0) {
+        user += `--- VOORGAANDE BIDS ---\n`;
+        for (const s of bidSnippetsGen) {
+          user += `${s.text.slice(0, 1500)}\n[Bron: ${s.source}]\n\n`;
+        }
+      }
+      
+      if (otherSnippetsGen.length > 0) {
+        user += `--- OVERIGE BRONNEN ---\n`;
+        for (const s of otherSnippetsGen) {
+          user += `${s.text.slice(0, 1500)}\n[Bron: ${s.source}]\n\n`;
+        }
       }
     }
 
