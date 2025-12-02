@@ -37,17 +37,36 @@ export default function LoadingSpinner() {
 /**
  * Inline loading spinner - voor gebruik binnen content (niet fullscreen)
  */
-export function InlineLoadingSpinner({ size = 48 }: { size?: number }) {
+
+export function InlineLoadingSpinner({ 
+  size = 48, 
+  fullPage = false  // ← Nieuwe prop: true = centreer op hele pagina
+}: { 
+  size?: number; 
+  fullPage?: boolean; 
+}) {
+  const containerStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    ...(fullPage && {  // ← Als fullPage=true, override met fullscreen
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(255, 255, 255, 0.8)',  // ← Semi-transparant om content te dimmen
+      zIndex: 9999,
+      padding: '0',  // ← Geen padding meer – puur gecentreerd
+    }),
+    ...(!fullPage && {  // ← Anders, de oude inline-stijl
+      padding: '1.5rem 3rem',  // ← Je fix uit stap 2
+    }),
+  };
+
   return (
-    <div 
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1.5rem 3rem',
-        width: '100%'
-      }}
-    >
+    <div style={containerStyle}>
       <div 
         style={{
           width: `${size}px`,
@@ -61,4 +80,3 @@ export function InlineLoadingSpinner({ size = 48 }: { size?: number }) {
     </div>
   );
 }
-
