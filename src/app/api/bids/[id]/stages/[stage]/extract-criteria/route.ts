@@ -86,6 +86,12 @@ KRITIEKE HIËRARCHIE (4 niveaus):
 3. SUB-GUNNINGSCRITERIUM niveau (bijv. "SG 1. Werving-, selectie- en contracteringsproces" met 35%)
 4. DEELVRAGEN/BEOORDELINGSPUNTEN niveau (bullets onder elk sub-criterium)
 
+BELANGRIJK - OMVANG/A4 LIMIET:
+- Zoek in het document naar de maximale omvang per (deel)vraag
+- Dit staat vaak als "maximaal X A4", "max. X pagina's", "X A4 exclusief bijlagen", etc.
+- Noteer dit in het "maxA4" veld per sub-criterium
+- Als niet expliciet vermeld, laat het leeg (null)
+
 LET OP FINANCIEEL:
 - Skip "Inschrijfprijs" en "Financieel" criteria
 - Focus ALLEEN op kwalitatieve criteria
@@ -104,6 +110,7 @@ Geef je antwoord ALTIJD in dit exacte JSON formaat:
           "weight": 35,
           "points": 35,
           "sourceReference": "blz 36",
+          "maxA4": 2,
           "assessmentPoints": [
             "Eerste beoordelingspunt/deelvraag",
             "Tweede beoordelingspunt/deelvraag",
@@ -148,6 +155,12 @@ NIVEAU 4 - DEELVRAGEN/BEOORDELINGSPUNTEN:
 - Extraheer ALLE punten die beoordeeld worden
 - Dit kunnen er 5, 10 of meer zijn per SG
 
+NIVEAU 5 - A4 LIMIET PER CRITERIUM:
+- Zoek naar tekst zoals "maximaal 2 A4", "max. 1 pagina", "maximale omvang: 1,5 A4"
+- Dit kan per criterium of per deelvraag zijn opgegeven
+- Noteer in "maxA4" veld (bijv. 2 voor "2 A4", 1.5 voor "1,5 A4")
+- Als niet vermeld, laat null
+
 KRITIEKE REGELS:
 1. Extraheer ALLE sub-gunningscriteria (SG 1, SG 2, SG 3, etc.) - niet maar 1 of 2!
 2. Voor elk SG, extraheer ALLE deelvragen/beoordelingspunten
@@ -168,6 +181,7 @@ VOORBEELD VERWACHTE OUTPUT:
           "title": "SG 1. Werving-, selectie- en contracteringsproces",
           "weight": 35,
           "points": 35,
+          "maxA4": 2,
           "assessmentPoints": [
             "Beschrijving van selectieproces",
             "Kwaliteitsborging van personeel",
@@ -179,6 +193,7 @@ VOORBEELD VERWACHTE OUTPUT:
           "title": "SG 2. Samenwerking en communicatie",
           "weight": 35,
           "points": 35,
+          "maxA4": 1.5,
           "assessmentPoints": [
             "Communicatiemethoden",
             "Rapportagestructuur",
@@ -190,6 +205,7 @@ VOORBEELD VERWACHTE OUTPUT:
           "title": "SG 3. Presentatie",
           "weight": null,
           "points": null,
+          "maxA4": null,
           "assessmentPoints": [
             "Presentatie van 10 minuten",
             "Toelichting op aanpak"
@@ -241,6 +257,7 @@ Geef ALLEEN valide JSON terug, geen extra tekst.`;
           weight?: number;
           points?: number;
           sourceReference?: string;
+          maxA4?: number; // Maximum A4 pagina's voor deze deelvraag
           assessmentPoints: string[];
         }>
       }> 

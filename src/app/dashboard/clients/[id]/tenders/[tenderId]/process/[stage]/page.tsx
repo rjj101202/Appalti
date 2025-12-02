@@ -68,6 +68,7 @@ export default function StageEditorPage() {
       weight?: number;
       points?: number;
       sourceReference?: string;
+      maxA4?: number; // Maximum aantal A4 pagina's voor deze deelvraag
       assessmentPoints: string[];
     }>
   }>>([]);
@@ -817,8 +818,15 @@ export default function StageEditorPage() {
       for (const mainCrit of extractedCriteria) {
         if (mainCrit.subCriteria && mainCrit.subCriteria.length > 0) {
           for (const subCrit of mainCrit.subCriteria) {
-            // Maak AI context van de assessment points
-            const aiContext = `${mainCrit.title}\n\n${subCrit.title}\n\nBeoordelingspunten:\n${(subCrit.assessmentPoints || []).map(p => `- ${p}`).join('\n')}`;
+            // Maak AI context van de assessment points, inclusief A4 limiet
+            let aiContext = `${mainCrit.title}\n\n${subCrit.title}`;
+            
+            // Voeg A4 limiet toe als deze is ingesteld
+            if (subCrit.maxA4) {
+              aiContext += `\n\n⚠️ MAXIMALE OMVANG: ${subCrit.maxA4} A4 (±${Math.round(subCrit.maxA4 * 500)} woorden)`;
+            }
+            
+            aiContext += `\n\nDeelvragen/Beoordelingspunten:\n${(subCrit.assessmentPoints || []).map(p => `- ${p}`).join('\n')}`;
             
             newCriteria.push({
               title: subCrit.title,
@@ -1791,13 +1799,51 @@ export default function StageEditorPage() {
                                           {subCrit.title}
                                         </div>
                                       )}
-                                      <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.15rem', display: 'flex', gap: '0.75rem' }}>
+                                      <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.15rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
                                         {subCrit.weight !== undefined && (
                                           <span>Weging: {subCrit.weight}%</span>
                                         )}
                                         {subCrit.points !== undefined && (
                                           <span>Punten: {subCrit.points}</span>
                                         )}
+                                        {/* A4 Limiet */}
+                                        {editingExtractedCriteria ? (
+                                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                            Max A4:
+                                            <input
+                                              type="number"
+                                              step="0.5"
+                                              min="0.5"
+                                              max="10"
+                                              value={subCrit.maxA4 || ''}
+                                              placeholder="?"
+                                              onChange={(e) => {
+                                                const newCriteria = [...extractedCriteria];
+                                                newCriteria[idx].subCriteria[subIdx].maxA4 = e.target.value ? parseFloat(e.target.value) : undefined;
+                                                setExtractedCriteria(newCriteria);
+                                              }}
+                                              onClick={(e) => e.stopPropagation()}
+                                              style={{
+                                                width: '50px',
+                                                padding: '0.15rem 0.25rem',
+                                                border: '1px solid #d8b4fe',
+                                                borderRadius: '3px',
+                                                fontSize: '0.8rem',
+                                                textAlign: 'center'
+                                              }}
+                                            />
+                                          </span>
+                                        ) : subCrit.maxA4 !== undefined ? (
+                                          <span style={{ 
+                                            background: '#dbeafe', 
+                                            color: '#1e40af',
+                                            padding: '0.1rem 0.3rem',
+                                            borderRadius: '3px',
+                                            fontWeight: 500
+                                          }}>
+                                            Max {subCrit.maxA4} A4
+                                          </span>
+                                        ) : null}
                                       </div>
                                     </div>
                                     {subCrit.sourceReference && (
@@ -1938,6 +1984,44 @@ export default function StageEditorPage() {
                               </div>
                             );
                           })}
+                          
+                          {/* Button to add new sub-criterion (deelvraag) */}
+                          {editingExtractedCriteria && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const newCriteria = [...extractedCriteria];
+                                newCriteria[idx].subCriteria.push({
+                                  title: 'Nieuwe deelvraag',
+                                  weight: undefined,
+                                  points: undefined,
+                                  sourceReference: '',
+                                  maxA4: 1,
+                                  assessmentPoints: ['Beschrijf hier de beoordelingspunten']
+                                });
+                                setExtractedCriteria(newCriteria);
+                              }}
+                              style={{
+                                marginTop: '0.75rem',
+                                padding: '0.5rem 0.75rem',
+                                fontSize: '0.85rem',
+                                background: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                width: '100%',
+                                fontWeight: 600,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem'
+                              }}
+                            >
+                              <span style={{ fontSize: '1.1rem' }}>+</span>
+                              Nieuwe deelvraag toevoegen aan {criterion.title.slice(0, 30)}...
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>

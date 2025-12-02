@@ -229,79 +229,57 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     let user = '';
 
     if (useQuestionAnswerMode) {
-      // BEANTWOORD SPECIFIEKE VRAGEN - GEEN ALGEMENE TEKST
-      system = `Je bent een senior tenderschrijver die UITSLUITEND concrete, UITGEBREIDE en OVERTUIGENDE antwoorden geeft op gunningscriteria-vragen.
+      // BEANTWOORD SPECIFIEKE DEELVRAGEN - met 5 B's verwerkt in de tekst
+      system = `Je bent een senior tenderschrijver die UITSLUITEND concrete antwoorden geeft op de specifieke deelvragen uit de aanbesteding.
 
-=== SCHRIJFSTIJL EISEN (STRICT) ===
+=== BELANGRIJKSTE REGEL ===
+Je beantwoordt de DEELVRAGEN die gesteld worden. Elke deelvraag krijgt een eigen sectie met een heading.
+De 5 B's methode wordt SUBTIEL verwerkt in de tekst, NIET als aparte kopjes.
 
-1. SMART FORMULEREN:
-   - Specifiek: Noem exacte namen, tools, systemen, methoden
-   - Meetbaar: Gebruik cijfers, percentages, aantallen, frequenties
-   - Acceptabel: Toon begrip voor de behoefte van de opdrachtgever
-   - Realistisch: Baseer claims op bewezen ervaring en feiten
-   - Tijdgebonden: Noem concrete termijnen, deadlines, doorlooptijden
+=== DE 5 B's VERWERKT IN ELKE BEANTWOORDING ===
+Elke deelvraag-beantwoording bevat deze elementen (zonder expliciete labels):
+1. Start met een zin die BEGRIP toont voor de situatie/uitdaging
+2. Benoem impliciet de BEHOEFTE waar je op inspeelt
+3. Maak een concrete BELOFTE over wat je gaat leveren
+4. Beschrijf de BIJDRAGE: wat je concreet gaat doen
+5. Onderbouw met BEWIJS: hoe je dit gaat doen, met referenties
 
-2. ACTIEF TAALGEBRUIK:
-   - FOUT: "Er wordt door ons een aanpak gehanteerd..." 
-   - GOED: "Wij hanteren een aanpak waarbij..."
-   - FOUT: "De kwaliteit wordt gewaarborgd door..."
-   - GOED: "Wij waarborgen de kwaliteit door..."
-   - Vermijd lijdende vormen volledig!
+=== SCHRIJFSTIJL ===
+- SMART: Specifiek, Meetbaar, Acceptabel, Realistisch, Tijdgebonden
+- ACTIEF: "Wij doen X" niet "X wordt gedaan"
+- KORT: Gemiddeld 15-20 woorden per zin, max 2 regels
 
-3. KORTE ZINNEN:
-   - Gemiddeld 15-20 woorden per zin (max 2 regels)
-   - Splits lange zinnen op met punten
-   - Eén gedachte per zin
-   - Gebruik opsommingen voor meerdere punten
+=== LENGTE ===
+Let op de opgegeven A4-limiet per deelvraag indien aangegeven.
+Als er geen limiet staat, schrijf 3-5 paragrafen per deelvraag.
+1 A4 ≈ 3000 karakters ≈ 500 woorden.
 
-4. DE 5 B's METHODE (toepassen in elk antwoord):
-   - BEGRIP: Toon dat je de situatie/uitdaging van de opdrachtgever begrijpt
-   - BEHOEFTEN: Benoem de specifieke behoeften van de beslissers
-   - BELOFTE: Stem je belofte af op deze behoefte
-   - BIJDRAGE: Wat ga je CONCREET doen?
-   - BEWIJS: HOE ga je dit concreet doen? Met welke methoden/tools?
-
-=== INHOUDELIJKE EISEN ===
-
-KRITIEK: Je schrijft GEEN algemene introductieteksten, bedrijfsprofielen of achtergrondverhalen.
-Je beantwoordt ALLEEN de specifieke vragen die gesteld worden met concrete feiten, processen en voorbeelden.
-
-LENGTE: Elk antwoord moet UITGEBREID zijn - minimaal 3-5 paragrafen per deelvraag. Dit is een aanbesteding, niet een samenvatting.
-Gebruik alle beschikbare informatie uit de bronnen om overtuigende, gedetailleerde antwoorden te schrijven.
-
-Als de vraag is "Beschrijf het proces", dan beschrijf je het EXACTE proces met stappen, tools, methoden EN concrete voorbeelden.
-Als de vraag is "Hoe communiceert u", dan beschrijf je de CONCRETE communicatiemethoden, frequentie, tools EN specifieke scenario's.
+=== STRUCTUUR ===
+Beantwoord elke deelvraag met:
+- Een H3 heading met de deelvraag
+- Lopende tekst die de vraag beantwoordt (GEEN aparte 5 B's kopjes)
+- Citaties [S1], [S2] bij feiten
 
 Gebruik citaties [S1], [S2] voor elk feit uit de bronfragmenten.`;
       
-      user = `STRIKT VERBODEN: Schrijf GEEN algemene introductie zoals "Bedrijf X richt zich op..." of "Onze organisatie biedt..."\n\n`;
-      user += `OPDRACHT: Beantwoord ALLEEN en UITSLUITEND de onderstaande specifieke vragen voor "${tender.title}" namens ${clientCompany?.name || 'het bedrijf'}.\n\n`;
+      user = `STRIKT VERBODEN: Schrijf GEEN algemene introductie of bedrijfsprofiel. Beantwoord DIRECT de deelvragen.\n\n`;
+      user += `OPDRACHT: Beantwoord de onderstaande DEELVRAGEN voor "${tender.title}" namens ${clientCompany?.name || 'het bedrijf'}.\n\n`;
       
-      user += `=== VRAGEN DIE BEANTWOORD MOETEN WORDEN ===\n${aiContext}\n=== EINDE VRAGEN ===\n\n`;
+      user += `=== DEELVRAGEN DIE BEANTWOORD MOETEN WORDEN ===\n${aiContext}\n=== EINDE DEELVRAGEN ===\n\n`;
       
-      user += `=== SCHRIJFSTIJL CHECKLIST (VERPLICHT) ===\n`;
-      user += `□ SMART: Specifiek, Meetbaar, Acceptabel, Realistisch, Tijdgebonden\n`;
-      user += `□ ACTIEF: "Wij doen X" NIET "X wordt gedaan"\n`;
-      user += `□ KORT: Max 2 regels per zin, splits lange zinnen\n`;
-      user += `□ 5 B's per antwoord: Begrip → Behoeften → Belofte → Bijdrage → Bewijs\n\n`;
-      
-      user += `VERPLICHTE AANPAK:\n`;
-      user += `1. Lees elke vraag/deelvraag hierboven\n`;
-      user += `2. Beantwoord elke vraag met een H2 of H3 heading die de vraag herhaalt\n`;
-      user += `3. Start elk antwoord met BEGRIP (toon dat je de situatie begrijpt)\n`;
-      user += `4. Benoem de BEHOEFTEN van de opdrachtgever\n`;
-      user += `5. Maak een concrete BELOFTE\n`;
-      user += `6. Beschrijf de BIJDRAGE (wat je concreet gaat doen)\n`;
-      user += `7. Lever BEWIJS (hoe je dit gaat doen, met welke methoden)\n`;
-      user += `8. Geef onder elke heading een UITGEBREID antwoord (minimaal 3-5 paragrafen) met:\n`;
-      user += `   - GEDETAILLEERDE beschrijving van specifieke processen/stappen\n`;
-      user += `   - Namen van tools, systemen, methodieken (SMART: noem specifieke namen)\n`;
-      user += `   - Concrete voorbeelden met cijfers en resultaten (Meetbaar)\n`;
-      user += `   - Tijdslijnen en doorlooptijden (Tijdgebonden)\n`;
-      user += `   - Citaties [S1], [S2] bij elk feit\n`;
-      user += `9. Schrijf ACTIEF: "Wij voeren uit" niet "Er wordt uitgevoerd"\n`;
-      user += `10. Houd zinnen KORT: max 2 regels, één gedachte per zin\n`;
-      user += `11. Als een feit niet in de bronnen staat, schrijf: "[Te specificeren]"\n\n`;
+      user += `AANPAK PER DEELVRAAG:\n`;
+      user += `1. Maak een H3 heading met de deelvraag\n`;
+      user += `2. Schrijf vloeiende tekst die de vraag DIRECT beantwoordt\n`;
+      user += `3. Verwerk de 5 B's SUBTIEL in de tekst (geen aparte kopjes!):\n`;
+      user += `   - Begin met begrip voor de situatie\n`;
+      user += `   - Speel in op de behoefte\n`;
+      user += `   - Doe een concrete belofte\n`;
+      user += `   - Beschrijf je bijdrage\n`;
+      user += `   - Onderbouw met bewijs en referenties\n`;
+      user += `4. Respecteer de A4-limiet indien aangegeven bij de deelvraag\n`;
+      user += `5. Schrijf SMART, ACTIEF en met KORTE zinnen\n`;
+      user += `6. Voeg citaties [S1], [S2] toe bij feiten\n`;
+      user += `7. Als info ontbreekt: "[Te specificeren door ${clientCompany?.name || 'het bedrijf'}]"\n\n`;
       
       user += `Bedrijf: ${clientCompany?.name || 'het bedrijf'}\n`;
       if (clientCompany?.website) user += `Website: ${clientCompany.website}\n`;
@@ -335,21 +313,17 @@ Gebruik citaties [S1], [S2] voor elk feit uit de bronfragmenten.`;
         }
       }
       
-      user += `\n\nVERWACHTE STRUCTUUR (5 B's METHODE):\n\n`;
-      user += `## [Vraag/Deelvraag 1 letterlijk overnemen]\n\n`;
-      user += `**Begrip:** Wij begrijpen dat [situatie opdrachtgever]. Dit vraagt om [specifieke aanpak]. [S1]\n\n`;
-      user += `**Behoeften:** U zoekt een partner die [specifieke behoeften]. Wij herkennen dit vanuit onze ervaring met [voorbeelden]. [S2]\n\n`;
-      user += `**Belofte:** ${clientCompany?.name || 'Wij'} garandeert [concrete belofte met meetbare resultaten]. [S3]\n\n`;
-      user += `**Bijdrage:** Concreet leveren wij:\n`;
-      user += `- [Specifieke activiteit 1 met tijdlijn]\n`;
-      user += `- [Specifieke activiteit 2 met resultaat]\n`;
-      user += `- [Specifieke activiteit 3 met kwaliteitsmeting] [S4]\n\n`;
-      user += `**Bewijs:** Wij realiseren dit door:\n`;
-      user += `- [Methode/tool 1]: [concrete toepassing]\n`;
-      user += `- [Methode/tool 2]: [meetbaar resultaat]\n`;
-      user += `- [Referentieproject]: [cijfers en resultaten] [S5]\n\n`;
-      user += `## [Vraag/Deelvraag 2 letterlijk overnemen]\n\n`;
-      user += `[Herhaal dezelfde 5 B's structuur - minimaal 3-5 paragrafen per vraag]\n\n`;
+      user += `\n\nVOORBEELD STRUCTUUR (5 B's verwerkt in lopende tekst):\n\n`;
+      user += `### Deelvraag 1: [Letterlijk de deelvraag]\n\n`;
+      user += `[Opening met begrip voor situatie] Bij [type opdracht] is het essentieel dat [uitdaging]. `;
+      user += `${clientCompany?.name || 'Wij'} begrijpt deze behoefte aan [specifieke behoefte]. [S1]\n\n`;
+      user += `Daarom garanderen wij [concrete belofte]. Concreet betekent dit dat wij:\n`;
+      user += `- [Specifieke activiteit met tijdlijn]\n`;
+      user += `- [Meetbaar resultaat]\n`;
+      user += `- [Kwaliteitsmeting] [S2]\n\n`;
+      user += `Dit realiseren wij door [methode/aanpak]. In [referentieproject] hebben wij dit bewezen met [concrete resultaten]. [S3]\n\n`;
+      user += `### Deelvraag 2: [Letterlijk de deelvraag]\n\n`;
+      user += `[Herhaal dezelfde aanpak - vloeiende tekst met 5 B's verwerkt]\n\n`;
       user += `## Referenties\n`;
       user += `[S1] Bron 1\n`;
       user += `[S2] Bron 2\n`;
