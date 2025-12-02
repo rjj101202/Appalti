@@ -229,57 +229,79 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     let user = '';
 
     if (useQuestionAnswerMode) {
-      // BEANTWOORD SPECIFIEKE DEELVRAGEN - met 5 B's verwerkt in de tekst
-      system = `Je bent een senior tenderschrijver die UITSLUITEND concrete antwoorden geeft op de specifieke deelvragen uit de aanbesteding.
+      // BEANTWOORD ELKE DEELVRAAG APART - met volledige A4 benutting
+      system = `Je bent een senior tenderschrijver. Je beantwoordt ELKE deelvraag APART met een eigen sectie.
 
-=== BELANGRIJKSTE REGEL ===
-Je beantwoordt de DEELVRAGEN die gesteld worden. Elke deelvraag krijgt een eigen sectie met een heading.
-De 5 B's methode wordt SUBTIEL verwerkt in de tekst, NIET als aparte kopjes.
+=== KRITIEKE REGEL: BEANTWOORD ELKE DEELVRAAG APART ===
+1. Lees de deelvragen hieronder
+2. ELKE deelvraag krijgt een EIGEN ### heading
+3. ELKE deelvraag krijgt een VOLLEDIGE beantwoording
+4. GEEN algemene tekst - ALLEEN specifieke antwoorden per deelvraag
 
-=== DE 5 B's VERWERKT IN ELKE BEANTWOORDING ===
-Elke deelvraag-beantwoording bevat deze elementen (zonder expliciete labels):
-1. Start met een zin die BEGRIP toont voor de situatie/uitdaging
-2. Benoem impliciet de BEHOEFTE waar je op inspeelt
-3. Maak een concrete BELOFTE over wat je gaat leveren
-4. Beschrijf de BIJDRAGE: wat je concreet gaat doen
-5. Onderbouw met BEWIJS: hoe je dit gaat doen, met referenties
+=== A4 LIMIET VOLLEDIG BENUTTEN ===
+KRITIEK: Als er staat "Max 2 A4" dan schrijf je MINIMAAL 1.5 A4 (±750 woorden) en MAXIMAAL 2 A4 (±1000 woorden).
+- 1 A4 = ±500 woorden = ±3000 karakters
+- 2 A4 = ±1000 woorden = ±6000 karakters
+- Verdeel de A4's GELIJK over alle deelvragen
+
+ALS ER 4 DEELVRAGEN ZIJN EN 2 A4 BESCHIKBAAR:
+- Elke deelvraag krijgt ±0.5 A4 (±250 woorden)
+- Schrijf NIET korter! De opdrachtgever verwacht VOLLEDIGE benutting.
+
+=== STRUCTUUR PER DEELVRAAG ===
+### [Letterlijk de deelvraag tekst]
+
+[VOLLEDIGE beantwoording met:]
+- Begrip voor de situatie (1-2 zinnen)
+- Concrete aanpak en methode (3-5 zinnen)
+- Specifieke voorbeelden en tools (2-3 zinnen)
+- Meetbare resultaten/KPI's (1-2 zinnen)
+- Bronverwijzingen [S1:p.X] met paginanummer
+
+=== CITATIES MET PAGINANUMMERS ===
+Gebruik ALTIJD dit format: [S1:p.12] of [S2:p.5-6]
+- S1, S2, etc. = bronnummer
+- p.X = paginanummer waar de info staat
+- Als pagina onbekend: [S1]
 
 === SCHRIJFSTIJL ===
-- SMART: Specifiek, Meetbaar, Acceptabel, Realistisch, Tijdgebonden
 - ACTIEF: "Wij doen X" niet "X wordt gedaan"
-- KORT: Gemiddeld 15-20 woorden per zin, max 2 regels
-
-=== LENGTE ===
-Let op de opgegeven A4-limiet per deelvraag indien aangegeven.
-Als er geen limiet staat, schrijf 3-5 paragrafen per deelvraag.
-1 A4 ≈ 3000 karakters ≈ 500 woorden.
-
-=== STRUCTUUR ===
-Beantwoord elke deelvraag met:
-- Een H3 heading met de deelvraag
-- Lopende tekst die de vraag beantwoordt (GEEN aparte 5 B's kopjes)
-- Citaties [S1], [S2] bij feiten
-
-Gebruik citaties [S1], [S2] voor elk feit uit de bronfragmenten.`;
+- SMART: Specifiek, Meetbaar, Acceptabel, Realistisch, Tijdgebonden
+- Zinnen max 2 regels`;
       
-      user = `STRIKT VERBODEN: Schrijf GEEN algemene introductie of bedrijfsprofiel. Beantwoord DIRECT de deelvragen.\n\n`;
-      user += `OPDRACHT: Beantwoord de onderstaande DEELVRAGEN voor "${tender.title}" namens ${clientCompany?.name || 'het bedrijf'}.\n\n`;
+      // Parse de deelvragen uit de aiContext
+      const deelvragenMatch = aiContext.match(/[-•]\s*([^\n]+)/g) || [];
+      const aantalDeelvragen = deelvragenMatch.length || 1;
       
-      user += `=== DEELVRAGEN DIE BEANTWOORD MOETEN WORDEN ===\n${aiContext}\n=== EINDE DEELVRAGEN ===\n\n`;
+      // Bereken A4 limiet uit context (zoek naar "Max X A4" of "MAXIMALE OMVANG: X A4")
+      const a4Match = aiContext.match(/(?:Max|MAXIMALE OMVANG:?)\s*(\d+(?:[.,]\d+)?)\s*A4/i);
+      const maxA4 = a4Match ? parseFloat(a4Match[1].replace(',', '.')) : 2;
+      const woordenPerDeelvraag = Math.round((maxA4 * 500) / aantalDeelvragen);
       
-      user += `AANPAK PER DEELVRAAG:\n`;
-      user += `1. Maak een H3 heading met de deelvraag\n`;
-      user += `2. Schrijf vloeiende tekst die de vraag DIRECT beantwoordt\n`;
-      user += `3. Verwerk de 5 B's SUBTIEL in de tekst (geen aparte kopjes!):\n`;
-      user += `   - Begin met begrip voor de situatie\n`;
-      user += `   - Speel in op de behoefte\n`;
-      user += `   - Doe een concrete belofte\n`;
-      user += `   - Beschrijf je bijdrage\n`;
-      user += `   - Onderbouw met bewijs en referenties\n`;
-      user += `4. Respecteer de A4-limiet indien aangegeven bij de deelvraag\n`;
-      user += `5. Schrijf SMART, ACTIEF en met KORTE zinnen\n`;
-      user += `6. Voeg citaties [S1], [S2] toe bij feiten\n`;
-      user += `7. Als info ontbreekt: "[Te specificeren door ${clientCompany?.name || 'het bedrijf'}]"\n\n`;
+      user = `⚠️ KRITIEKE INSTRUCTIE: BEANTWOORD ELKE DEELVRAAG APART!\n\n`;
+      user += `Je schrijft voor "${tender.title}" namens ${clientCompany?.name || 'het bedrijf'}.\n\n`;
+      
+      user += `=== ${aantalDeelvragen} DEELVRAGEN OM TE BEANTWOORDEN ===\n${aiContext}\n=== EINDE DEELVRAGEN ===\n\n`;
+      
+      user += `=== A4 BENUTTING (VERPLICHT) ===\n`;
+      user += `Totaal beschikbaar: ${maxA4} A4 (= ${Math.round(maxA4 * 500)} woorden)\n`;
+      user += `Aantal deelvragen: ${aantalDeelvragen}\n`;
+      user += `Per deelvraag: ±${woordenPerDeelvraag} woorden (MINIMAAL ${Math.round(woordenPerDeelvraag * 0.8)} woorden)\n\n`;
+      
+      user += `=== VERPLICHTE STRUCTUUR ===\n`;
+      user += `Voor ELKE deelvraag hieronder:\n\n`;
+      user += `### [Kopieer de deelvraag letterlijk]\n\n`;
+      user += `[Schrijf hier ±${woordenPerDeelvraag} woorden met:]\n`;
+      user += `- Opening met begrip voor de situatie\n`;
+      user += `- Concrete aanpak die ${clientCompany?.name || 'het bedrijf'} hanteert\n`;
+      user += `- Specifieke tools/methoden/processen\n`;
+      user += `- Voorbeelden uit ervaring\n`;
+      user += `- Bronverwijzingen [S1:p.X]\n\n`;
+      
+      user += `VERBODEN:\n`;
+      user += `- Algemene introductietekst\n`;
+      user += `- Deelvragen overslaan\n`;
+      user += `- Te kort schrijven (gebruik de volle ${maxA4} A4!)\n\n`;
       
       user += `Bedrijf: ${clientCompany?.name || 'het bedrijf'}\n`;
       if (clientCompany?.website) user += `Website: ${clientCompany.website}\n`;
@@ -290,43 +312,53 @@ Gebruik citaties [S1], [S2] voor elk feit uit de bronfragmenten.`;
       const bidSnippets = contextSnippets.filter((s: any) => s.category === 'previous_bids');
       const otherSnippets = contextSnippets.filter((s: any) => s.category !== 'profile' && s.category !== 'previous_bids');
       
-      user += `\n=== BRONFRAGMENTEN (Gebruik deze VOLLEDIG voor antwoorden) ===\n`;
+      user += `\n=== BRONNEN (Gebruik citaties met paginanummers!) ===\n`;
       
+      let sourceIndex = 1;
       if (profileSnippets.length > 0) {
-        user += `\n--- BEDRIJFSPROFIEL (Wat maakt ${clientCompany?.name || 'dit bedrijf'} uniek?) ---\n`;
+        user += `\n--- BEDRIJFSPROFIEL ---\n`;
         for (const s of profileSnippets) {
-          user += `\n${s.text.slice(0, 1500)}\n[Bron: ${s.source}]\n`;
+          const pageInfo = (s as any).pageNumber ? `, pagina ${(s as any).pageNumber}` : '';
+          user += `\n[S${sourceIndex}] ${s.source}${pageInfo}\n${s.text.slice(0, 1500)}\n`;
+          sourceIndex++;
         }
       }
       
       if (bidSnippets.length > 0) {
-        user += `\n--- VOORGAANDE BIDS (Referentie voor stijl en aanpak) ---\n`;
+        user += `\n--- VOORGAANDE BIDS ---\n`;
         for (const s of bidSnippets) {
-          user += `\n${s.text.slice(0, 1500)}\n[Bron: ${s.source}]\n`;
+          const pageInfo = (s as any).pageNumber ? `, pagina ${(s as any).pageNumber}` : '';
+          user += `\n[S${sourceIndex}] ${s.source}${pageInfo}\n${s.text.slice(0, 1500)}\n`;
+          sourceIndex++;
         }
       }
       
       if (otherSnippets.length > 0) {
         user += `\n--- OVERIGE BRONNEN ---\n`;
         for (const s of otherSnippets) {
-          user += `\n${s.text.slice(0, 1500)}\n[Bron: ${s.source}]\n`;
+          const pageInfo = (s as any).pageNumber ? `, pagina ${(s as any).pageNumber}` : '';
+          user += `\n[S${sourceIndex}] ${s.source}${pageInfo}\n${s.text.slice(0, 1500)}\n`;
+          sourceIndex++;
         }
       }
       
-      user += `\n\nVOORBEELD STRUCTUUR (5 B's verwerkt in lopende tekst):\n\n`;
-      user += `### Deelvraag 1: [Letterlijk de deelvraag]\n\n`;
-      user += `[Opening met begrip voor situatie] Bij [type opdracht] is het essentieel dat [uitdaging]. `;
-      user += `${clientCompany?.name || 'Wij'} begrijpt deze behoefte aan [specifieke behoefte]. [S1]\n\n`;
-      user += `Daarom garanderen wij [concrete belofte]. Concreet betekent dit dat wij:\n`;
-      user += `- [Specifieke activiteit met tijdlijn]\n`;
-      user += `- [Meetbaar resultaat]\n`;
-      user += `- [Kwaliteitsmeting] [S2]\n\n`;
-      user += `Dit realiseren wij door [methode/aanpak]. In [referentieproject] hebben wij dit bewezen met [concrete resultaten]. [S3]\n\n`;
-      user += `### Deelvraag 2: [Letterlijk de deelvraag]\n\n`;
-      user += `[Herhaal dezelfde aanpak - vloeiende tekst met 5 B's verwerkt]\n\n`;
-      user += `## Referenties\n`;
-      user += `[S1] Bron 1\n`;
-      user += `[S2] Bron 2\n`;
+      user += `\n\n=== VOORBEELD OUTPUT (volg dit EXACT) ===\n\n`;
+      user += `### Welke facilitatieve taken de beveiligers zelfstandig uitvoeren?\n\n`;
+      user += `Bij beveiligingsdiensten verwachten opdrachtgevers dat beveiligers meer doen dan alleen surveillance. ${clientCompany?.name || 'Wij'} begrijpt deze behoefte aan toegevoegde waarde. [S1:p.12]\n\n`;
+      user += `Onze beveiligers voeren zelfstandig de volgende facilitatieve taken uit:\n`;
+      user += `- **Pakketbeheer**: Aannemen, registreren en distribueren van pakketten [S1:p.14]\n`;
+      user += `- **Sleutelbeheer**: Beheren van sleutels en toegangspassen [S2:p.8]\n`;
+      user += `- **Kleine reparaties**: Signaleren en melden van onderhoudsbehoeften [S1:p.15]\n`;
+      user += `- **Voorraadcontrole**: Monitoren van kantoorbenodigdheden [S2:p.9]\n\n`;
+      user += `Dit realiseren wij door gerichte training in facility management. In vergelijkbare opdrachten hebben wij hiermee 15% tijdsbesparing gerealiseerd voor de opdrachtgever. [S3:p.22]\n\n`;
+      user += `### Hoe de tijd van beveiligers efficiënt wordt ingevuld?\n\n`;
+      user += `[Volgende deelvraag - evenveel woorden als hierboven]\n\n`;
+      user += `### [Volgende deelvraag letterlijk]\n\n`;
+      user += `[Herhaal voor ELKE deelvraag - totaal ${maxA4} A4 vullen]\n\n`;
+      user += `## Bronverwijzingen\n`;
+      user += `[S1] Bedrijfsprofiel ${clientCompany?.name || ''}, pagina 12-15\n`;
+      user += `[S2] Voorgaande bid Gemeente X, pagina 8-9\n`;
+      user += `[S3] Referentieproject Y, pagina 22\n`;
       
     } else {
       // ALGEMENE TEKST - met verbeterde schrijfstijl

@@ -1747,59 +1747,63 @@ export default function StageEditorPage() {
                                     setExpandedSubCriteria(newExpanded);
                                   }}
                                 >
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                      {editingExtractedCriteria ? (
-                                        <>
-                                          <input
-                                            type="text"
-                                            value={subCrit.title}
-                                            onChange={(e) => {
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    {/* Titel - volledige breedte bij bewerken */}
+                                    {editingExtractedCriteria ? (
+                                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        <input
+                                          type="text"
+                                          value={subCrit.title}
+                                          onChange={(e) => {
+                                            const newCriteria = [...extractedCriteria];
+                                            newCriteria[idx].subCriteria[subIdx].title = e.target.value;
+                                            setExtractedCriteria(newCriteria);
+                                          }}
+                                          onClick={(e) => e.stopPropagation()}
+                                          style={{ 
+                                            fontWeight: 500, 
+                                            color: '#374151', 
+                                            fontSize: '0.9rem',
+                                            flex: 1,
+                                            padding: '0.5rem',
+                                            border: '2px solid #d8b4fe',
+                                            borderRadius: '6px',
+                                            minWidth: '200px'
+                                          }}
+                                        />
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (confirm('Dit sub-criterium verwijderen?')) {
                                               const newCriteria = [...extractedCriteria];
-                                              newCriteria[idx].subCriteria[subIdx].title = e.target.value;
+                                              newCriteria[idx].subCriteria.splice(subIdx, 1);
                                               setExtractedCriteria(newCriteria);
-                                            }}
-                                            onClick={(e) => e.stopPropagation()}
-                                            style={{ 
-                                              fontWeight: 500, 
-                                              color: '#374151', 
-                                              fontSize: '0.9rem',
-                                              flex: 1,
-                                              padding: '0.25rem',
-                                              border: '1px solid #d8b4fe',
-                                              borderRadius: '4px'
-                                            }}
-                                          />
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              if (confirm('Dit sub-criterium verwijderen?')) {
-                                                const newCriteria = [...extractedCriteria];
-                                                newCriteria[idx].subCriteria.splice(subIdx, 1);
-                                                setExtractedCriteria(newCriteria);
-                                              }
-                                            }}
-                                            style={{
-                                              background: '#ef4444',
-                                              color: 'white',
-                                              border: 'none',
-                                              borderRadius: '3px',
-                                              padding: '0.2rem 0.4rem',
-                                              cursor: 'pointer',
-                                              fontSize: '0.75rem',
-                                              fontWeight: 600
-                                            }}
-                                            title="Verwijder sub-criterium"
-                                          >
-                                            ×
-                                          </button>
-                                        </>
-                                      ) : (
-                                        <div style={{ fontWeight: 500, color: '#374151', fontSize: '0.9rem' }}>
-                                          {subCrit.title}
-                                        </div>
-                                      )}
-                                      <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.15rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                            }
+                                          }}
+                                          style={{
+                                            background: '#ef4444',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            padding: '0.5rem 0.75rem',
+                                            cursor: 'pointer',
+                                            fontSize: '0.8rem',
+                                            fontWeight: 600,
+                                            whiteSpace: 'nowrap'
+                                          }}
+                                          title="Verwijder sub-criterium"
+                                        >
+                                          × Verwijder
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div style={{ fontWeight: 500, color: '#374151', fontSize: '0.9rem' }}>
+                                        {subCrit.title}
+                                      </div>
+                                    )}
+                                    {/* Weging, Punten, A4 limiet - tweede rij */}
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                      <div style={{ fontSize: '0.8rem', color: '#6b7280', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
                                         {subCrit.weight !== undefined && (
                                           <span>Weging: {subCrit.weight}%</span>
                                         )}
@@ -1845,26 +1849,28 @@ export default function StageEditorPage() {
                                           </span>
                                         ) : null}
                                       </div>
-                                    </div>
-                                    {subCrit.sourceReference && (
-                                      <div 
-                                        style={{ 
-                                          fontSize: '0.75rem', 
-                                          color: '#8b5cf6',
-                                          background: '#f3e8ff',
-                                          padding: '0.2rem 0.4rem',
-                                          borderRadius: '3px',
-                                          marginLeft: '0.5rem',
-                                          cursor: 'help'
-                                        }}
-                                        title={`Bron: ${subCrit.sourceReference}`}
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        {subCrit.sourceReference}
+                                      {/* Source reference en expand arrow */}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        {subCrit.sourceReference && (
+                                          <div 
+                                            style={{ 
+                                              fontSize: '0.75rem', 
+                                              color: '#8b5cf6',
+                                              background: '#f3e8ff',
+                                              padding: '0.2rem 0.4rem',
+                                              borderRadius: '3px',
+                                              cursor: 'help'
+                                            }}
+                                            title={`Bron: ${subCrit.sourceReference}`}
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {subCrit.sourceReference}
+                                          </div>
+                                        )}
+                                        <div style={{ color: '#a78bfa', fontSize: '0.9rem' }}>
+                                          {isExpanded ? '▼' : '▶'}
+                                        </div>
                                       </div>
-                                    )}
-                                    <div style={{ marginLeft: '0.5rem', color: '#a78bfa', fontSize: '0.9rem' }}>
-                                      {isExpanded ? '▼' : '▶'}
                                     </div>
                                   </div>
                                 </div>
