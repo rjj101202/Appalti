@@ -50,6 +50,7 @@ export default function StageEditorPage() {
   // Criteria state (nieuwe structuur)
   const [criteria, setCriteria] = useState<Array<{ id: string; title: string; content: string; aiContext?: string; order: number }>>([]);
   const [selectedCriterionId, setSelectedCriterionId] = useState<string | null>(null);
+  const selectedCriterionIdRef = useRef<string | null>(null);
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -133,8 +134,23 @@ export default function StageEditorPage() {
       const words = text.split(/\s+/).filter(Boolean).length;
       const pages = chars / CHARS_PER_A4;
       setTextStats({ characters: chars, words, pages });
+      
+      // Update criteria state in real-time so export has latest content
+      // Use ref to get current selectedCriterionId (closure issue with useState)
+      const currentCriterionId = selectedCriterionIdRef.current;
+      if (currentCriterionId) {
+        const html = editor.getHTML();
+        setCriteria(prev => prev.map(c => 
+          c.id === currentCriterionId ? { ...c, content: html } : c
+        ));
+      }
     }
   });
+
+  // Keep ref in sync with state for use in onUpdate callback
+  useEffect(() => {
+    selectedCriterionIdRef.current = selectedCriterionId;
+  }, [selectedCriterionId]);
 
   // Ensure inline references like [S1] are wrapped for hover previews
   const decorateCitationsInHtml = (html: string): string => {
@@ -1183,7 +1199,7 @@ export default function StageEditorPage() {
                 <input type="checkbox" checked={useAppaltiBron} onChange={e=>setUseAppaltiBron(e.target.checked)} />
                 Gebruik appalti_bron (extra context)
               </label>
-              <ExportButtons clientId={String(clientId)} tenderId={String(tenderId)} stage={stage} />
+              <ExportButtons clientId={String(clientId)} tenderId={String(tenderId)} stage={stage} criteria={criteria} sources={sources} />
             </div>
             {/* Bronnen & Referenties - Gedetailleerd Dropdown */}
             {(tenderLink || (sourceLinks && sourceLinks.length) || (sources && sources.length)) && (
@@ -1563,7 +1579,7 @@ export default function StageEditorPage() {
                 <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600 }}>AI Review (SMART Check)</h3>
                 <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', opacity: 0.9 }}>
                   Beoordeling vanuit DMU perspectief
-                </div>
+                    </div>
               </div>
               <div style={{ padding: '0.75rem' }}>
                 {/* DMU Dropdown */}
@@ -1926,58 +1942,58 @@ export default function StageEditorPage() {
                                 >
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                     {/* Titel - volledige breedte bij bewerken */}
-                                    {editingExtractedCriteria ? (
+                                      {editingExtractedCriteria ? (
                                       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                        <input
-                                          type="text"
-                                          value={subCrit.title}
-                                          onChange={(e) => {
-                                            const newCriteria = [...extractedCriteria];
-                                            newCriteria[idx].subCriteria[subIdx].title = e.target.value;
-                                            setExtractedCriteria(newCriteria);
-                                          }}
-                                          onClick={(e) => e.stopPropagation()}
-                                          style={{ 
-                                            fontWeight: 500, 
-                                            color: '#374151', 
-                                            fontSize: '0.9rem',
-                                            flex: 1,
+                                          <input
+                                            type="text"
+                                            value={subCrit.title}
+                                            onChange={(e) => {
+                                              const newCriteria = [...extractedCriteria];
+                                              newCriteria[idx].subCriteria[subIdx].title = e.target.value;
+                                              setExtractedCriteria(newCriteria);
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            style={{ 
+                                              fontWeight: 500, 
+                                              color: '#374151', 
+                                              fontSize: '0.9rem',
+                                              flex: 1,
                                             padding: '0.5rem',
                                             border: '2px solid #d8b4fe',
                                             borderRadius: '6px',
                                             minWidth: '200px'
-                                          }}
-                                        />
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (confirm('Dit sub-criterium verwijderen?')) {
-                                              const newCriteria = [...extractedCriteria];
-                                              newCriteria[idx].subCriteria.splice(subIdx, 1);
-                                              setExtractedCriteria(newCriteria);
-                                            }
-                                          }}
-                                          style={{
-                                            background: '#ef4444',
-                                            color: 'white',
-                                            border: 'none',
+                                            }}
+                                          />
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              if (confirm('Dit sub-criterium verwijderen?')) {
+                                                const newCriteria = [...extractedCriteria];
+                                                newCriteria[idx].subCriteria.splice(subIdx, 1);
+                                                setExtractedCriteria(newCriteria);
+                                              }
+                                            }}
+                                            style={{
+                                              background: '#ef4444',
+                                              color: 'white',
+                                              border: 'none',
                                             borderRadius: '4px',
                                             padding: '0.5rem 0.75rem',
-                                            cursor: 'pointer',
+                                              cursor: 'pointer',
                                             fontSize: '0.8rem',
                                             fontWeight: 600,
                                             whiteSpace: 'nowrap'
-                                          }}
-                                          title="Verwijder sub-criterium"
-                                        >
+                                            }}
+                                            title="Verwijder sub-criterium"
+                                          >
                                           × Verwijder
-                                        </button>
+                                          </button>
                                       </div>
-                                    ) : (
-                                      <div style={{ fontWeight: 500, color: '#374151', fontSize: '0.9rem' }}>
-                                        {subCrit.title}
-                                      </div>
-                                    )}
+                                      ) : (
+                                        <div style={{ fontWeight: 500, color: '#374151', fontSize: '0.9rem' }}>
+                                          {subCrit.title}
+                                        </div>
+                                      )}
                                     {/* Weging, Punten, A4 limiet - tweede rij */}
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                       <div style={{ fontSize: '0.8rem', color: '#6b7280', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -2028,24 +2044,24 @@ export default function StageEditorPage() {
                                       </div>
                                       {/* Source reference en expand arrow */}
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        {subCrit.sourceReference && (
-                                          <div 
-                                            style={{ 
-                                              fontSize: '0.75rem', 
-                                              color: '#8b5cf6',
-                                              background: '#f3e8ff',
-                                              padding: '0.2rem 0.4rem',
-                                              borderRadius: '3px',
-                                              cursor: 'help'
-                                            }}
-                                            title={`Bron: ${subCrit.sourceReference}`}
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
-                                            {subCrit.sourceReference}
-                                          </div>
-                                        )}
+                                    {subCrit.sourceReference && (
+                                      <div 
+                                        style={{ 
+                                          fontSize: '0.75rem', 
+                                          color: '#8b5cf6',
+                                          background: '#f3e8ff',
+                                          padding: '0.2rem 0.4rem',
+                                          borderRadius: '3px',
+                                          cursor: 'help'
+                                        }}
+                                        title={`Bron: ${subCrit.sourceReference}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {subCrit.sourceReference}
+                                      </div>
+                                    )}
                                         <div style={{ color: '#a78bfa', fontSize: '0.9rem' }}>
-                                          {isExpanded ? '▼' : '▶'}
+                                      {isExpanded ? '▼' : '▶'}
                                         </div>
                                       </div>
                                     </div>
@@ -2475,15 +2491,20 @@ function stageLabel(stage: Stage) {
 }
 
 
-function ExportButtons({ clientId, tenderId, stage }: { clientId: string; tenderId: string; stage: string }) {
-  const download = (url: string) => {
-    const a = document.createElement('a');
-    a.href = url;
-    a.target = '_blank';
-    a.rel = 'noreferrer';
-    a.click();
-  };
-  // Resolve bidId via API (same helper as above would require lifting; keep simple fetch)
+function ExportButtons({ 
+  clientId, 
+  tenderId, 
+  stage, 
+  criteria,
+  sources 
+}: { 
+  clientId: string; 
+  tenderId: string; 
+  stage: string;
+  criteria?: Array<{ id: string; title?: string; content?: string }>;
+  sources?: Array<{ label: string; title?: string; url?: string; chunks?: Array<{ pageNumber?: number }> }>;
+}) {
+  // Resolve bidId via API
   const getBidId = async (): Promise<string|undefined> => {
     try {
       const res = await fetch(`/api/clients/${clientId}/tenders`);
@@ -2493,10 +2514,60 @@ function ExportButtons({ clientId, tenderId, stage }: { clientId: string; tender
       return item?.bid?.id;
     } catch { return undefined; }
   };
+  
+  const exportDocx = async () => {
+    const bidId = await getBidId();
+    if (!bidId) {
+      alert('Kon bid niet vinden');
+      return;
+    }
+    
+    try {
+      // Use POST with current criteria data
+      const response = await fetch(`/api/bids/${bidId}/stages/${stage}/export/docx`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ criteria: criteria || [], sources: sources || [] })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+      
+      // Download the blob
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bid_${bidId}_${stage}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Export mislukt');
+    }
+  };
+  
+  const exportPdf = async () => {
+    const bidId = await getBidId();
+    if (!bidId) {
+      alert('Kon bid niet vinden');
+      return;
+    }
+    // PDF still uses GET (can be updated later if needed)
+    const a = document.createElement('a');
+    a.href = `/api/bids/${bidId}/stages/${stage}/export/pdf`;
+    a.target = '_blank';
+    a.rel = 'noreferrer';
+    a.click();
+  };
+  
   return (
     <div style={{ display:'inline-flex', gap:6 }}>
-      <button className="btn btn-secondary" onClick={async()=>{ const id = await getBidId(); if (id) download(`/api/bids/${id}/stages/${stage}/export/docx`); }}>Export DOCX</button>
-      <button className="btn btn-secondary" onClick={async()=>{ const id = await getBidId(); if (id) download(`/api/bids/${id}/stages/${stage}/export/pdf`); }}>Export PDF</button>
+      <button className="btn btn-secondary" onClick={exportDocx}>Export DOCX</button>
+      <button className="btn btn-secondary" onClick={exportPdf}>Export PDF</button>
     </div>
   );
 }
