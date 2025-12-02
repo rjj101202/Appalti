@@ -154,7 +154,6 @@ export default function ClientBidsOverviewPage() {
             alignItems: 'center',
             zIndex: 50,
             padding: '1.5rem'
-            console.log('modal open');
           }}
         >
           <div // dit is het pop up venster
