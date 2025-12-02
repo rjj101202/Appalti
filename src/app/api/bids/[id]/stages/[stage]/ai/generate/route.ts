@@ -238,15 +238,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 3. ELKE deelvraag krijgt een VOLLEDIGE beantwoording
 4. GEEN algemene tekst - ALLEEN specifieke antwoorden per deelvraag
 
-=== A4 LIMIET VOLLEDIG BENUTTEN ===
-KRITIEK: Als er staat "Max 2 A4" dan schrijf je MINIMAAL 1.5 A4 (±750 woorden) en MAXIMAAL 2 A4 (±1000 woorden).
-- 1 A4 = ±500 woorden = ±3000 karakters
-- 2 A4 = ±1000 woorden = ±6000 karakters
-- Verdeel de A4's GELIJK over alle deelvragen
+=== A4 LIMIET VOLLEDIG BENUTTEN (DUBBELZIJDIG!) ===
+KRITIEK: A4 in aanbestedingen is DUBBELZIJDIG (voor- en achterkant)!
+- 1 A4 dubbelzijdig = 2 pagina's = ±1000 woorden = ±6000 karakters
+- 2 A4 dubbelzijdig = 4 pagina's = ±2000 woorden = ±12000 karakters
+
+Als er staat "Max 2 A4" betekent dit 2 VELLEN DUBBELZIJDIG = 4 PAGINA'S TEKST!
+Schrijf MINIMAAL 80% van het maximum (bij 2 A4 = minimaal 1600 woorden).
 
 ALS ER 4 DEELVRAGEN ZIJN EN 2 A4 BESCHIKBAAR:
-- Elke deelvraag krijgt ±0.5 A4 (±250 woorden)
-- Schrijf NIET korter! De opdrachtgever verwacht VOLLEDIGE benutting.
+- Totaal: 2 A4 × 1000 woorden = 2000 woorden
+- Per deelvraag: ±500 woorden
+- Schrijf NIET korter! Benut de VOLLEDIGE ruimte.
 
 === STRUCTUUR PER DEELVRAAG ===
 ### [Letterlijk de deelvraag tekst]
@@ -274,17 +277,20 @@ Gebruik ALTIJD dit format: [S1:p.12] of [S2:p.5-6]
       const aantalDeelvragen = deelvragenMatch.length || 1;
       
       // Bereken A4 limiet uit context (zoek naar "Max X A4" of "MAXIMALE OMVANG: X A4")
+      // A4 is DUBBELZIJDIG = 1000 woorden per A4 (voor + achter)
       const a4Match = aiContext.match(/(?:Max|MAXIMALE OMVANG:?)\s*(\d+(?:[.,]\d+)?)\s*A4/i);
       const maxA4 = a4Match ? parseFloat(a4Match[1].replace(',', '.')) : 2;
-      const woordenPerDeelvraag = Math.round((maxA4 * 500) / aantalDeelvragen);
+      const woordenTotaal = Math.round(maxA4 * 1000); // Dubbelzijdig: 1000 woorden per A4
+      const woordenPerDeelvraag = Math.round(woordenTotaal / aantalDeelvragen);
       
       user = `⚠️ KRITIEKE INSTRUCTIE: BEANTWOORD ELKE DEELVRAAG APART!\n\n`;
       user += `Je schrijft voor "${tender.title}" namens ${clientCompany?.name || 'het bedrijf'}.\n\n`;
       
       user += `=== ${aantalDeelvragen} DEELVRAGEN OM TE BEANTWOORDEN ===\n${aiContext}\n=== EINDE DEELVRAGEN ===\n\n`;
       
-      user += `=== A4 BENUTTING (VERPLICHT) ===\n`;
-      user += `Totaal beschikbaar: ${maxA4} A4 (= ${Math.round(maxA4 * 500)} woorden)\n`;
+      user += `=== A4 BENUTTING (VERPLICHT - DUBBELZIJDIG!) ===\n`;
+      user += `⚠️ A4 = DUBBELZIJDIG (voor- en achterkant bedrukt)\n`;
+      user += `Totaal beschikbaar: ${maxA4} A4 dubbelzijdig = ${woordenTotaal} woorden\n`;
       user += `Aantal deelvragen: ${aantalDeelvragen}\n`;
       user += `Per deelvraag: ±${woordenPerDeelvraag} woorden (MINIMAAL ${Math.round(woordenPerDeelvraag * 0.8)} woorden)\n\n`;
       
@@ -354,7 +360,7 @@ Gebruik ALTIJD dit format: [S1:p.12] of [S2:p.5-6]
       user += `### Hoe de tijd van beveiligers efficiënt wordt ingevuld?\n\n`;
       user += `[Volgende deelvraag - evenveel woorden als hierboven]\n\n`;
       user += `### [Volgende deelvraag letterlijk]\n\n`;
-      user += `[Herhaal voor ELKE deelvraag - totaal ${maxA4} A4 vullen]\n\n`;
+      user += `[Herhaal voor ELKE deelvraag - totaal ${woordenTotaal} woorden over alle deelvragen]\n\n`;
       user += `## Bronverwijzingen\n`;
       user += `[S1] Bedrijfsprofiel ${clientCompany?.name || ''}, pagina 12-15\n`;
       user += `[S2] Voorgaande bid Gemeente X, pagina 8-9\n`;

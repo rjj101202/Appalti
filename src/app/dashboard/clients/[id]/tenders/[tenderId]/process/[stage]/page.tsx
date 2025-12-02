@@ -489,13 +489,35 @@ export default function StageEditorPage() {
     finally { setGenLoading(false); }
   };
 
+  // DMU (Decision Making Unit) role for AI review
+  const [dmuRole, setDmuRole] = useState<string>('Inkoopadviseur');
+  const dmuOptions = [
+    'Inkoopadviseur',
+    'Contractmanager', 
+    'Technisch specialist',
+    'Financieel adviseur',
+    'Projectmanager',
+    'Afdelingshoofd',
+    'Directeur',
+    'Kwaliteitsmanager'
+  ];
+
   const runAiReview = async () => {
     try {
       setRevLoading(true);
       const bidId = await bidIdFromQuery();
       if (!bidId) throw new Error('Bid niet gevonden');
       const html = editor?.getHTML() || '';
-      const res = await fetch(`/api/bids/${bidId}/stages/${stage}/review/paragraphs`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: html, max: 10 }) });
+      const res = await fetch(`/api/bids/${bidId}/stages/${stage}/review/paragraphs`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ 
+          content: html, 
+          max: 10,
+          dmuRole: dmuRole,
+          tenderTitle: clientName ? `aanbesteding voor ${clientName}` : 'deze aanbesteding'
+        }) 
+      });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || 'AI review mislukt');
       setSuggestions(json.data.suggestions || []);
@@ -1535,22 +1557,177 @@ export default function StageEditorPage() {
                 ))}
               </ul>
             </div>
-            {/* AI review */}
-            <div className="card" style={{ padding: '0.75rem' }}>
-              <h3>AI‑review (per alinea)</h3>
-              <button className="btn btn-secondary" onClick={runAiReview} disabled={revLoading}>{revLoading?'Controleren...':'Analyseer tekst'}</button>
-              <ul style={{ marginTop: 8 }}>
-                {suggestions.map((s:any,i:number)=> (
-                  <li key={i} style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: '0.85em', color: '#6b7280' }}>Alinea {s.index}: {s.diagnose}</div>
-                    <div style={{ whiteSpace: 'pre-wrap', fontSize: '0.95em', borderLeft: '2px solid #e5e7eb', paddingLeft: 8, marginTop: 4 }}>{s.improved}</div>
-                    <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                      <button className="btn btn-secondary" onClick={()=>applySuggestion(s,'replace')}>Vervang alinea</button>
-                      <button className="btn btn-secondary" onClick={()=>applySuggestion(s,'append')}>Voeg toe onderaan</button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+            {/* AI review met DMU perspectief */}
+            <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+              <div style={{ padding: '0.75rem', background: '#701c74', color: 'white' }}>
+                <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600 }}>AI Review (SMART Check)</h3>
+                <div style={{ fontSize: '0.8rem', marginTop: '0.25rem', opacity: 0.9 }}>
+                  Beoordeling vanuit DMU perspectief
+                </div>
+              </div>
+              <div style={{ padding: '0.75rem' }}>
+                {/* DMU Dropdown */}
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>
+                    Beoordelaar (Decision Making Unit)
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <select 
+                      value={dmuRole} 
+                      onChange={(e) => setDmuRole(e.target.value)}
+                      style={{ 
+                        flex: 1, 
+                        padding: '0.5rem', 
+                        borderRadius: '6px', 
+                        border: '1px solid #d8b4fe',
+                        fontSize: '0.9rem'
+                      }}
+                    >
+                      {dmuOptions.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="Of typ een andere rol..."
+                      value={!dmuOptions.includes(dmuRole) ? dmuRole : ''}
+                      onChange={(e) => setDmuRole(e.target.value)}
+                      style={{ 
+                        flex: 1, 
+                        padding: '0.5rem', 
+                        borderRadius: '6px', 
+                        border: '1px solid #e5e7eb',
+                        fontSize: '0.85rem'
+                      }}
+                    />
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                    De AI beoordeelt vanuit het perspectief van een {dmuRole}
+                  </div>
+                </div>
+                
+                <button 
+                  className="btn btn-primary" 
+                  onClick={runAiReview} 
+                  disabled={revLoading}
+                  style={{ width: '100%', marginBottom: '0.75rem' }}
+                >
+                  {revLoading ? 'Analyseren...' : `🔍 Review als ${dmuRole}`}
+                </button>
+                
+                {/* Suggestions */}
+                {suggestions.length > 0 && (
+                  <div style={{ marginTop: '0.5rem' }}>
+                    {suggestions.map((s: any, i: number) => (
+                      <div 
+                        key={i} 
+                        style={{ 
+                          marginBottom: '1rem', 
+                          padding: '0.75rem',
+                          background: '#faf5ff',
+                          borderRadius: '6px',
+                          border: '1px solid #e9d5ff'
+                        }}
+                      >
+                        {/* Header met SMART score */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <div style={{ fontWeight: 600, color: '#701c74' }}>
+                            Alinea {s.index + 1}
+                          </div>
+                          {s.smartScore && (
+                            <div style={{ 
+                              display: 'flex', 
+                              gap: '2px',
+                              alignItems: 'center'
+                            }}>
+                              <span style={{ fontSize: '0.75rem', color: '#6b7280', marginRight: '0.25rem' }}>SMART:</span>
+                              {[1, 2, 3, 4, 5].map(n => (
+                                <div 
+                                  key={n}
+                                  style={{
+                                    width: '12px',
+                                    height: '12px',
+                                    borderRadius: '2px',
+                                    background: n <= s.smartScore 
+                                      ? (s.smartScore >= 4 ? '#22c55e' : s.smartScore >= 3 ? '#eab308' : '#ef4444')
+                                      : '#e5e7eb'
+                                  }}
+                                />
+                              ))}
+                              <span style={{ fontSize: '0.75rem', marginLeft: '0.25rem', fontWeight: 600 }}>
+                                {s.smartScore}/5
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Diagnose */}
+                        <div style={{ 
+                          fontSize: '0.85rem', 
+                          color: '#dc2626', 
+                          marginBottom: '0.5rem',
+                          padding: '0.5rem',
+                          background: '#fef2f2',
+                          borderRadius: '4px'
+                        }}>
+                          <strong>Probleem:</strong> {s.diagnose}
+                        </div>
+                        
+                        {/* SMARTER tips */}
+                        {s.smarterTips && (
+                          <div style={{ 
+                            fontSize: '0.85rem', 
+                            color: '#0369a1', 
+                            marginBottom: '0.5rem',
+                            padding: '0.5rem',
+                            background: '#f0f9ff',
+                            borderRadius: '4px'
+                          }}>
+                            <strong>💡 SMARTER maken:</strong> {s.smarterTips}
+                          </div>
+                        )}
+                        
+                        {/* Improved version */}
+                        <div style={{ 
+                          fontSize: '0.9rem', 
+                          marginBottom: '0.5rem',
+                          padding: '0.5rem',
+                          background: '#f0fdf4',
+                          borderRadius: '4px',
+                          borderLeft: '3px solid #22c55e'
+                        }}>
+                          <strong style={{ color: '#166534' }}>Verbeterde versie:</strong>
+                          <div style={{ marginTop: '0.25rem', whiteSpace: 'pre-wrap' }}>{s.improved}</div>
+                        </div>
+                        
+                        {/* Action buttons */}
+                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                          <button 
+                            className="btn btn-secondary" 
+                            onClick={() => applySuggestion(s, 'replace')}
+                            style={{ fontSize: '0.8rem', padding: '0.35rem 0.6rem' }}
+                          >
+                            ✓ Vervang
+                          </button>
+                          <button 
+                            className="btn btn-secondary" 
+                            onClick={() => applySuggestion(s, 'append')}
+                            style={{ fontSize: '0.8rem', padding: '0.35rem 0.6rem' }}
+                          >
+                            + Voeg toe
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {suggestions.length === 0 && !revLoading && (
+                  <div style={{ fontSize: '0.85rem', color: '#6b7280', textAlign: 'center', padding: '1rem' }}>
+                    Klik op de knop om de tekst te laten beoordelen door een {dmuRole}
+                  </div>
+                )}
+              </div>
             </div>
             {/* Reviewer */}
             <div className="card" style={{ padding: '0.75rem' }}>

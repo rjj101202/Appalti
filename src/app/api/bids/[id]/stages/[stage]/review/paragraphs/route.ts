@@ -6,7 +6,12 @@ import { ObjectId } from 'mongodb';
 
 export const runtime = 'nodejs';
 
-const bodySchema = z.object({ content: z.string().optional(), max: z.number().min(1).max(15).default(6) });
+const bodySchema = z.object({ 
+  content: z.string().optional(), 
+  max: z.number().min(1).max(15).default(10),
+  dmuRole: z.string().optional(), // Decision Making Unit role
+  tenderTitle: z.string().optional() // For context
+});
 
 export async function POST(request: NextRequest, { params }: { params: { id: string; stage: string } }) {
   try {
@@ -31,16 +36,53 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) return NextResponse.json({ error: 'OPENAI_API_KEY missing' }, { status: 400 });
 
-    const instruction = `Je bent de meest waarschijnlijke interne beoordelaar van de opdrachtgever (bijv. inkoopadviseur/contractmanager). Beoordeel streng op eisen, bewijs en helderheid. Voor elke alinea: (1) korte diagnose (1 zin), (2) verbeterde alinea. Antwoord strikt als JSON: [{index,diagnose,improved}]`;
-    const user = `Alinea's (genummerd):\n` + paragraphs.map((p, i) => `${i}: ${p}`).join('\n\n');
+    // DMU role for perspective-based review
+    const dmuRole = body.data.dmuRole || 'Inkoopadviseur';
+    const tenderTitle = body.data.tenderTitle || 'deze aanbesteding';
+
+    const instruction = `Je bent een ${dmuRole} die inschrijvingen beoordeelt voor ${tenderTitle}.
+
+=== JOUW ROL ALS BEOORDELAAR ===
+Als ${dmuRole} beoordeel je inschrijvingen vanuit jouw specifieke perspectief:
+- Inkoopadviseur: focus op compliance, volledigheid, gunningscriteria
+- Contractmanager: focus op uitvoerbaarheid, risico's, SLA's
+- Technisch specialist: focus op technische haalbaarheid, innovatie
+- Financieel adviseur: focus op prijsstelling, TCO, waarde
+- Projectmanager: focus op planning, aanpak, resources
+
+=== SMART CHECK (KRITIEK) ===
+Beoordeel ELKE alinea op SMART criteria:
+- S (Specifiek): Zijn namen, methoden, tools concreet benoemd?
+- M (Meetbaar): Zijn er cijfers, KPI's, percentages genoemd?
+- A (Acceptabel): Sluit het aan bij de vraag van de opdrachtgever?
+- R (Realistisch): Is de claim geloofwaardig en onderbouwd?
+- T (Tijdgebonden): Zijn er termijnen, deadlines, doorlooptijden?
+
+=== OUTPUT FORMAT (STRIKT JSON) ===
+Geef per alinea:
+1. "diagnose": Wat is er mis? Welke SMART-criteria ontbreken?
+2. "smartScore": Score 1-5 (1=niet SMART, 5=volledig SMART)
+3. "smarterTips": Hoe kan het SMARTER? (concreet advies)
+4. "improved": Verbeterde versie van de alinea
+
+Antwoord als JSON array:
+[{
+  "index": 0,
+  "diagnose": "Mist specifieke cijfers en tijdslijnen",
+  "smartScore": 2,
+  "smarterTips": "Voeg toe: doorlooptijd (X dagen), succespercentage (X%), specifieke toolnaam",
+  "improved": "Verbeterde tekst..."
+}]`;
+
+    const user = `BEOORDEEL DEZE ALINEA'S ALS ${dmuRole.toUpperCase()}:\n\n` + paragraphs.map((p, i) => `[Alinea ${i}]\n${p}`).join('\n\n---\n\n');
 
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'authorization': `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-        temperature: 0,
-        max_tokens: 1200,
+        model: 'gpt-4o', // Latest GPT-4 model
+        temperature: 0.1,
+        max_tokens: 4000,
         messages: [
           { role: 'system', content: instruction },
           { role: 'user', content: user }
@@ -53,17 +95,28 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
     const data = await res.json();
     const text = data?.choices?.[0]?.message?.content || JSON.stringify(data) || '[]';
+    
+    // Parse JSON from response (handle markdown code blocks)
     let parsed: any[] = [];
-    try { parsed = JSON.parse(text); } catch { parsed = []; }
+    try { 
+      const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/(\[[\s\S]*\])/);
+      const jsonStr = jsonMatch ? jsonMatch[1] : text;
+      parsed = JSON.parse(jsonStr); 
+    } catch { 
+      console.error('Failed to parse AI response:', text);
+      parsed = []; 
+    }
 
     const suggestions = parsed.map((x: any) => ({
       index: Number(x.index),
       original: paragraphs[Number(x.index)] || '',
       diagnose: String(x.diagnose || ''),
+      smartScore: Number(x.smartScore) || 0,
+      smarterTips: String(x.smarterTips || ''),
       improved: String(x.improved || '')
     })).filter((s: any) => s.original && s.improved);
 
-    return NextResponse.json({ success: true, data: { suggestions } });
+    return NextResponse.json({ success: true, data: { suggestions, dmuRole } });
   } catch (e) {
     console.error('Paragraph review error', e);
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
