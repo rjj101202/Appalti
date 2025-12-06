@@ -180,7 +180,7 @@ export default function ClientBidsOverviewPage() {
               <button
                 className="btn btn-danger"
                 type="button"
-                onClick={handleDelete}// kan crtl z voor wijziging
+                onClick={handleDelete}
               >
                 {deleteLoading ? 'Verwijderen…' : 'Verwijder definitief'}
               </button>
